@@ -2,6 +2,12 @@ import { FastifyPluginAsync } from 'fastify';
 import { AccountService } from '../../services/account.service.js';
 import { PaymentService } from '../../services/payment.service.js';
 import { prisma } from '../../db/prisma.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function emitSocketEvent(fastify: any, event: string, payload: any) {
   if (fastify.websocketServer) {
@@ -40,12 +46,14 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
 
     const accounts = await prisma.account.findMany({
       where: { shiftId: activeShift.id },
-      include: { orderItems: true }
+      include: { orderItems: true, payments: true }
     });
 
     const accountsWithTotal = accounts.map((acc) => {
       const total = acc.orderItems.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
-      return { ...acc, total };
+      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const pendingAmount = total - paidSum;
+      return { ...acc, total, pendingAmount, payments: acc.payments };
     });
 
     return reply.code(200).send(accountsWithTotal);
@@ -141,6 +149,67 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const payments = await PaymentService.listPayments(id);
       return reply.code(200).send(payments);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/:id/payments/upload', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    try {
+      const parts = request.parts();
+      let amount = 0;
+      let method = '';
+      let proofUrl: string | undefined;
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const ext = path.extname(part.filename).toLowerCase();
+          if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+            return reply.code(400).send({ error: 'Only JPG, PNG, or WebP images accepted' });
+          }
+
+          const uploadsDir = path.join(__dirname, '../../uploads');
+          await fs.mkdir(uploadsDir, { recursive: true });
+
+          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          const buffer = await part.toBuffer();
+          if (buffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ error: 'File size must be under 5MB' });
+          }
+          await fs.writeFile(filepath, buffer);
+          proofUrl = `uploads/payments/${filename}`;
+        } else {
+          const field = part as any;
+          if (field.fieldname === 'amount') amount = Number(field.value);
+          if (field.fieldname === 'method') method = String(field.value);
+        }
+      }
+
+      if (!amount || amount <= 0) {
+        return reply.code(400).send({ error: 'Amount must be greater than zero' });
+      }
+
+      if (!method || !['CASH', 'TRANSFER', 'CARD'].includes(method)) {
+        return reply.code(400).send({ error: 'Invalid payment method' });
+      }
+
+      const result = await PaymentService.createPayment(id, amount, method as any, proofUrl);
+      const account = await AccountService.getAccountWithItems(id);
+
+      emitSocketEvent(fastify, 'payment:created', {
+        payment: result.payment,
+        pendingAmount: result.pendingAmount,
+        account
+      });
+
+      return reply.code(201).send({
+        payment: result.payment,
+        pendingAmount: result.pendingAmount
+      });
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });
     }

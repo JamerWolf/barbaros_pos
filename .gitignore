@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma generated migrations
+apps/api/prisma/migrations/
+apps/api/generated/
+
+# Vite / PWA dev-dist
+apps/web/dev-dist/
+apps/web/dist/
+
+# User uploads
+apps/api/uploads/*
