@@ -1,0 +1,55 @@
+{
+  "hash": "31b4c235",
+  "configHash": "e48efa29",
+  "lockfileHash": "775d8329",
+  "browserHash": "eca8c715",
+  "optimized": {
+    "react": {
+      "src": "../../../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "06b2ed53",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../../../node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "186190bf",
+      "needsInterop": false
+    },
+    "zustand": {
+      "src": "../../../../node_modules/zustand/esm/index.mjs",
+      "file": "zustand.js",
+      "fileHash": "b5691d6d",
+      "needsInterop": false
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "a6ded114",
+      "needsInterop": true
+    },
+    "zustand/middleware": {
+      "src": "../../../../node_modules/zustand/esm/middleware.mjs",
+      "file": "zustand_middleware.js",
+      "fileHash": "931b9ab5",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "d364a406",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-5CN3PTXN": {
+      "file": "chunk-5CN3PTXN.js"
+    },
+    "chunk-F3VLPNZK": {
+      "file": "chunk-F3VLPNZK.js"
+    },
+    "chunk-5WRI5ZAA": {
+      "file": "chunk-5WRI5ZAA.js"
+    }
+  }
+}

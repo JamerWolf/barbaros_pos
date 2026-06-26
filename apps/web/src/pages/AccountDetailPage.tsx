@@ -12,7 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export function AccountDetailPage(): JSX.Element {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { accounts, updateAccount, addItem, removeItem } = useAccountStore();
+  const { accounts, updateAccount } = useAccountStore();
   const { products, categories, fetchProducts, fetchCategories } = useProductStore();
   const account = id ? accounts[id] : undefined;
 
@@ -220,7 +220,9 @@ export function AccountDetailPage(): JSX.Element {
       {showPaymentModal && (
         <PaymentModal
           accountId={account.id}
+          accountTotal={Number(account.total ?? 0)}
           pendingAmount={pendingAmount}
+          payments={account.payments}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             // Refresh account data

@@ -1,0 +1,54 @@
+schema: spec-driven
+project: barbaros_pos
+engram_project: pos-discoteca
+persistence: hybrid
+
+context: |
+  Sistema POS para discoteca. Monorepo npm workspaces.
+  Backend: Node.js + TypeScript + Fastify + Socket.io + PostgreSQL + Prisma (apps/api)
+  Frontend: React + TypeScript + Vite + TailwindCSS + Workbox PWA (apps/web)
+  Shared types: packages/shared
+  Infraestructura: Docker + Linux. LAN local, sin internet requerido.
+  Modos: Personal (sin PIN) y Admin (PIN numérico). Convenciones: TypeScript strict, conventional commits.
+
+strict_tdd: false
+strict_tdd_reason: No hay test runner configurado. El proyecto está en fase de inicio.
+
+testing:
+  runner: none
+  unit: false
+  integration: false
+  e2e: false
+  coverage: false
+  linter: false
+  type_checker: false
+  formatter: false
+
+rules:
+  proposal:
+    - Incluir plan de rollback para cambios riesgosos
+    - Considerar impacto en modo offline (PWA + Workbox)
+    - Considerar sincronización en tiempo real (Socket.io)
+  specs:
+    - Usar Given/When/Then para escenarios
+    - Usar palabras clave RFC 2119 (MUST, SHALL, SHOULD, MAY)
+    - Respetar reglas de negocio documentadas en AGENTS.md
+  design:
+    - Incluir diagramas de secuencia para flujos complejos
+    - Documentar decisiones de arquitectura con justificación
+    - Considerar separación REST (operaciones) vs WebSocket (tiempo real)
+  tasks:
+    - Agrupar por fase, numeración jerárquica
+    - Tareas completables en una sesión
+    - Mantener types compartidos en packages/shared
+  apply:
+    - Seguir patrones de código existentes
+    - TypeScript strict: true en todos los workspaces
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Advertir antes de mergear deltas destructivos

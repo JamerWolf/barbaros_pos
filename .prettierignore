@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules
+dist
+build
+*.tsbuildinfo
+
+# SDD artifacts (do not reformat existing specs / design docs)
+openspec
+.atl
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Docker / infra data
+pg_data

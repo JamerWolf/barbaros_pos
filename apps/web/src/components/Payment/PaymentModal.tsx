@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { PaymentMethod } from '@barbaros/shared';
+import type { Payment } from '@barbaros/shared';
 import { formatCOP } from '../../utils/format.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface PaymentModalProps {
   accountId: string;
+  accountTotal: number;
   pendingAmount: number;
+  payments?: Payment[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function PaymentModal({ accountId, pendingAmount, onClose, onSuccess }: PaymentModalProps): JSX.Element {
+export function PaymentModal({ accountId, accountTotal, pendingAmount, payments = [], onClose, onSuccess }: PaymentModalProps): JSX.Element {
   const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [amount, setAmount] = useState(pendingAmount.toString());
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -95,14 +98,29 @@ export function PaymentModal({ accountId, pendingAmount, onClose, onSuccess }: P
         {/* Summary */}
         <div className="mb-4 rounded-xl bg-gray-900 p-4">
           <div className="flex justify-between text-sm text-gray-400">
-            <span>Total:</span>
-            <span className="font-bold text-white">{formatCOP(pendingAmount)}</span>
+            <span>Total cuenta:</span>
+            <span className="font-bold text-white">{formatCOP(accountTotal)}</span>
           </div>
           <div className="flex justify-between text-sm text-gray-400">
             <span>Pendiente:</span>
             <span className="font-bold text-yellow-400">{formatCOP(pendingAmount)}</span>
           </div>
         </div>
+
+        {/* Existing payments */}
+        {payments.length > 0 && (
+          <div className="mb-4 rounded-xl bg-gray-900 p-4">
+            <p className="mb-2 text-xs text-gray-400">Pagos registrados:</p>
+            {payments.map((p, i) => (
+              <div key={i} className="flex justify-between text-sm">
+                <span className="text-gray-300">
+                  {p.method === PaymentMethod.CASH ? 'Efectivo' : p.method === PaymentMethod.TRANSFER ? 'Transferencia' : 'Tarjeta'}
+                </span>
+                <span className="text-green-400">{formatCOP(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Method selector */}
