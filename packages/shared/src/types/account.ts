@@ -1,0 +1,25 @@
+import { IOrderItem } from './order-item.js';
+
+export type AccountStatus = 'OPEN' | 'CLOSED';
+export type ShiftStatus = 'OPEN' | 'CLOSED';
+
+export interface IShift {
+  id: string;
+  status: ShiftStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IAccount {
+  id: string;
+  shiftId: string;
+  number: number;
+  name: string;
+  status: AccountStatus;
+  items?: IOrderItem[];
+  total?: number;
+  pendingAmount?: number;
+  payments?: any[];
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  OPEN
+  CLOSED
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+}
+
+model Shift {
+  id        String      @id @default(uuid())
+  status    ShiftStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  accounts Account[]
+
+  @@map("shifts")
+}
+
+model Account {
+  id        String        @id @default(uuid())
+  shiftId   String
+  number    Int
+  name      String
+  status    AccountStatus @default(OPEN)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  shift      Shift       @relation(fields: [shiftId], references: [id])
+  orderItems OrderItem[]
+  payments   Payment[]
+
+  @@unique([shiftId, number])
+  @@map("accounts")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id        String      @id @default(uuid())
+  name      String
+  price     Decimal     @db.Decimal(10, 2)
+  categoryId String?
+  photoUrl  String?
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  category   Category?   @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  accountId String
+  productId String
+  quantity  Int      @default(1)
+  unitPrice Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([accountId, productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  accountId String
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  proofUrl  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
