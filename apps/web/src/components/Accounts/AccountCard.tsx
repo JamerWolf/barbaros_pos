@@ -5,12 +5,16 @@ export interface AccountCardProps {
   id?: string;
   name: string;
   total: number;
+  pendingAmount?: number;
   status: 'open' | 'closed' | 'payment_pending';
   onClick?: () => void;
 }
 
-export const AccountCard: React.FC<AccountCardProps> = ({ name, total, status, onClick }) => {
+export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAmount = 0, status, onClick }) => {
   const getStatusColor = () => {
+    if (status === 'open' && pendingAmount > 0) {
+      return 'bg-orange-600';
+    }
     switch (status) {
       case 'open':
         return 'bg-green-600';
