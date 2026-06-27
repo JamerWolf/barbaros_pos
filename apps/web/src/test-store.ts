@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { useAccountStore } from './store/accountStore.js';
 import type { IAccount } from '@barbaros/shared';
+import { DiscountType } from '@barbaros/shared';
 
 function runStoreTests() {
   console.log('--- Test 4.3: Zustand Store Updates and Deletes ---');
@@ -12,6 +13,8 @@ function runStoreTests() {
     number: 1,
     name: 'Mesa 1',
     status: 'OPEN',
+    discountType: DiscountType.NONE,
+    discountValue: 0,
     createdAt: new Date(),
     updatedAt: new Date()
   };

@@ -223,6 +223,8 @@ export function AccountDetailPage(): JSX.Element {
           accountTotal={Number(account.total ?? 0)}
           pendingAmount={pendingAmount}
           payments={account.payments}
+          accountDiscountType={account.discountType}
+          accountDiscountValue={Number(account.discountValue ?? 0)}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             // Refresh account data

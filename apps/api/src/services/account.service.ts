@@ -1,4 +1,5 @@
 import { prisma } from '../db/prisma.js';
+import { calculateAccountTotal, DiscountType } from '@barbaros/shared';
 
 export class AccountService {
   static async getActiveShift() {
@@ -60,10 +61,21 @@ export class AccountService {
       include: { orderItems: { include: { product: true } }, payments: true }
     });
     if (!account) return null;
-    const total = account.orderItems.reduce((sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity, 0);
+
+    const result = calculateAccountTotal({
+      items: account.orderItems.map((item: any) => ({
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discountType: item.discountType as DiscountType,
+        discountValue: Number(item.discountValue),
+      })),
+      accountDiscountType: account.discountType as DiscountType,
+      accountDiscountValue: Number(account.discountValue),
+    });
+
     const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-    const pendingAmount = total - paidSum;
-    return { ...account, total, pendingAmount, payments: account.payments };
+    const pendingAmount = result.total - paidSum;
+    return { ...account, total: result.total, pendingAmount, payments: account.payments };
   }
 
   static async closeAccount(id: string) {
@@ -74,15 +86,25 @@ export class AccountService {
     if (!account) throw new Error('Account not found');
     if (account.status === 'CLOSED') throw new Error('Account is already closed');
 
-    const total = account.orderItems.reduce((sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity, 0);
+    const result = calculateAccountTotal({
+      items: account.orderItems.map((item: any) => ({
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discountType: item.discountType as DiscountType,
+        discountValue: Number(item.discountValue),
+      })),
+      accountDiscountType: account.discountType as DiscountType,
+      accountDiscountValue: Number(account.discountValue),
+    });
+
     const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-    const pendingAmount = total - paidSum;
+    const pendingAmount = result.total - paidSum;
 
     if (pendingAmount > 0) {
       throw new Error('Cannot close account with pending payments');
     }
 
-    if (total === 0) {
+    if (result.total === 0) {
       await prisma.account.delete({ where: { id } });
       return { deleted: true, id };
     }
@@ -99,8 +121,18 @@ export class AccountService {
       where: { accountId },
       include: { product: true }
     });
-    const total = items.reduce((sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity, 0);
-    return { items, total };
+    const account = await prisma.account.findUnique({ where: { id: accountId } });
+    const result = calculateAccountTotal({
+      items: items.map((item: any) => ({
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discountType: (item.discountType as DiscountType) || DiscountType.NONE,
+        discountValue: Number(item.discountValue ?? 0),
+      })),
+      accountDiscountType: (account?.discountType as DiscountType) || DiscountType.NONE,
+      accountDiscountValue: Number(account?.discountValue ?? 0),
+    });
+    return { items, total: result.total };
   }
 
   static async addItem(accountId: string, productId: string, quantity?: number) {
@@ -156,5 +188,67 @@ export class AccountService {
     if (!item) throw new Error('Item not found');
     await prisma.orderItem.delete({ where: { id: itemId } });
     return { deleted: true };
+  }
+
+  static async setItemDiscount(
+    accountId: string,
+    itemId: string,
+    discountType: DiscountType,
+    discountValue: number
+  ) {
+    const account = await prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new Error('Account not found');
+    if (account.status === 'CLOSED') throw new Error('Account is closed');
+
+    if (!Object.values(DiscountType).includes(discountType)) {
+      throw new Error('Invalid discount type');
+    }
+
+    if (discountType === DiscountType.NONE) {
+      discountValue = 0;
+    } else if (discountType === DiscountType.FIXED) {
+      if (discountValue < 0) throw new Error('Value out of range');
+    } else if (discountType === DiscountType.PERCENT) {
+      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range');
+    }
+
+    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } });
+    if (!item) throw new Error('Item not found');
+
+    await prisma.orderItem.update({
+      where: { id: itemId },
+      data: { discountType, discountValue },
+    });
+
+    return this.getAccountWithItems(accountId);
+  }
+
+  static async setAccountDiscount(
+    accountId: string,
+    discountType: DiscountType,
+    discountValue: number
+  ) {
+    const account = await prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new Error('Account not found');
+    if (account.status === 'CLOSED') throw new Error('Account is closed');
+
+    if (!Object.values(DiscountType).includes(discountType)) {
+      throw new Error('Invalid discount type');
+    }
+
+    if (discountType === DiscountType.NONE) {
+      discountValue = 0;
+    } else if (discountType === DiscountType.FIXED) {
+      if (discountValue < 0) throw new Error('Value out of range');
+    } else if (discountType === DiscountType.PERCENT) {
+      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range');
+    }
+
+    await prisma.account.update({
+      where: { id: accountId },
+      data: { discountType, discountValue },
+    });
+
+    return this.getAccountWithItems(accountId);
   }
 }

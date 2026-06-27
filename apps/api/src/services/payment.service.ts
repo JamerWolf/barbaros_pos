@@ -1,5 +1,5 @@
 import { prisma } from '../db/prisma.js';
-import { PaymentMethod } from '@barbaros/shared';
+import { PaymentMethod, calculateAccountTotal, DiscountType } from '@barbaros/shared';
 
 export class PaymentService {
   static async createPayment(
@@ -17,7 +17,6 @@ export class PaymentService {
     }
 
     return prisma.$transaction(async (tx: any) => {
-      // Fetch account + orderItems → compute total
       const account = await tx.account.findUnique({
         where: { id: accountId },
         include: { orderItems: true }
@@ -26,26 +25,29 @@ export class PaymentService {
       if (!account) throw new Error('Account not found');
       if (account.status !== 'OPEN') throw new Error('Account is not open');
 
-      const total = account.orderItems.reduce(
-        (sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity,
-        0
-      );
+      const result = calculateAccountTotal({
+        items: account.orderItems.map((item: any) => ({
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          discountType: item.discountType as DiscountType,
+          discountValue: Number(item.discountValue),
+        })),
+        accountDiscountType: account.discountType as DiscountType,
+        accountDiscountValue: Number(account.discountValue),
+      });
 
-      // SUM(payments.amount) → existing paid
       const paidResult = await tx.payment.aggregate({
         where: { accountId },
         _sum: { amount: true }
       });
 
       const existingPaid = Number(paidResult._sum.amount || 0);
-      const pendingAmount = total - existingPaid;
+      const pendingAmount = result.total - existingPaid;
 
-      // Validate: amount <= pending
       if (amount > pendingAmount) {
         throw new Error('Amount exceeds pending amount');
       }
 
-      // Insert payment
       const payment = await tx.payment.create({
         data: {
           accountId,
@@ -76,10 +78,16 @@ export class PaymentService {
 
     if (!account) throw new Error('Account not found');
 
-    const total = account.orderItems.reduce(
-      (sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity,
-      0
-    );
+    const result = calculateAccountTotal({
+      items: account.orderItems.map((item: any) => ({
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discountType: item.discountType as DiscountType,
+        discountValue: Number(item.discountValue),
+      })),
+      accountDiscountType: account.discountType as DiscountType,
+      accountDiscountValue: Number(account.discountValue),
+    });
 
     const paidResult = await prisma.payment.aggregate({
       where: { accountId },
@@ -87,6 +95,6 @@ export class PaymentService {
     });
 
     const existingPaid = Number(paidResult._sum.amount || 0);
-    return total - existingPaid;
+    return result.total - existingPaid;
   }
 }

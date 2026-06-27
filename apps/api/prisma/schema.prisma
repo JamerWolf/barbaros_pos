@@ -24,6 +24,12 @@ enum PaymentMethod {
   CARD
 }
 
+enum DiscountType {
+  NONE
+  FIXED
+  PERCENT
+}
+
 model Shift {
   id        String      @id @default(uuid())
   status    ShiftStatus @default(OPEN)
@@ -36,13 +42,15 @@ model Shift {
 }
 
 model Account {
-  id        String        @id @default(uuid())
-  shiftId   String
-  number    Int
-  name      String
-  status    AccountStatus @default(OPEN)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  shiftId        String
+  number         Int
+  name           String
+  status         AccountStatus @default(OPEN)
+  discountType   DiscountType @default(NONE)
+  discountValue  Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   shift      Shift       @relation(fields: [shiftId], references: [id])
   orderItems OrderItem[]
@@ -79,13 +87,15 @@ model Product {
 }
 
 model OrderItem {
-  id        String   @id @default(uuid())
-  accountId String
-  productId String
-  quantity  Int      @default(1)
-  unitPrice Decimal  @db.Decimal(10, 2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String       @id @default(uuid())
+  accountId     String
+  productId     String
+  quantity      Int          @default(1)
+  unitPrice     Decimal      @db.Decimal(10, 2)
+  discountType  DiscountType @default(NONE)
+  discountValue Decimal      @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])

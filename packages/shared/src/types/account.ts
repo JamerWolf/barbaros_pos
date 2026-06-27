@@ -1,4 +1,5 @@
 import { IOrderItem } from './order-item.js';
+import { DiscountType } from './discount.js';
 
 export type AccountStatus = 'OPEN' | 'CLOSED';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
@@ -16,6 +17,8 @@ export interface IAccount {
   number: number;
   name: string;
   status: AccountStatus;
+  discountType: DiscountType;
+  discountValue: number;
   items?: IOrderItem[];
   total?: number;
   pendingAmount?: number;

@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { AccountService } from '../../services/account.service.js';
 import { PaymentService } from '../../services/payment.service.js';
 import { prisma } from '../../db/prisma.js';
+import { calculateAccountTotal, DiscountType } from '@barbaros/shared';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
@@ -50,10 +51,19 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     const accountsWithTotal = accounts.map((acc) => {
-      const total = acc.orderItems.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+      const result = calculateAccountTotal({
+        items: acc.orderItems.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          discountType: item.discountType as DiscountType,
+          discountValue: Number(item.discountValue),
+        })),
+        accountDiscountType: acc.discountType as DiscountType,
+        accountDiscountValue: Number(acc.discountValue),
+      });
       const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const pendingAmount = total - paidSum;
-      return { ...acc, total, pendingAmount, payments: acc.payments };
+      const pendingAmount = result.total - paidSum;
+      return { ...acc, total: result.total, pendingAmount, payments: acc.payments };
     });
 
     return reply.code(200).send(accountsWithTotal);
@@ -266,6 +276,96 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(200).send(updated);
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/:id/discount', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { discountType, discountValue } = request.body as {
+      discountType?: string;
+      discountValue?: number;
+    };
+
+    if (!discountType || !['NONE', 'FIXED', 'PERCENT'].includes(discountType)) {
+      return reply.code(400).send({ error: 'Invalid discount type' });
+    }
+
+    if (discountValue === undefined || discountValue < 0) {
+      return reply.code(400).send({ error: 'Value out of range' });
+    }
+
+    if (discountType === 'PERCENT' && discountValue > 100) {
+      return reply.code(400).send({ error: 'Value out of range' });
+    }
+
+    try {
+      const account = await AccountService.setAccountDiscount(
+        id,
+        discountType as DiscountType,
+        discountValue
+      );
+
+      if (!account) return reply.code(404).send({ error: 'Account not found' });
+
+      const paidSum = account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0;
+      const pendingAmount = account.total! - paidSum;
+
+      emitSocketEvent(fastify, 'discount:updated', {
+        accountId: id,
+        total: account.total!,
+        pendingAmount,
+        account,
+      });
+
+      return reply.code(200).send({ account, total: account.total, pendingAmount });
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/:id/items/:itemId/discount', async (request, reply) => {
+    const { id, itemId } = request.params as { id: string; itemId: string };
+    const { discountType, discountValue } = request.body as {
+      discountType?: string;
+      discountValue?: number;
+    };
+
+    if (!discountType || !['NONE', 'FIXED', 'PERCENT'].includes(discountType)) {
+      return reply.code(400).send({ error: 'Invalid discount type' });
+    }
+
+    if (discountValue === undefined || discountValue < 0) {
+      return reply.code(400).send({ error: 'Value out of range' });
+    }
+
+    if (discountType === 'PERCENT' && discountValue > 100) {
+      return reply.code(400).send({ error: 'Value out of range' });
+    }
+
+    try {
+      const account = await AccountService.setItemDiscount(
+        id,
+        itemId,
+        discountType as DiscountType,
+        discountValue
+      );
+
+      if (!account) return reply.code(404).send({ error: 'Account not found' });
+
+      const paidSum = account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0;
+      const pendingAmount = account.total! - paidSum;
+
+      emitSocketEvent(fastify, 'discount:updated', {
+        accountId: id,
+        total: account.total!,
+        pendingAmount,
+        account,
+      });
+
+      return reply.code(200).send({ account, total: account.total, pendingAmount });
+    } catch (err: any) {
+      const status = err.message.includes('not found') ? 404 : 400;
+      return reply.code(status).send({ error: err.message });
     }
   });
 };

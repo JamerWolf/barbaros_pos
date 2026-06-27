@@ -3,13 +3,14 @@
 **Change**: payments
 **Version**: N/A (delta spec)
 **Mode**: Standard (no strict TDD active)
+**Re-verification**: v2 — post-fix check
 
 ### Completeness
 | Metric | Value |
 |--------|-------|
 | Tasks total | 20 |
 | Tasks complete | 18 |
-| Tasks incomplete | 2 (V.1–V.5 verification tasks) |
+| Tasks incomplete | 2 (V.1–V.5 verification tasks — runtime-only, cannot validate statically) |
 
 ### Build & Tests Execution
 **Build**: ✅ Passed
@@ -27,6 +28,24 @@ npm error Missing script: "test"
 No runtime tests exist for the payments feature.
 
 **Coverage**: ➖ Not available (no test runner configured)
+
+### Lint Execution
+**Lint**: ✅ No source-code errors (0 errors in project source)
+```text
+> eslint apps/web/src apps/api/src packages/shared/src
+```
+All 701 reported errors originate from `.vite/deps/` and `node_modules` build cache — NOT from project source code.
+Source files produce only `@typescript-eslint/no-explicit-any` **warnings** (10 total), zero errors.
+
+### Previous Warnings — Resolution Status
+
+| # | Previous Warning | Status | Evidence |
+|---|-----------------|--------|----------|
+| 1 | `PaymentModal.tsx` — modal displays `pendingAmount` as "Total" instead of account's actual total | ✅ RESOLVED | `PaymentModal.tsx:10,17` — new `accountTotal` prop; `:101-102` — "Total cuenta: `{formatCOP(accountTotal)}`"; `:105-106` — "Pendiente: `{formatCOP(pendingAmount)}`" |
+| 2 | `PaymentModal.tsx` — modal omits existing payments list | ✅ RESOLVED | `PaymentModal.tsx:111-123` — renders "Pagos registrados:" with method labels and amounts |
+| 3 | `.gitignore` missing uploads directory | ✅ RESOLVED | `.gitignore:38-39` — `apps/api/uploads/*` present; `uploads/.gitkeep` exists |
+| 4 | Lint error: unused `addItem`/`removeItem` in `AccountDetailPage.tsx` | ✅ RESOLVED | `AccountDetailPage.tsx:15` — no longer destructures unused vars; uses `handleAddProduct`/`handleRemoveItem` via direct fetch |
+| 5 | Lint error: unused `activeSet` in `accountUIStore.ts` | ✅ RESOLVED | grep found zero matches — variable removed or renamed |
 
 ### Spec Compliance Matrix
 
@@ -72,28 +91,29 @@ No runtime tests exist for the payments feature.
 |-------------|----------|----------|--------|
 | Modal Trigger | Pay button visible on open account | `AccountDetailPage.tsx:177-184` — `{account.status === 'OPEN' && <button>}` | ✅ COMPLIANT |
 | Modal Trigger | Pay button hidden on closed account | Same conditional | ✅ COMPLIANT |
-| Modal Display | Modal shows current totals | `PaymentModal.tsx:96-104` — **WARNING**: displays `pendingAmount` as "Total" (should be `account.total`) | ⚠️ PARTIAL |
-| Modal Display | Modal shows existing payments list | **MISSING** — no payment list rendered in modal | ❌ UNTESTED |
-| Method Selector | Default method selection | `PaymentModal.tsx:15` — `useState(PaymentMethod.CASH)` | ✅ COMPLIANT |
-| Method Selector | Method switching | `PaymentModal.tsx:110-123` — clickable buttons with state | ✅ COMPLIANT |
-| Amount Input | Default amount set to pending | `PaymentModal.tsx:16` — `useState(pendingAmount.toString())` | ✅ COMPLIANT |
-| Amount Input | Manual amount entry | `PaymentModal.tsx:135` — `onChange` handler | ✅ COMPLIANT |
-| Amount Input | Amount validation rejects zero | `PaymentModal.tsx:26-28` — `amountNum <= 0` check | ✅ COMPLIANT |
-| Amount Input | Amount validation rejects exceeding pending | `PaymentModal.tsx:31-33` — `amountNum > pendingAmount` check | ✅ COMPLIANT |
-| Proof Upload | Proof upload visible for transfer | `PaymentModal.tsx:145` — `{method === PaymentMethod.TRANSFER && ...}` | ✅ COMPLIANT |
+| Modal Display | Modal shows total account amount | `PaymentModal.tsx:99-103` — "Total cuenta" with `accountTotal` prop | ✅ COMPLIANT |
+| Modal Display | Modal shows pending amount | `PaymentModal.tsx:104-107` — "Pendiente" with `pendingAmount` prop | ✅ COMPLIANT |
+| Modal Display | Modal shows existing payments list | `PaymentModal.tsx:111-123` — renders method + amount per payment | ✅ COMPLIANT |
+| Method Selector | Default method selection | `PaymentModal.tsx:18` — `useState(PaymentMethod.CASH)` | ✅ COMPLIANT |
+| Method Selector | Method switching | `PaymentModal.tsx:128-141` — clickable buttons with state | ✅ COMPLIANT |
+| Amount Input | Default amount set to pending | `PaymentModal.tsx:19` — `useState(pendingAmount.toString())` | ✅ COMPLIANT |
+| Amount Input | Manual amount entry | `PaymentModal.tsx:153` — `onChange` handler | ✅ COMPLIANT |
+| Amount Input | Amount validation rejects zero | `PaymentModal.tsx:29-31` — `amountNum <= 0` check | ✅ COMPLIANT |
+| Amount Input | Amount validation rejects exceeding pending | `PaymentModal.tsx:34-36` — `amountNum > pendingAmount` check | ✅ COMPLIANT |
+| Proof Upload | Proof upload visible for transfer | `PaymentModal.tsx:163` — `{method === PaymentMethod.TRANSFER && ...}` | ✅ COMPLIANT |
 | Proof Upload | Proof upload hidden for non-transfer | Same conditional | ✅ COMPLIANT |
 | Proof Upload | File type validation | Route `:169-171` — validates `.jpg/.jpeg/.png/.webp` | ✅ COMPLIANT |
 | Proof Upload | File size validation | Route `:180` — `buffer.length > 5MB` check | ✅ COMPLIANT |
-| Payment Submission | Successful payment submission | `PaymentModal.tsx:62-74` — POST, then `onSuccess()` + `onClose()` | ✅ COMPLIANT |
-| Payment Submission | Payment submission error handling | `PaymentModal.tsx:68-70` — catches error, sets state | ✅ COMPLIANT |
+| Payment Submission | Successful payment submission | `PaymentModal.tsx:76-77` — POST, then `onSuccess()` + `onClose()` | ✅ COMPLIANT |
+| Payment Submission | Payment submission error handling | `PaymentModal.tsx:78-80` — catches error, sets state | ✅ COMPLIANT |
 | Pending Display | Pending displayed on page load | `AccountDetailPage.tsx:169-172` — `Pendiente: {formatCOP(pendingAmount)}` | ✅ COMPLIANT |
 | Pending Display | Pending updated via WebSocket | `useAccountSockets.ts:37-41` — `payment:created` → `updateAccount(data.account)` | ✅ COMPLIANT |
 | Close Button Guard | Close button enabled when pending zero | `AccountDetailPage.tsx:188-190` — `disabled={!canClose}` | ✅ COMPLIANT |
 | Close Button Guard | Close button disabled when pending positive | Same — `canClose = pendingAmount === 0` | ✅ COMPLIANT |
-| Mobile-First | Modal full-screen on mobile | `PaymentModal.tsx:83` — `fixed inset-0` + responsive | ✅ COMPLIANT |
+| Mobile-First | Modal full-screen on mobile | `PaymentModal.tsx:86` — `fixed inset-0` + responsive | ✅ COMPLIANT |
 | Mobile-First | Touch-friendly buttons | `h-12` = 48px > 44px minimum | ✅ COMPLIANT |
 
-**Compliance summary**: 39/41 scenarios compliant, 1 partial, 1 untested (payment list in modal)
+**Compliance summary**: 41/41 scenarios compliant
 
 ### Correctness (Static Evidence)
 
@@ -107,7 +127,7 @@ No runtime tests exist for the payments feature.
 | API routes for payments | ✅ Implemented | POST + GET sub-routes under accounts |
 | Proof upload endpoint | ✅ Implemented | Separate `/:id/payments/upload` endpoint (multipart) |
 | Static file serving | ✅ Implemented | `app.ts:33-37` — `@fastify/static` on `/uploads/` |
-| Frontend PaymentModal | ✅ Implemented | Method selector, amount input, proof upload, validation |
+| Frontend PaymentModal | ✅ Implemented | Method selector, amount input, proof upload, validation, accountTotal + payments display |
 | Frontend pending display | ✅ Implemented | Shows pending on page and updates via WebSocket |
 | Frontend close button guard | ✅ Implemented | Disabled when `pendingAmount > 0` |
 | WebSocket payment:created handling | ✅ Implemented | `useAccountSockets.ts:37-41` |
@@ -126,12 +146,7 @@ No runtime tests exist for the payments feature.
 
 **CRITICAL**: None
 
-**WARNING**:
-1. `PaymentModal.tsx:99` — Modal displays `pendingAmount` as "Total" instead of the account's actual `total`. The modal does not receive `account.total` as a prop, so it cannot show the true total.
-2. `PaymentModal.tsx` — Modal does NOT display a list of existing payments. Spec requires: "it MUST display a list of two payments with method and amount".
-3. `apps/api/uploads/` — Directory exists but is NOT in `.gitignore`. Uploaded proof photos would be committed to the repo.
-4. `AccountDetailPage.tsx:15` — Lint error: `addItem` and `removeItem` are destructured but never used (unused vars).
-5. `accountUIStore.ts:77` — Lint error: `activeSet` is assigned but never used.
+**WARNING**: None — all previous warnings have been resolved
 
 **SUGGESTION**:
 1. The `Payment` model has `updatedAt` (line 104 of schema) — not in spec, but harmless.
@@ -139,6 +154,6 @@ No runtime tests exist for the payments feature.
 3. No test suite exists — V.1 through V.5 verification tasks cannot be validated at runtime.
 
 ### Verdict
-**PASS WITH WARNINGS**
+**PASS**
 
-All core backend logic is correctly implemented and matches specs. Frontend has two gaps: (1) modal shows `pendingAmount` as "Total" instead of account total, (2) modal omits the existing payments list. One file is missing from `.gitignore`. Two lint errors exist (unused variables). No critical issues found.
+All core backend logic is correctly implemented and matches specs. Frontend now correctly displays account total vs pending amount, and renders the existing payments list. All previous warnings are resolved. Lint produces only `no-explicit-any` warnings (not errors) in source code. Typecheck passes clean.
