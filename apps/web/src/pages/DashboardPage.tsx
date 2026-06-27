@@ -163,12 +163,20 @@ export function DashboardPage(): JSX.Element {
         <div className="flex flex-col gap-3 rounded-xl bg-gray-800 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Control de Turno</h2>
-            <button
-              onClick={() => setShowAdminProducts(true)}
-              className="h-10 rounded-lg bg-purple-600 px-3 font-bold text-sm text-white active:bg-purple-700"
-            >
-              ☰ Productos
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAdminProducts(true)}
+                className="h-10 rounded-lg bg-purple-600 px-3 font-bold text-sm text-white active:bg-purple-700"
+              >
+                ☰ Productos
+              </button>
+              <button
+                onClick={() => navigate('/reports')}
+                className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+              >
+                📊 Reportes
+              </button>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -216,6 +224,7 @@ export function DashboardPage(): JSX.Element {
                 id={acc.id}
                 name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
                 total={acc.total ?? 0}
+                pendingAmount={acc.pendingAmount ?? 0}
                 status={acc.status.toLowerCase() as 'open' | 'closed'}
                 onClick={() => navigate(`/accounts/${acc.id}`)}
               />
@@ -232,6 +241,7 @@ export function DashboardPage(): JSX.Element {
                 <AccountCard
                   name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
                   total={acc.total ?? 0}
+                  pendingAmount={acc.pendingAmount ?? 0}
                   status={acc.status.toLowerCase() as 'open' | 'closed'}
                 />
               </DragNode>

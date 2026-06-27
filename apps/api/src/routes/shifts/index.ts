@@ -1,7 +1,30 @@
 import { FastifyPluginAsync } from 'fastify';
 import { AccountService } from '../../services/account.service.js';
+import { ReportService } from '../../services/report.service.js';
 
 const shiftRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get('/', async (request, reply) => {
+    try {
+      const shifts = await ReportService.listShifts();
+      return reply.code(200).send(shifts);
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const summary = await ReportService.getShiftSummary(id);
+      if (!summary) {
+        return reply.code(404).send({ error: 'Shift not found' });
+      }
+      return reply.code(200).send(summary);
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
   fastify.post('/open', async (request, reply) => {
     try {
       const shift = await AccountService.openShift();

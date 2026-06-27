@@ -42,5 +42,8 @@
     "*.{ts,tsx}": [
       "tsc -b --pretty"
     ]
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
   }
 }

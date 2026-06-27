@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAccountStore } from '../store/accountStore.js';
 import { useProductStore } from '../store/productStore.js';
 import { OrderItemList } from '../components/OrderItemList.js';
@@ -12,6 +12,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export function AccountDetailPage(): JSX.Element {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const readonly = searchParams.get('readonly') === '1';
   const { accounts, updateAccount } = useAccountStore();
   const { products, categories, fetchProducts, fetchCategories } = useProductStore();
   const account = id ? accounts[id] : undefined;
@@ -135,31 +137,35 @@ export function AccountDetailPage(): JSX.Element {
     <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
       <header className="flex items-center gap-2">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => readonly ? navigate('/reports') : navigate('/')}
           className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600"
         >
           ← Volver
         </button>
-        <input
-          type="text"
-          value={account.name || ''}
-          placeholder={`Cuenta #${account.number}`}
-          onChange={(e) => {
-            const newName = e.target.value;
-            updateAccount({ ...account, name: newName });
-          }}
-          onBlur={async () => {
-            await fetch(`${API_URL}/accounts/${account.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: account.name }),
-            });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          className="flex-1 rounded-lg bg-gray-700 px-3 py-2 text-xl font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        {readonly ? (
+          <h1 className="flex-1 text-xl font-bold">{account.name || `Cuenta #${account.number}`}</h1>
+        ) : (
+          <input
+            type="text"
+            value={account.name || ''}
+            placeholder={`Cuenta #${account.number}`}
+            onChange={(e) => {
+              const newName = e.target.value;
+              updateAccount({ ...account, name: newName });
+            }}
+            onBlur={async () => {
+              await fetch(`${API_URL}/accounts/${account.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: account.name }),
+              });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            className="flex-1 rounded-lg bg-gray-700 px-3 py-2 text-xl font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        )}
       </header>
 
       {/* Total & Pending */}
@@ -173,8 +179,8 @@ export function AccountDetailPage(): JSX.Element {
         )}
       </div>
 
-      {/* Payment button (only when OPEN) */}
-      {account.status === 'OPEN' && (
+      {/* Payment button (only when OPEN and not readonly) */}
+      {account.status === 'OPEN' && !readonly && (
         <button
           onClick={() => setShowPaymentModal(true)}
           className="h-12 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
@@ -183,37 +189,39 @@ export function AccountDetailPage(): JSX.Element {
         </button>
       )}
 
-      {/* Close button - only enabled when pending = 0 */}
-      {!confirmClose ? (
-        <button
-          onClick={() => canClose && setConfirmClose(true)}
-          disabled={!canClose}
-          className={`h-12 rounded-lg px-4 font-bold text-white ${
-            canClose
-              ? 'bg-red-600 active:bg-red-700'
-              : 'bg-gray-600 cursor-not-allowed opacity-50'
-          }`}
-        >
-          {canClose ? 'Cerrar Cuenta' : `Pendiente: ${formatCOP(pendingAmount)}`}
-        </button>
-      ) : (
-        <div className="flex flex-col gap-2 rounded-xl bg-red-900/30 p-4">
-          <p className="text-white">Seguro que queres cerrar la cuenta?</p>
-          <div className="flex gap-2">
-            <button
-              onClick={closeAccount}
-              className="h-12 flex-1 rounded-lg bg-red-600 font-bold text-white active:bg-red-700"
-            >
-              Si, cerrar
-            </button>
-            <button
-              onClick={() => setConfirmClose(false)}
-              className="h-12 flex-1 rounded-lg bg-gray-700 font-bold text-white active:bg-gray-600"
-            >
-              Cancelar
-            </button>
+      {/* Close button - only enabled when pending = 0 and not readonly */}
+      {!readonly && (
+        !confirmClose ? (
+          <button
+            onClick={() => canClose && setConfirmClose(true)}
+            disabled={!canClose}
+            className={`h-12 rounded-lg px-4 font-bold text-white ${
+              canClose
+                ? 'bg-red-600 active:bg-red-700'
+                : 'bg-gray-600 cursor-not-allowed opacity-50'
+            }`}
+          >
+            {canClose ? 'Cerrar Cuenta' : `Pendiente: ${formatCOP(pendingAmount)}`}
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-xl bg-red-900/30 p-4">
+            <p className="text-white">Seguro que queres cerrar la cuenta?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={closeAccount}
+                className="h-12 flex-1 rounded-lg bg-red-600 font-bold text-white active:bg-red-700"
+              >
+                Si, cerrar
+              </button>
+              <button
+                onClick={() => setConfirmClose(false)}
+                className="h-12 flex-1 rounded-lg bg-gray-700 font-bold text-white active:bg-gray-600"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Payment Modal */}
@@ -237,17 +245,19 @@ export function AccountDetailPage(): JSX.Element {
 
       <section>
         <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-        <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} />
+        <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} />
       </section>
 
-      <section>
-        <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
-        <ProductGrid
-          products={products}
-          categories={categories}
-          onAddProduct={handleAddProduct}
-        />
-      </section>
+      {!readonly && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
+          <ProductGrid
+            products={products}
+            categories={categories}
+            onAddProduct={handleAddProduct}
+          />
+        </section>
+      )}
     </div>
   );
 }
