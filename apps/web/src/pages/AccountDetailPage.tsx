@@ -14,6 +14,7 @@ export function AccountDetailPage(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const readonly = searchParams.get('readonly') === '1';
+  const shiftId = searchParams.get('shiftId');
   const { accounts, updateAccount } = useAccountStore();
   const { products, categories, fetchProducts, fetchCategories } = useProductStore();
   const account = id ? accounts[id] : undefined;
@@ -137,7 +138,7 @@ export function AccountDetailPage(): JSX.Element {
     <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
       <header className="flex items-center gap-2">
         <button
-          onClick={() => readonly ? navigate('/reports') : navigate('/')}
+          onClick={() => readonly ? navigate(shiftId ? `/reports?shiftId=${shiftId}` : '/reports') : navigate('/')}
           className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600"
         >
           ← Volver

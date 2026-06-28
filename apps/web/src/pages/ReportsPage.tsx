@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatCOP } from '../utils/format.js';
 import { DateRangePicker } from '../components/DateRangePicker.js';
 import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
@@ -15,6 +15,7 @@ function getCurrentMonthRange(): { from: string; to: string } {
 
 export function ReportsPage(): JSX.Element {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [selectedShift, setSelectedShift] = useState<ShiftSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,20 @@ export function ReportsPage(): JSX.Element {
   const defaultRange = useMemo(getCurrentMonthRange, []);
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
+
+  // Auto-select shift from URL params (when returning from account detail)
+  const shiftIdParam = searchParams.get('shiftId');
+
+  useEffect(() => {
+    if (shiftIdParam && !selectedShift) {
+      setLoadingDetail(true);
+      fetch(`${API_URL}/shifts/${shiftIdParam}`)
+        .then((res) => res.json())
+        .then((data) => setSelectedShift(data))
+        .finally(() => setLoadingDetail(false));
+      setSearchParams({});
+    }
+  }, [shiftIdParam]);
 
   useEffect(() => {
     const loadShifts = async () => {
@@ -162,7 +177,7 @@ export function ReportsPage(): JSX.Element {
               {selectedShift.accounts.map((account) => (
                 <button
                   key={account.id}
-                  onClick={() => navigate(`/accounts/${account.id}?readonly=1`)}
+                  onClick={() => navigate(`/accounts/${account.id}?readonly=1&shiftId=${selectedShift.id}`)}
                   className="flex items-center justify-between rounded-lg bg-gray-700 px-3 py-2 text-left active:bg-gray-600"
                 >
                   <div>
