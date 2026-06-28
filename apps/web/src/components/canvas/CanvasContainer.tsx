@@ -65,7 +65,7 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
         style={{
           transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
         }}
-        className="absolute left-0 top-0 h-full w-full origin-top-left"
+        className="absolute left-0 top-0 h-full w-full origin-top-left pointer-events-none"
       >
         {children}
       </div>

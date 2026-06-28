@@ -77,7 +77,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         top: position.y,
         touchAction: 'none',
       }}
-      className="select-none cursor-grab active:cursor-grabbing"
+      className="pointer-events-auto select-none cursor-grab active:cursor-grabbing"
     >
       {children}
     </div>
