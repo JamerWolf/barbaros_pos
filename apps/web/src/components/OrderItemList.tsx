@@ -34,7 +34,7 @@ export function OrderItemList({ items, onRemoveItem, onIncrementItem }: OrderIte
             {formatCOP(Number(item.quantity) * Number(item.unitPrice))}
           </span>
           <button
-            onClick={() => onRemoveItem(item.id)}
+            onClick={(e) => { e.stopPropagation(); onRemoveItem(item.id); }}
             className="h-8 w-8 shrink-0 rounded-lg bg-red-600 text-lg font-bold text-white active:bg-red-700"
           >
             🗑️
