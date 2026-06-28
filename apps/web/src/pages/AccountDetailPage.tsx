@@ -110,6 +110,25 @@ export function AccountDetailPage(): JSX.Element {
     }
   };
 
+  const handleIncrementItem = async (itemId: string) => {
+    const item = account.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    try {
+      const res = await fetch(`${API_URL}/accounts/${account.id}/items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: item.quantity + 1 }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        updateAccount(updated);
+      }
+    } catch {
+      // silent
+    }
+  };
+
   const closeAccount = async () => {
     try {
       const res = await fetch(`${API_URL}/accounts/${account.id}/close`, {
@@ -246,7 +265,7 @@ export function AccountDetailPage(): JSX.Element {
 
       <section>
         <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-        <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} />
+        <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
       </section>
 
       {!readonly && (

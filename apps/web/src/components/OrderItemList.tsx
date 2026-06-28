@@ -4,9 +4,10 @@ import { formatCOP } from '../utils/format.js';
 interface OrderItemListProps {
   items: IOrderItem[];
   onRemoveItem: (itemId: string) => void;
+  onIncrementItem: (itemId: string) => void;
 }
 
-export function OrderItemList({ items, onRemoveItem }: OrderItemListProps): JSX.Element {
+export function OrderItemList({ items, onRemoveItem, onIncrementItem }: OrderItemListProps): JSX.Element {
   if (items.length === 0) {
     return (
       <div className="rounded-xl bg-gray-800 p-4 text-center text-gray-500">
@@ -20,7 +21,8 @@ export function OrderItemList({ items, onRemoveItem }: OrderItemListProps): JSX.
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center gap-3 rounded-xl bg-gray-800 px-4 py-3"
+          onClick={() => onIncrementItem(item.id)}
+          className="flex items-center gap-3 rounded-xl bg-gray-800 px-4 py-3 active:bg-gray-700 cursor-pointer"
         >
           <div className="flex-1 min-w-0">
             <p className="truncate font-bold text-white">{item.product?.name ?? 'Producto'}</p>
