@@ -10,21 +10,25 @@ interface DragNodeProps {
 export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null)
   const position = useAccountUIStore((s) => s.nodePositions[accountId] ?? { x: 0, y: 0 })
+  const selectionMode = useAccountUIStore((s) => s.selectionMode)
+  const selectedIds = useAccountUIStore((s) => s.selectedIds)
+  const isSelected = selectedIds.has(accountId)
   const updatePosition = useAccountUIStore((s) => s.updatePosition)
+  const movePositions = useAccountUIStore((s) => s.movePositions)
+  const toggleSelection = useAccountUIStore((s) => s.toggleSelection)
   const zoom = useAccountUIStore((s) => s.zoom)
   const offset = useRef({ x: 0, y: 0 })
 
   const startPos = useRef({ x: 0, y: 0 })
-  const isDragging = useRef(false) // Usamos ref para evitar re-renders innecesarios durante el drag
+  const isDragging = useRef(false)
 
   const onPointerDown = (e: React.PointerEvent) => {
     e.stopPropagation()
-    isDragging.current = false // Reset
+    isDragging.current = false
     startPos.current = { x: e.clientX, y: e.clientY }
-    
+
     const rect = nodeRef.current?.getBoundingClientRect()
     if (rect) {
-      // Ajustamos el offset inicial también por el zoom
       offset.current = {
         x: (e.clientX - rect.left) / zoom,
         y: (e.clientY - rect.top) / zoom,
@@ -34,32 +38,41 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
-    // Si no tenemos capturado el puntero, no arrastramos
     if (!nodeRef.current?.hasPointerCapture(e.pointerId)) return
 
     const dx = Math.abs(e.clientX - startPos.current.x)
     const dy = Math.abs(e.clientY - startPos.current.y)
-    
-    // Solo marcamos arrastre si nos movemos más de 5px
+
     if (dx > 5 || dy > 5) {
       isDragging.current = true
     }
 
     if (!isDragging.current) return
-    
+
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect()
     if (!parentRect) return
-    
-    // Ajustamos el cálculo por el zoom actual
+
+    // Calculate raw position for this node
     const newX = (e.clientX - parentRect.left) / zoom - offset.current.x
     const newY = (e.clientY - parentRect.top) / zoom - offset.current.y
-    updatePosition(accountId, { x: newX, y: newY })
+    const delta = { x: newX - position.x, y: newY - position.y }
+
+    // If this account is selected, move all selected accounts as a group
+    if (isSelected && selectedIds.size > 1) {
+      movePositions(Array.from(selectedIds), delta)
+    } else {
+      updatePosition(accountId, { x: newX, y: newY })
+    }
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!isDragging.current) {
-      // Es un click/tap
-      onClick?.()
+      // It's a tap/click
+      if (selectionMode) {
+        toggleSelection(accountId)
+      } else {
+        onClick?.()
+      }
     }
     isDragging.current = false
     nodeRef.current?.releasePointerCapture(e.pointerId)
@@ -77,7 +90,9 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         top: position.y,
         touchAction: 'none',
       }}
-      className="pointer-events-auto select-none cursor-grab active:cursor-grabbing"
+      className={`pointer-events-auto select-none ${
+        selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
+      } ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-800 rounded-xl' : ''}`}
     >
       {children}
     </div>

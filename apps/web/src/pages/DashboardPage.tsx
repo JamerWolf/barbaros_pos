@@ -16,7 +16,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, _hasHydrated } = useAccountUIStore()
   const [accountName, setAccountName] = useState('')
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showPinModal, setShowPinModal] = useState(false)
@@ -293,13 +293,40 @@ export function DashboardPage(): JSX.Element {
           <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
         ) : (
           <>
-            <div className="mb-3 flex justify-end">
-              <button
-                onClick={() => setShowAddOldAccount(true)}
-                className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
-              >
-                + Agregar cuenta de otro turno
-              </button>
+            <div className="mb-3 flex items-center justify-between">
+              {selectionMode && (
+                <span className="text-sm text-blue-400">
+                  {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
+                </span>
+              )}
+              <div className="flex gap-2">
+                {selectionMode && selectedIds.size > 0 && (
+                  <button
+                    onClick={() => {
+                      // Deselect all
+                      clearSelection()
+                      setSelectionMode(false)
+                    }}
+                    className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-sm text-white active:bg-gray-600"
+                  >
+                    ✕ Cancelar
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectionMode(!selectionMode)}
+                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
+                    selectionMode ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                  }`}
+                >
+                  {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
+                </button>
+                <button
+                  onClick={() => setShowAddOldAccount(true)}
+                  className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+                >
+                  + Agregar cuenta de otro turno
+                </button>
+              </div>
             </div>
             <CanvasContainer>
               {filteredOpenAccounts.map((acc) => (
