@@ -135,6 +135,26 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 
 ---
 
+## Estado actual
+
+### Completado
+- ✅ Setup Monorepo (TypeScript, ESLint, Prettier, Husky, Docker)
+- ✅ Gestión de cuentas (Shift, Account, CRUD, WebSockets)
+- ✅ UI de cuentas (Dashboard Canvas, DragNode, persistencia localStorage)
+- ✅ Productos y categorías (CRUD admin, ProductGrid, CategoryTabs)
+- ✅ Items en cuentas (add/remove, lista, total computado)
+- ✅ **Pagos** (Payment model, splits, close guard, modal UI, comprobante upload)
+
+### Próximas features
+- 🔲 Búsqueda de productos
+- 🔲 Turnos y reportes (historial, ventas por noche, export Excel)
+- 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
+- 🔲 Modificadores de producto (hielo, doble, notas especiales)
+- 🔲 Tests formales (vitest/jest)
+- 🔲 PWA completa (Service Worker, offline sync)
+
+---
+
 ## Pendiente
 
 - Cuadre de caja — feature a definir en sesiones futuras
