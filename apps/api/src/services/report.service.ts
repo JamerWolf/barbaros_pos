@@ -8,8 +8,20 @@ function formatCOP(value: number): string {
 }
 
 export class ReportService {
-  static async listShifts(): Promise<ShiftListItem[]> {
+  static async listShifts(from?: string, to?: string): Promise<ShiftListItem[]> {
+    const where: any = {};
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) {
+        const nextDay = new Date(to + 'T00:00:00.000Z');
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+        where.createdAt.lt = nextDay;
+      }
+    }
+
     const shifts = await prisma.shift.findMany({
+      where,
       include: {
         accounts: {
           include: {

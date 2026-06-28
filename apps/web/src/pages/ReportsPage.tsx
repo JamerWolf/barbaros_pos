@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatCOP } from '../utils/format.js';
+import { DateRangePicker } from '../components/DateRangePicker.js';
 import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+function getCurrentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return { from, to };
+}
 
 export function ReportsPage(): JSX.Element {
   const navigate = useNavigate();
@@ -11,11 +19,19 @@ export function ReportsPage(): JSX.Element {
   const [selectedShift, setSelectedShift] = useState<ShiftSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const defaultRange = useMemo(getCurrentMonthRange, []);
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
 
   useEffect(() => {
     const loadShifts = async () => {
+      setLoading(true);
       try {
-        const res = await fetch(`${API_URL}/shifts`);
+        const params = new URLSearchParams();
+        if (dateFrom) params.set('from', dateFrom);
+        if (dateTo) params.set('to', dateTo);
+        const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setShifts(data);
@@ -25,7 +41,7 @@ export function ReportsPage(): JSX.Element {
       }
     };
     loadShifts();
-  }, []);
+  }, [dateFrom, dateTo]);
 
   const handleSelectShift = async (shiftId: string) => {
     setLoadingDetail(true);
@@ -182,6 +198,15 @@ export function ReportsPage(): JSX.Element {
         </button>
         <h1 className="text-xl font-bold">Reportes</h1>
       </header>
+
+      <DateRangePicker
+        from={dateFrom}
+        to={dateTo}
+        onChange={(from, to) => {
+          setDateFrom(from);
+          setDateTo(to);
+        }}
+      />
 
       {loading ? (
         <p className="text-gray-400">Cargando turnos...</p>

@@ -3,9 +3,19 @@ import { AccountService } from '../../services/account.service.js';
 import { ReportService } from '../../services/report.service.js';
 
 const shiftRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get('/active', async (request, reply) => {
+    try {
+      const shift = await AccountService.getActiveShift();
+      return reply.code(200).send(shift ? { id: shift.id } : null);
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
   fastify.get('/', async (request, reply) => {
     try {
-      const shifts = await ReportService.listShifts();
+      const { from, to } = request.query as { from?: string; to?: string };
+      const shifts = await ReportService.listShifts(from, to);
       return reply.code(200).send(shifts);
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
