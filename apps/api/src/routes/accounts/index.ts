@@ -69,6 +69,32 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(200).send(accountsWithTotal);
   });
 
+  // Get all open accounts from ALL shifts (for list mode)
+  fastify.get('/all-open', async (request, reply) => {
+    const accounts = await prisma.account.findMany({
+      where: { status: 'OPEN' },
+      include: { orderItems: true, payments: true }
+    });
+
+    const accountsWithTotal = accounts.map((acc) => {
+      const result = calculateAccountTotal({
+        items: acc.orderItems.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          discountType: item.discountType as DiscountType,
+          discountValue: Number(item.discountValue),
+        })),
+        accountDiscountType: acc.discountType as DiscountType,
+        accountDiscountValue: Number(acc.discountValue),
+      });
+      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const pendingAmount = result.total - paidSum;
+      return { ...acc, total: result.total, pendingAmount, payments: acc.payments };
+    });
+
+    return reply.code(200).send(accountsWithTotal);
+  });
+
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const account = await AccountService.getAccountWithItems(id);

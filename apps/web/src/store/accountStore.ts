@@ -35,9 +35,21 @@ export const useAccountStore = create<AccountState>((set) => ({
     }
     return { accounts: newAccounts };
   }),
-  addAccount: (account) => set((state) => ({
-    accounts: { ...state.accounts, [account.id]: { ...account, items: [], total: 0, pendingAmount: 0, payments: [] } }
-  })),
+  addAccount: (account) => set((state) => {
+    const raw = account as any;
+    return {
+      accounts: {
+        ...state.accounts,
+        [account.id]: {
+          ...raw,
+          items: raw.items ?? raw.orderItems ?? [],
+          total: raw.total ?? 0,
+          pendingAmount: raw.pendingAmount ?? raw.total ?? 0,
+          payments: raw.payments ?? [],
+        }
+      }
+    };
+  }),
   updateAccount: (account) => set((state) => {
     const existing = state.accounts[account.id];
     const raw = account as any;

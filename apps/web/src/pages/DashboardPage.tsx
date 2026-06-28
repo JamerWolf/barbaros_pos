@@ -7,6 +7,8 @@ import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
 import { CanvasContainer } from '../components/canvas/CanvasContainer.js'
 import { DragNode } from '../components/canvas/DragNode.js'
 import { toTitleCase } from '../utils/textUtils.js'
+import { formatCOP } from '../utils/format.js'
+import type { IAccount } from '@barbaros/shared'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const ADMIN_PIN = '1234'
@@ -22,6 +24,10 @@ export function DashboardPage(): JSX.Element {
   const [pinError, setPinError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [showAdminProducts, setShowAdminProducts] = useState(false)
+  const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
+  const [showAddOldAccount, setShowAddOldAccount] = useState(false)
+  const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (toast) {
@@ -38,6 +44,24 @@ export function DashboardPage(): JSX.Element {
     () => Object.values(accounts).filter((acc) => acc.status === 'OPEN'),
     [accounts]
   )
+
+  const filteredOpenAccounts = useMemo(() => {
+    if (!searchQuery.trim()) return openAccounts
+    const q = searchQuery.toLowerCase()
+    return openAccounts.filter((acc) =>
+      (acc.name || '').toLowerCase().includes(q) ||
+      String(acc.number).includes(q)
+    )
+  }, [openAccounts, searchQuery])
+
+  const filteredAllOpenAccounts = useMemo(() => {
+    if (!searchQuery.trim()) return allOpenAccounts
+    const q = searchQuery.toLowerCase()
+    return allOpenAccounts.filter((acc) =>
+      (acc.name || '').toLowerCase().includes(q) ||
+      String(acc.number).includes(q)
+    )
+  }, [allOpenAccounts, searchQuery])
 
   useEffect(() => {
     if (!_hasHydrated) return
@@ -58,6 +82,22 @@ export function DashboardPage(): JSX.Element {
     }
   }, [openAccounts, assignPositionsBatch, clearOrphanPositions, _hasHydrated, nodePositions])
 
+  // Fetch all open accounts from all shifts
+  const refreshAllOpenAccounts = () => {
+    fetch(`${API_URL}/accounts/all-open`)
+      .then((res) => res.json())
+      .then((data) => setAllOpenAccounts(data))
+      .catch(() => setAllOpenAccounts([]))
+  }
+
+  useEffect(() => {
+    refreshAllOpenAccounts()
+    fetch(`${API_URL}/shifts/active`)
+      .then((res) => res.json())
+      .then((data) => setActiveShiftId(data?.id ?? null))
+      .catch(() => setActiveShiftId(null))
+  }, [])
+
   const createAccount = async () => {
     try {
       const res = await fetch(`${API_URL}/accounts`, {
@@ -66,7 +106,10 @@ export function DashboardPage(): JSX.Element {
         body: JSON.stringify({ name: accountName.trim() || undefined }),
       })
       if (res.ok) {
+        const newAccount = await res.json()
+        useAccountStore.getState().addAccount(newAccount)
         setAccountName('')
+        refreshAllOpenAccounts()
       } else {
         const data = await res.json()
         showToast(data.message || 'No se pudo crear la cuenta', 'error')
@@ -102,6 +145,8 @@ export function DashboardPage(): JSX.Element {
         const data = await res.json()
         showToast(data.message || 'Error al abrir turno', 'error')
       } else {
+        const data = await res.json()
+        setActiveShiftId(data.id)
         showToast('Turno abierto correctamente')
       }
     } catch {
@@ -116,6 +161,7 @@ export function DashboardPage(): JSX.Element {
         const data = await res.json()
         showToast(data.message || 'Error al cerrar turno', 'error')
       } else {
+        setActiveShiftId(null)
         showToast('Turno cerrado correctamente')
       }
     } catch {
@@ -178,24 +224,35 @@ export function DashboardPage(): JSX.Element {
               </button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={openShift}
-              className="h-12 flex-1 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700 disabled:opacity-50"
-            >
-              Abrir Turno
-            </button>
+          {activeShiftId ? (
             <button
               onClick={closeShift}
-              className="h-12 flex-1 rounded-lg bg-red-600 px-4 font-bold text-white active:bg-red-700 disabled:opacity-50"
+              className="h-12 w-full rounded-lg bg-red-600 px-4 font-bold text-white active:bg-red-700"
             >
               Cerrar Turno
             </button>
-          </div>
+          ) : (
+            <button
+              onClick={openShift}
+              className="h-12 w-full rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
+            >
+              Abrir Turno
+            </button>
+          )}
         </div>
       )}
 
       <div className="flex gap-2">
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar cuenta..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-12 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <input
           type="text"
           placeholder="Nombre (opcional)"
@@ -214,39 +271,53 @@ export function DashboardPage(): JSX.Element {
       <section className="flex-1">
         {!_hasHydrated ? (
           <p className="text-center text-gray-500">Cargando...</p>
-        ) : openAccounts.length === 0 ? (
-          <p className="text-center text-gray-500">No hay cuentas abiertas.</p>
         ) : viewMode === 'list' ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {openAccounts.map((acc) => (
-              <AccountCard
-                key={acc.id}
-                id={acc.id}
-                name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
-                total={acc.total ?? 0}
-                pendingAmount={acc.pendingAmount ?? 0}
-                status={acc.status.toLowerCase() as 'open' | 'closed'}
-                onClick={() => navigate(`/accounts/${acc.id}`)}
-              />
-            ))}
-          </div>
-        ) : (
-          <CanvasContainer>
-            {openAccounts.map((acc) => (
-              <DragNode
-                key={acc.id}
-                accountId={acc.id}
-                onClick={() => navigate(`/accounts/${acc.id}`)}
-              >
+          filteredAllOpenAccounts.length === 0 ? (
+            <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {filteredAllOpenAccounts.map((acc) => (
                 <AccountCard
+                  key={acc.id}
+                  id={acc.id}
                   name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
                   total={acc.total ?? 0}
                   pendingAmount={acc.pendingAmount ?? 0}
                   status={acc.status.toLowerCase() as 'open' | 'closed'}
+                  onClick={() => navigate(`/accounts/${acc.id}`)}
                 />
-              </DragNode>
-            ))}
-          </CanvasContainer>
+              ))}
+            </div>
+          )
+        ) : filteredOpenAccounts.length === 0 ? (
+          <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+        ) : (
+          <>
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={() => setShowAddOldAccount(true)}
+                className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+              >
+                + Agregar cuenta de otro turno
+              </button>
+            </div>
+            <CanvasContainer>
+              {filteredOpenAccounts.map((acc) => (
+                <DragNode
+                  key={acc.id}
+                  accountId={acc.id}
+                  onClick={() => navigate(`/accounts/${acc.id}`)}
+                >
+                  <AccountCard
+                    name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
+                    total={acc.total ?? 0}
+                    pendingAmount={acc.pendingAmount ?? 0}
+                    status={acc.status.toLowerCase() as 'open' | 'closed'}
+                  />
+                </DragNode>
+              ))}
+            </CanvasContainer>
+          </>
         )}
       </section>
 
@@ -287,6 +358,42 @@ export function DashboardPage(): JSX.Element {
 
       {showAdminProducts && (
         <AdminProductsPage onClose={() => setShowAdminProducts(false)} />
+      )}
+
+      {showAddOldAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-gray-800 p-6 shadow-2xl">
+            <h2 className="mb-4 text-xl font-bold text-white">Agregar cuenta de otro turno</h2>
+            <div className="max-h-80 overflow-y-auto">
+              {allOpenAccounts
+                .filter((acc) => !openAccounts.some((o) => o.id === acc.id))
+                .map((acc) => (
+                  <button
+                    key={acc.id}
+                    onClick={() => {
+                      // Add the account to the store so it appears in canvas
+                      const { addAccount } = useAccountStore.getState()
+                      addAccount(acc)
+                      setShowAddOldAccount(false)
+                    }}
+                    className="mb-2 flex w-full items-center justify-between rounded-xl bg-gray-700 p-3 text-left text-white active:bg-gray-600"
+                  >
+                    <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
+                    <span className="text-sm text-gray-400">{formatCOP(acc.total)}</span>
+                  </button>
+                ))}
+              {allOpenAccounts.filter((acc) => !openAccounts.some((o) => o.id === acc.id)).length === 0 && (
+                <p className="text-center text-gray-500">No hay cuentas de otros turnos.</p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowAddOldAccount(false)}
+              className="mt-4 h-12 w-full rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
 
       {toast && (
