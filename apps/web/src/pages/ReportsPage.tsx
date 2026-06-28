@@ -130,12 +130,10 @@ export function ReportsPage(): JSX.Element {
             <span>Desde:</span>
             <span className="text-white">{formatDate(selectedShift.openedAt)}</span>
           </div>
-          {selectedShift.closedAt && (
-            <div className="flex justify-between text-sm text-gray-400">
-              <span>Hasta:</span>
-              <span className="text-white">{formatDate(selectedShift.closedAt)}</span>
-            </div>
-          )}
+          <div className="flex justify-between text-sm text-gray-400">
+            <span>Hasta:</span>
+            <span className="text-white">{selectedShift.closedAt ? formatDate(selectedShift.closedAt) : '—'}</span>
+          </div>
           <div className="mt-3 flex justify-between text-sm text-gray-400">
             <span>Cuentas:</span>
             <span className="font-bold text-white">{selectedShift.accountsCount}</span>
