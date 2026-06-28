@@ -143,12 +143,12 @@ export function AccountDetailPage(): JSX.Element {
           ← Volver
         </button>
         {readonly ? (
-          <h1 className="flex-1 text-xl font-bold">{account.name || `Cuenta #${account.number}`}</h1>
+          <h1 className="flex-1 text-xl font-bold">{account.name || `Cuenta #${account.number}`} <span className="text-sm text-gray-400">#{account.id.slice(-4)}</span></h1>
         ) : (
           <input
             type="text"
             value={account.name || ''}
-            placeholder={`Cuenta #${account.number}`}
+            placeholder={`Cuenta #${account.number} #${account.id.slice(-4)}`}
             onChange={(e) => {
               const newName = e.target.value;
               updateAccount({ ...account, name: newName });

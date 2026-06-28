@@ -301,10 +301,17 @@ export function PaymentModal({
           <div className="mb-4 rounded-xl bg-gray-900 p-4">
             <p className="mb-2 text-xs text-gray-400">Pagos registrados:</p>
             {payments.map((p, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span className="text-gray-300">
-                  {p.method === PaymentMethod.CASH ? 'Efectivo' : p.method === PaymentMethod.TRANSFER ? 'Transferencia' : 'Tarjeta'}
-                </span>
+              <div key={i} className="flex items-center justify-between text-sm">
+                <div>
+                  <span className="text-gray-300">
+                    {p.method === PaymentMethod.CASH ? 'Efectivo' : p.method === PaymentMethod.TRANSFER ? 'Transferencia' : 'Tarjeta'}
+                  </span>
+                  {p.createdAt && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      {new Date(p.createdAt).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
                 <span className="text-green-400">{formatCOP(p.amount)}</span>
               </div>
             ))}
