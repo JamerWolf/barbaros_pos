@@ -17,13 +17,12 @@ export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
   const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, _hasHydrated } = useAccountUIStore()
-  const [accountName, setAccountName] = useState('')
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
+  const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
@@ -103,12 +102,11 @@ export function DashboardPage(): JSX.Element {
       const res = await fetch(`${API_URL}/accounts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: accountName.trim() || undefined }),
+        body: JSON.stringify({}),
       })
       if (res.ok) {
         const newAccount = await res.json()
         useAccountStore.getState().addAccount(newAccount)
-        setAccountName('')
         refreshAllOpenAccounts()
       } else {
         const data = await res.json()
@@ -253,13 +251,6 @@ export function DashboardPage(): JSX.Element {
             className="h-12 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <input
-          type="text"
-          placeholder="Nombre (opcional)"
-          value={accountName}
-          onChange={(e) => setAccountName(e.target.value)}
-          className="h-12 flex-1 rounded-lg bg-gray-800 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
-        />
         <button
           onClick={createAccount}
           className="h-12 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
