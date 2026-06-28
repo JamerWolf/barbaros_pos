@@ -47,7 +47,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
 
     const accounts = await prisma.account.findMany({
       where: { shiftId: activeShift.id },
-      include: { orderItems: true, payments: true }
+      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
     });
 
     const accountsWithTotal = accounts.map((acc) => {
@@ -73,7 +73,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/all-open', async (request, reply) => {
     const accounts = await prisma.account.findMany({
       where: { status: 'OPEN' },
-      include: { orderItems: true, payments: true }
+      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
     });
 
     const accountsWithTotal = accounts.map((acc) => {

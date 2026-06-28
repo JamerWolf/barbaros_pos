@@ -58,7 +58,7 @@ export class AccountService {
   static async getAccountWithItems(id: string) {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { orderItems: { include: { product: true } }, payments: true }
+      include: { orderItems: { include: { product: true }, orderBy: { createdAt: 'asc' as const } }, payments: true }
     });
     if (!account) return null;
 
@@ -81,7 +81,7 @@ export class AccountService {
   static async closeAccount(id: string) {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { orderItems: true, payments: true }
+      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
     });
     if (!account) throw new Error('Account not found');
     if (account.status === 'CLOSED') throw new Error('Account is already closed');
