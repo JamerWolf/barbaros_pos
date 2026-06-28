@@ -36,22 +36,37 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
     return () => observer.disconnect()
   }, [fit])
 
-  // Wheel zoom — use refs to avoid stale closure
+  // Wheel zoom — zoom centered on cursor position
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const currentZoom = useAccountUIStore.getState().zoom
+      const state = useAccountUIStore.getState()
+      const currentZoom = state.zoom
+      const currentPan = state.panOffset
+
       const scaleFactor = 0.1
       const delta = e.deltaY > 0 ? -scaleFactor : scaleFactor
-      setZoom(Math.min(Math.max(currentZoom + delta, 0.3), 2))
+      const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 2)
+
+      // Mouse position relative to container
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+
+      // Adjust pan so the point under the cursor stays fixed
+      const newPanX = mouseX / newZoom - mouseX / currentZoom + currentPan.x
+      const newPanY = mouseY / newZoom - mouseY / currentZoom + currentPan.y
+
+      setZoom(newZoom)
+      setPanOffset({ x: newPanX, y: newPanY })
     }
 
     container.addEventListener('wheel', handleWheel, { passive: false })
     return () => container.removeEventListener('wheel', handleWheel)
-  }, [setZoom])
+  }, [setZoom, setPanOffset])
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.target === containerRef.current) {
