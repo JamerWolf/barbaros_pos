@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 
 interface CanvasContainerProps {
@@ -10,6 +10,7 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions } = useAccountUIStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
+  const [maximized, setMaximized] = useState(false)
 
   // Auto-fit when positions change
   const fit = useCallback(() => {
@@ -90,13 +91,15 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
   }
 
   return (
-    <div className="relative">
+    <div className={`relative ${maximized ? 'fixed inset-0 z-40 flex flex-col bg-gray-900 p-2' : ''}`}>
       <div
         ref={containerRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="relative h-[60vh] w-full touch-none overflow-hidden rounded-xl bg-gray-800"
+        className={`relative w-full touch-none overflow-hidden rounded-xl bg-gray-800 ${
+          maximized ? 'flex-1' : 'h-[60vh]'
+        }`}
       >
         <div
           style={{
@@ -107,13 +110,21 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
           {children}
         </div>
       </div>
-      {/* Fit button */}
-      <button
-        onClick={fit}
-        className="absolute bottom-3 right-3 z-10 h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
-      >
-        ⊞ Ajustar
-      </button>
+      {/* Buttons */}
+      <div className={`absolute bottom-3 z-10 flex gap-2 ${maximized ? 'right-5' : 'right-3'}`}>
+        <button
+          onClick={fit}
+          className="h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+        >
+          ⊞ Ajustar
+        </button>
+        <button
+          onClick={() => setMaximized(!maximized)}
+          className="h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+        >
+          {maximized ? '◻ Minimizar' : '⬜ Maximizar'}
+        </button>
+      </div>
     </div>
   )
 }
