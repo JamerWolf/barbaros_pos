@@ -36,6 +36,7 @@ export function ShapeLayer(): JSX.Element {
     (e: React.PointerEvent) => {
       if (!activeTool) return;
       if (!layerRef.current) return;
+      e.stopPropagation();
 
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
 
@@ -145,7 +146,7 @@ export function ShapeLayer(): JSX.Element {
   return (
     <div
       ref={layerRef}
-      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair' : 'pointer-events-none'}`}
+      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`}
       style={{ zIndex: 10 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
+import { useShapeStore } from '../../store/shapeStore.js'
 
 interface CanvasContainerProps {
   children: ReactNode
@@ -8,6 +9,7 @@ interface CanvasContainerProps {
 export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight } = useAccountUIStore()
+  const { activeTool } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
 
@@ -73,7 +75,7 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
 
   // Canvas panning
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.target === containerRef.current) {
+    if (e.target === containerRef.current && !activeTool) {
       isPanning.current = true
       lastPos.current = { x: e.clientX, y: e.clientY }
       containerRef.current?.setPointerCapture(e.pointerId)
