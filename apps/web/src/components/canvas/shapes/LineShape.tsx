@@ -46,15 +46,16 @@ export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: Lin
 
     let offset = { x: 0, y: 0 };
     if (parentRect) {
+      const curPoints = shape.points || [];
       if (handle === 'start') {
         offset = {
-          x: (e.clientX - parentRect.left) / zoom - origPoints[0].x,
-          y: (e.clientY - parentRect.top) / zoom - origPoints[0].y,
+          x: (e.clientX - parentRect.left) / zoom - curPoints[0].x,
+          y: (e.clientY - parentRect.top) / zoom - curPoints[0].y,
         };
       } else if (handle === 'end') {
         offset = {
-          x: (e.clientX - parentRect.left) / zoom - origPoints[origPoints.length - 1].x,
-          y: (e.clientY - parentRect.top) / zoom - origPoints[origPoints.length - 1].y,
+          x: (e.clientX - parentRect.left) / zoom - curPoints[curPoints.length - 1].x,
+          y: (e.clientY - parentRect.top) / zoom - curPoints[curPoints.length - 1].y,
         };
       } else {
         // move: offset from first point
@@ -81,18 +82,21 @@ export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: Lin
     const mouseY = (e.clientY - parentRect.top) / zoom;
 
     if (handle === 'move') {
+      // Use current points from shape prop, not frozen origPoints
+      const curPoints = shape.points || [];
+      const curMinX = Math.min(...curPoints.map((p) => p.x));
+      const curMinY = Math.min(...curPoints.map((p) => p.y));
       const newX = mouseX - offset.x;
       const newY = mouseY - offset.y;
-      const currentMinX = Math.min(...origPoints.map((p) => p.x));
-      const currentMinY = Math.min(...origPoints.map((p) => p.y));
-      const dx = newX - currentMinX;
-      const dy = newY - currentMinY;
+      const dx = newX - curMinX;
+      const dy = newY - curMinY;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
         onMove?.(dx, dy);
       }
     } else {
-      // Dragging an endpoint
-      const newPoints = origPoints.map((p) => ({ ...p }));
+      // Dragging an endpoint — use current shape points
+      const curPoints = shape.points || [];
+      const newPoints = curPoints.map((p) => ({ ...p }));
       if (handle === 'start') {
         newPoints[0] = { x: mouseX - offset.x, y: mouseY - offset.y };
       } else {
@@ -108,7 +112,7 @@ export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: Lin
 
       onResize?.(nMinX, nMinY, nMaxX - nMinX, nMaxY - nMinY, newPoints);
     }
-  }, [zoom, onMove, onResize]);
+  }, [zoom, shape.points, onMove, onResize]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
