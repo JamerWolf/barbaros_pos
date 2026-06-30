@@ -15,6 +15,7 @@ export interface AccountUIState {
   selectedIds: Set<string>;
   canvasHeight: number | null;
   cardSize: CardSize;
+  cardSizes: Record<string, CardSize>;
   _hasHydrated: boolean;
   updatePosition: (accountId: string, pos: Position) => void;
   assignInitialPosition: (accountId: string) => void;
@@ -30,6 +31,8 @@ export interface AccountUIState {
   fitToContent: (containerWidth: number, containerHeight: number) => void;
   setCanvasHeight: (height: number | null) => void;
   setCardSize: (size: CardSize) => void;
+  getCardSize: (accountId: string) => CardSize;
+  getCardDimensions: (accountId: string) => { w: number; h: number };
   setHasHydrated: (state: boolean) => void;
 }
 
@@ -51,6 +54,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       selectedIds: new Set<string>(),
       canvasHeight: null,
       cardSize: 'md',
+      cardSizes: {},
       _hasHydrated: false,
 
       updatePosition: (accountId, pos) => set((state) => ({
@@ -137,28 +141,78 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { nodePositions: next };
       }),
       setCanvasHeight: (height) => set({ canvasHeight: height }),
-      setCardSize: (size) => set((state) => {
-        const { w, h } = CARD_SIZES[size];
+      getCardSize: (accountId) => {
+        const s = _get();
+        return s.cardSizes[accountId] ?? s.cardSize;
+      },
+      getCardDimensions: (accountId) => {
+        const s = _get();
+        const size = s.cardSizes[accountId] ?? s.cardSize;
+        return CARD_SIZES[size];
+      },
+      setCardSize: (size: CardSize) => set((state) => {
+        // If in selection mode with selected cards, only change those
+        if (state.selectionMode && state.selectedIds.size > 0) {
+          const cardSizes = { ...state.cardSizes };
+          const positions = { ...state.nodePositions };
+          const { w: newW, h: newH } = CARD_SIZES[size];
+
+          for (const id of state.selectedIds) {
+            cardSizes[id] = size;
+
+            // Resolve overlaps with all other cards after size change
+            for (const otherId of Object.keys(positions)) {
+              if (otherId === id) continue;
+              const overrideSize = state.cardSizes[otherId];
+              const otherDims = overrideSize
+                ? CARD_SIZES[overrideSize]
+                : CARD_SIZES[state.cardSize];
+              const a = positions[id];
+              const b = positions[otherId];
+
+              const overlapX = (a.x + newW > b.x) && (b.x + otherDims.w > a.x);
+              const overlapY = (a.y + newH > b.y) && (b.y + otherDims.h > a.y);
+
+              if (overlapX && overlapY) {
+                const pushRight = (a.x + newW) - b.x;
+                const pushLeft = (b.x + otherDims.w) - a.x;
+                const pushDown = (a.y + newH) - b.y;
+                const pushUp = (b.y + otherDims.h) - a.y;
+                const minPush = Math.min(pushRight, pushLeft, pushDown, pushUp);
+
+                if (minPush === pushRight) {
+                  positions[otherId] = { x: a.x + newW, y: b.y };
+                } else if (minPush === pushLeft) {
+                  positions[otherId] = { x: b.x - pushLeft, y: b.y };
+                } else if (minPush === pushDown) {
+                  positions[otherId] = { x: b.x, y: a.y + newH };
+                } else {
+                  positions[otherId] = { x: b.x, y: b.y - pushUp };
+                }
+              }
+            }
+          }
+
+          return { cardSizes, nodePositions: positions };
+        }
+
+        // No selection: change global size, resolve all overlaps
         const positions = { ...state.nodePositions };
+        const { w, h } = CARD_SIZES[size];
         const ids = Object.keys(positions);
 
-        // Resolve overlaps: push cards apart minimally, preserving relative layout
         for (let i = 0; i < ids.length; i++) {
           for (let j = i + 1; j < ids.length; j++) {
             const a = positions[ids[i]];
             const b = positions[ids[j]];
-
             const overlapX = (a.x + w > b.x) && (b.x + w > a.x);
             const overlapY = (a.y + h > b.y) && (b.y + h > a.y);
 
             if (overlapX && overlapY) {
-              // Calculate minimum push on each axis
               const pushRight = (a.x + w) - b.x;
               const pushLeft = (b.x + w) - a.x;
               const pushDown = (a.y + h) - b.y;
               const pushUp = (b.y + h) - a.y;
-
-              // Pick the smallest push
               const minPush = Math.min(pushRight, pushLeft, pushDown, pushUp);
 
               if (minPush === pushRight) {
@@ -174,17 +228,20 @@ export const useAccountUIStore = create<AccountUIState>()(
           }
         }
 
-        return { cardSize: size, nodePositions: positions };
+        return { cardSize: size, cardSizes: {}, nodePositions: positions };
       }),
-      fitToContent: (containerWidth, containerHeight) => set((state) => {
-        const positions = Object.values(state.nodePositions);
-        if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
+      fitToContent: (containerWidth: number, containerHeight: number) => set((state) => {
+        const entries = Object.entries(state.nodePositions);
+        if (entries.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
 
-        const { w, h } = CARD_SIZES[state.cardSize];
         const padding = 20;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-        for (const pos of positions) {
+        for (const [id, pos] of entries) {
+          const overrideSize = state.cardSizes[id];
+          const { w, h } = overrideSize
+            ? CARD_SIZES[overrideSize]
+            : CARD_SIZES[state.cardSize];
           minX = Math.min(minX, pos.x);
           minY = Math.min(minY, pos.y);
           maxX = Math.max(maxX, pos.x + w);
@@ -213,7 +270,7 @@ export const useAccountUIStore = create<AccountUIState>()(
 
         return { zoom, panOffset };
       }),
-      setHasHydrated: (state) => set({ _hasHydrated: state })
+      setHasHydrated: (val: boolean) => set({ _hasHydrated: val })
     }),
     {
       name: 'account-ui-storage',
@@ -224,6 +281,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         viewMode: state.viewMode,
         canvasHeight: state.canvasHeight,
         cardSize: state.cardSize,
+        cardSizes: state.cardSizes,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

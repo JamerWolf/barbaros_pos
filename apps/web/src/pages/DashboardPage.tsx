@@ -16,7 +16,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, _hasHydrated } = useAccountUIStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
@@ -348,7 +348,7 @@ export function DashboardPage(): JSX.Element {
                     total={acc.total ?? 0}
                     pendingAmount={acc.pendingAmount ?? 0}
                     status={acc.status.toLowerCase() as 'open' | 'closed'}
-                    size={cardSize}
+                    size={getCardSize(acc.id)}
                   />
                 </DragNode>
               ))}
