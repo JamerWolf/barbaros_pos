@@ -156,7 +156,17 @@ export const useAccountUIStore = create<AccountUIState>()(
         const size = s.cardSizes[accountId] ?? s.cardSize;
         return CARD_SIZES[size];
       },
-      setCardSize: (size: CardSize) => set({ cardSize: size }),
+      setCardSize: (size: CardSize) => set((state) => {
+        // If in selection mode with selected cards, change those too
+        if (state.selectionMode && state.selectedIds.size > 0) {
+          const cardSizes = { ...state.cardSizes };
+          for (const id of state.selectedIds) {
+            cardSizes[id] = size;
+          }
+          return { cardSize: size, cardSizes };
+        }
+        return { cardSize: size };
+      }),
       fitToContent: (containerWidth: number, containerHeight: number, shapes?: { x: number; y: number; width: number; height: number; points?: { x: number; y: number }[] }[]) => set((state) => {
         const entries = Object.entries(state.nodePositions);
         const hasCards = entries.length > 0;
