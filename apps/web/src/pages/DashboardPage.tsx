@@ -35,6 +35,15 @@ export function DashboardPage(): JSX.Element {
     }
   }, [toast])
 
+  // Scroll to bottom when switching to canvas mode
+  useEffect(() => {
+    if (viewMode === 'canvas') {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+      })
+    }
+  }, [viewMode])
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
   }
