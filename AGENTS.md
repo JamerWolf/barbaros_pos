@@ -133,6 +133,12 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Touch-Friendly**: Botones GRANDES (min `h-12` o `p-4`), sin dependencias de `hover:`. Todo debe usarse cómodamente con los pulgares en una pantalla táctil apurado.
 - **High Contrast**: Entorno oscuro de discoteca requiere fondos oscuros con colores semánticos vivos y alto contraste.
 
+### Canvas (Drag & Shapes)
+- Todo el código del canvas debe adherirse a la skill `canvas-tools` (`.agent/skills/canvas-tools/SKILL.md`).
+- **Two-Layer Architecture**: Eventos en div sin transformar, render en div transformado.
+- **Lock Mode**: Cuando `canvasLocked` está activo, bloquear TODO (drag, shapes, selection, tools).
+- **Card Sizes**: S/M/L solo aplica a cuentas nuevas; existentes conservan su tamaño al crearse.
+
 ---
 
 ## Estado actual
