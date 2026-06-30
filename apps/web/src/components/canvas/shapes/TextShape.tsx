@@ -86,22 +86,17 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     if (!dragRef.current || !nodeRef.current) return;
     e.stopPropagation();
 
+    const { handle, offset, origX, origY, origW, origH } = dragRef.current;
     const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
     if (!parentRect) return;
 
-    const { handle, offset, origX, origY, origW, origH } = dragRef.current;
-    const mouseX = (e.clientX - parentRect.left) / zoom;
-    const mouseY = (e.clientY - parentRect.top) / zoom;
-
     if (handle === 'move') {
-      const newX = mouseX - offset.x;
-      const newY = mouseY - offset.y;
-      const dx = newX - origX;
-      const dy = newY - origY;
-      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        onMove?.(dx, dy);
-      }
+      const newX = (e.clientX - parentRect.left) / zoom - offset.x;
+      const newY = (e.clientY - parentRect.top) / zoom - offset.y;
+      onMove?.(newX - shape.x, newY - shape.y);
     } else {
+      const mouseX = (e.clientX - parentRect.left) / zoom;
+      const mouseY = (e.clientY - parentRect.top) / zoom;
       let newX = origX;
       let newY = origY;
       let newW = origW;

@@ -70,6 +70,36 @@ onPointerDown → capture pointer → onPointerMove → update position
 - Selection mode: tap = toggleSelection, drag = group move
 - No selection mode: tap = onClick (navigate to account)
 
+### CRITICAL: Shape Drag Coordinate Conversion
+
+**The #1 recurring bug.** All shape components MUST follow this exact pattern:
+
+```tsx
+// onPointerDown — calculate offset
+const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
+const offset = parentRect
+  ? {
+      x: (e.clientX - parentRect.left) / zoom - shape.x,
+      y: (e.clientY - parentRect.top) / zoom - shape.y,
+    }
+  : { x: 0, y: 0 };
+
+// onPointerMove — use CURRENT shape.x/y, NOT origX/origY
+const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
+const newX = (e.clientX - parentRect.left) / zoom - offset.x;
+const newY = (e.clientY - parentRect.top) / zoom - offset.y;
+onMove?.(newX - shape.x, newY - shape.y); // delta from CURRENT position
+```
+
+**Why**: Using `origX/origY` (position at drag start) causes drift because the delta compounds. Using `shape.x/shape.y` (current position) stays under the cursor.
+
+**NEVER**:
+```tsx
+// WRONG — causes drift
+const dx = newX - origX;  // origX is stale after first move event
+onMove?.(dx, dy);
+```
+
 ### ShapeLayer (Drawing Shapes)
 
 Two separate `useCallback` hooks:
@@ -160,6 +190,7 @@ Formula ensures point under cursor stays fixed.
 3. **Shape drag uses parentElement**: Both DragNode and shapes use `parentElement.getBoundingClientRect()` — the parent is the untransformed canvas container.
 4. **LineShape points**: Stored as `shape.points[]`, resized by dragging endpoints (not width/height like RectangleShape).
 5. **Per-card size freeze**: New accounts get `cardSizes[id] = cardSize` at creation. Changing global default later doesn't affect them.
+6. **Shape drag delta**: ALWAYS use `newX - shape.x` (current position), NEVER `newX - origX` (stale position). Using origX causes drift.
 
 ## File Reference
 
