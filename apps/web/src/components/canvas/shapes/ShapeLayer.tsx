@@ -10,7 +10,6 @@ export function ShapeLayer(): JSX.Element {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
-  const [linePoints, setLinePoints] = useState<{ x: number; y: number }[]>([]);
   const layerRef = useRef<HTMLDivElement>(null);
 
   // Load shapes on mount
@@ -40,15 +39,11 @@ export function ShapeLayer(): JSX.Element {
         e.stopPropagation();
         const canvasPos = screenToCanvas(e.clientX, e.clientY);
 
-        if (activeTool === 'rectangle') {
-          setIsDrawing(true);
-          setDrawStart(canvasPos);
-          setDrawCurrent(canvasPos);
-          setSelectedShapeId(null);
-          (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        } else if (activeTool === 'line') {
-          setLinePoints((prev) => [...prev, canvasPos]);
-        }
+        setIsDrawing(true);
+        setDrawStart(canvasPos);
+        setDrawCurrent(canvasPos);
+        setSelectedShapeId(null);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
       }
       // When no tool is active, let the event propagate for panning
       // Shape clicks are handled by each shape's own onSelect
@@ -58,16 +53,16 @@ export function ShapeLayer(): JSX.Element {
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isDrawing || activeTool !== 'rectangle') return;
+      if (!isDrawing) return;
       setDrawCurrent(screenToCanvas(e.clientX, e.clientY));
     },
-    [isDrawing, activeTool, screenToCanvas]
+    [isDrawing, screenToCanvas]
   );
 
   const handlePointerUp = useCallback(async () => {
-    if (!activeTool) return;
+    if (!activeTool || !drawStart || !drawCurrent) return;
 
-    if (activeTool === 'rectangle' && drawStart && drawCurrent) {
+    if (activeTool === 'rectangle') {
       const x = Math.min(drawStart.x, drawCurrent.x);
       const y = Math.min(drawStart.y, drawCurrent.y);
       const width = Math.abs(drawCurrent.x - drawStart.x);
@@ -84,29 +79,28 @@ export function ShapeLayer(): JSX.Element {
           zIndex: 0,
         });
       }
+    } else if (activeTool === 'line') {
+      const dx = drawCurrent.x - drawStart.x;
+      const dy = drawCurrent.y - drawStart.y;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        await addShape({
+          type: 'LINE',
+          x: drawStart.x,
+          y: drawStart.y,
+          width: 0,
+          height: 0,
+          points: [drawStart, drawCurrent],
+          color: drawingColor,
+          zIndex: 0,
+        });
+      }
     }
 
     setIsDrawing(false);
     setDrawStart(null);
     setDrawCurrent(null);
   }, [activeTool, drawStart, drawCurrent, drawingColor, addShape]);
-
-  const handleLineDoubleClick = useCallback(async () => {
-    if (activeTool !== 'line' || linePoints.length < 2) return;
-
-      await addShape({
-        type: 'LINE',
-        x: linePoints[0].x,
-        y: linePoints[0].y,
-        width: 0,
-        height: 0,
-        points: linePoints,
-        color: drawingColor,
-        zIndex: 0,
-      });
-
-    setLinePoints([]);
-  }, [activeTool, linePoints, drawingColor, addShape]);
 
   const handleShapeMove = useCallback((id: string, dx: number, dy: number) => {
     const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
@@ -130,7 +124,6 @@ export function ShapeLayer(): JSX.Element {
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setActiveTool(null);
-        setLinePoints([]);
         setSelectedShapeId(null);
       } else if (e.key === 'Delete' && selectedShapeId) {
         deleteShape(selectedShapeId);
@@ -156,9 +149,11 @@ export function ShapeLayer(): JSX.Element {
         }
       : null;
 
-  // Preview line points
-  const previewLinePoints =
-    activeTool === 'line' && linePoints.length > 0 ? linePoints : null;
+  // Draw preview line
+  const previewLine =
+    isDrawing && drawStart && drawCurrent && activeTool === 'line'
+      ? { start: drawStart, end: drawCurrent }
+      : null;
 
   return (
     <div
@@ -168,7 +163,6 @@ export function ShapeLayer(): JSX.Element {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onDoubleClick={handleLineDoubleClick}
     >
       {/* Transformed layer — renders shapes and previews in canvas space */}
       <div
@@ -221,25 +215,21 @@ export function ShapeLayer(): JSX.Element {
           />
         )}
 
-        {/* Preview line points */}
-        {previewLinePoints && previewLinePoints.length > 0 && (
+        {/* Preview line while drawing */}
+        {previewLine && (
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
-            {previewLinePoints.length >= 2 && (
-              <path
-                d={previewLinePoints
-                  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-                  .join(' ')}
-                stroke={drawingColor}
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray="6 3"
-              />
-            )}
-            {previewLinePoints.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r="4" fill={drawingColor} />
-            ))}
+            <line
+              x1={previewLine.start.x}
+              y1={previewLine.start.y}
+              x2={previewLine.end.x}
+              y2={previewLine.end.y}
+              stroke={drawingColor}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray="6 3"
+            />
+            <circle cx={previewLine.start.x} cy={previewLine.start.y} r="4" fill={drawingColor} />
+            <circle cx={previewLine.end.x} cy={previewLine.end.y} r="4" fill={drawingColor} />
           </svg>
         )}
       </div>
