@@ -116,8 +116,12 @@ export function ShapeLayer(): JSX.Element {
     }
   }, [updateShape]);
 
-  const handleShapeResize = useCallback((id: string, x: number, y: number, width: number, height: number) => {
-    updateShape(id, { x, y, width, height });
+  const handleShapeResize = useCallback((id: string, x: number, y: number, width: number, height: number, points?: { x: number; y: number }[]) => {
+    if (points) {
+      updateShape(id, { x, y, width, height, points });
+    } else {
+      updateShape(id, { x, y, width, height });
+    }
   }, [updateShape]);
 
   const handleKeyDown = useCallback(
@@ -193,6 +197,7 @@ export function ShapeLayer(): JSX.Element {
                 isSelected={selectedShapeId === shape.id}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
+                onResize={(x, y, w, h, pts) => handleShapeResize(shape.id, x, y, w, h, pts)}
               />
             );
           }
