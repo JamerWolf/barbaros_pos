@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 
 interface CanvasContainerProps {
@@ -10,6 +10,12 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions } = useAccountUIStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
+
+  // Resize state
+  const [canvasHeight, setCanvasHeight] = useState<number | null>(null) // null = flex-1 (fill)
+  const isResizing = useRef(false)
+  const resizeStartY = useRef(0)
+  const resizeStartHeight = useRef(0)
 
   // Auto-fit when positions change
   const fit = useCallback(() => {
@@ -51,12 +57,10 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
       const delta = e.deltaY > 0 ? -scaleFactor : scaleFactor
       const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 2)
 
-      // Mouse position relative to container
       const rect = container.getBoundingClientRect()
       const mouseX = e.clientX - rect.left
       const mouseY = e.clientY - rect.top
 
-      // Adjust pan so the point under the cursor stays fixed
       const newPanX = mouseX / newZoom - mouseX / currentZoom + currentPan.x
       const newPanY = mouseY / newZoom - mouseY / currentZoom + currentPan.y
 
@@ -68,6 +72,7 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
     return () => container.removeEventListener('wheel', handleWheel)
   }, [setZoom, setPanOffset])
 
+  // Canvas panning
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.target === containerRef.current) {
       isPanning.current = true
@@ -89,14 +94,54 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
     isPanning.current = false
   }
 
+  // Resize handle
+  const onResizeDown = (e: React.PointerEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    isResizing.current = true
+    resizeStartY.current = e.clientY
+    resizeStartHeight.current = containerRef.current?.parentElement?.getBoundingClientRect().height ?? 0
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+
+    const onMove = (ev: PointerEvent) => {
+      if (!isResizing.current) return
+      const delta = resizeStartY.current - ev.clientY
+      const newHeight = Math.max(200, Math.min(window.innerHeight - 100, resizeStartHeight.current + delta))
+      setCanvasHeight(newHeight)
+    }
+
+    const onUp = () => {
+      isResizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
+
   return (
-    <div className="relative min-h-0 flex-1">
+    <div
+      className="relative flex flex-col"
+      style={canvasHeight ? { height: canvasHeight, flex: 'none' } : { minHeight: 0, flex: 1 }}
+    >
+      {/* Resize handle */}
+      <div
+        onPointerDown={onResizeDown}
+        className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
+      >
+        <div className="h-1 w-8 rounded-full bg-gray-500" />
+      </div>
+      {/* Canvas */}
       <div
         ref={containerRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="absolute inset-0 touch-none overflow-hidden rounded-xl bg-gray-800"
+        className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800"
       >
         <div
           style={{
