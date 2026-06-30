@@ -13,47 +13,82 @@ interface RectangleShapeProps {
 type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'move';
 
 export function RectangleShape({ shape, isSelected, onSelect, onMove, onResize }: RectangleShapeProps): JSX.Element {
+  const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
-  const dragRef = useRef<{ handle: Handle; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number } | null>(null);
-
-  const screenToCanvasDelta = useCallback((dx: number, dy: number) => ({
-    dx: dx / zoom,
-    dy: dy / zoom,
-  }), [zoom]);
+  const dragRef = useRef<{
+    handle: Handle;
+    startPos: { x: number; y: number };
+    offset: { x: number; y: number };
+    origX: number;
+    origY: number;
+    origW: number;
+    origH: number;
+  } | null>(null);
 
   const onPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
     e.stopPropagation();
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+    const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
+    const offset = parentRect
+      ? {
+          x: (e.clientX - parentRect.left) / zoom - shape.x,
+          y: (e.clientY - parentRect.top) / zoom - shape.y,
+        }
+      : { x: 0, y: 0 };
+
     dragRef.current = {
       handle,
-      startX: e.clientX,
-      startY: e.clientY,
+      startPos: { x: e.clientX, y: e.clientY },
+      offset,
       origX: shape.x,
       origY: shape.y,
       origW: shape.width,
       origH: shape.height,
     };
-  }, [shape.x, shape.y, shape.width, shape.height]);
+  }, [shape.x, shape.y, shape.width, shape.height, zoom]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current || !nodeRef.current) return;
     e.stopPropagation();
-    const { handle, startX, startY, origX, origY, origW, origH } = dragRef.current;
-    const { dx, dy } = screenToCanvasDelta(e.clientX - startX, e.clientY - startY);
+
+    const { handle, offset, origX, origY, origW, origH } = dragRef.current;
+    const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
+    if (!parentRect) return;
 
     if (handle === 'move') {
-      onMove?.(dx, dy);
-    } else if (handle === 'se') {
-      onResize?.(origX, origY, Math.max(20, origW + dx), Math.max(20, origH + dy));
-    } else if (handle === 'sw') {
-      onResize?.(origX + dx, origY, Math.max(20, origW - dx), Math.max(20, origH + dy));
-    } else if (handle === 'ne') {
-      onResize?.(origX, origY + dy, Math.max(20, origW + dx), Math.max(20, origH - dy));
-    } else if (handle === 'nw') {
-      onResize?.(origX + dx, origY + dy, Math.max(20, origW - dx), Math.max(20, origH - dy));
+      const newX = (e.clientX - parentRect.left) / zoom - offset.x;
+      const newY = (e.clientY - parentRect.top) / zoom - offset.y;
+      onMove?.(newX - shape.x, newY - shape.y);
+    } else {
+      // For resize handles, compute new bounds from the original shape
+      const mouseX = (e.clientX - parentRect.left) / zoom;
+      const mouseY = (e.clientY - parentRect.top) / zoom;
+
+      let x = origX, y = origY, w = origW, h = origH;
+
+      if (handle === 'se') {
+        w = Math.max(20, mouseX - origX);
+        h = Math.max(20, mouseY - origY);
+      } else if (handle === 'sw') {
+        x = Math.min(mouseX, origX + origW - 20);
+        w = Math.max(20, origX + origW - x);
+        h = Math.max(20, mouseY - origY);
+      } else if (handle === 'ne') {
+        w = Math.max(20, mouseX - origX);
+        y = Math.min(mouseY, origY + origH - 20);
+        h = Math.max(20, origY + origH - y);
+      } else if (handle === 'nw') {
+        x = Math.min(mouseX, origX + origW - 20);
+        y = Math.min(mouseY, origY + origH - 20);
+        w = Math.max(20, origX + origW - x);
+        h = Math.max(20, origY + origH - y);
+      }
+
+      onResize?.(x, y, w, h);
     }
-  }, [screenToCanvasDelta, onMove, onResize]);
+  }, [zoom, shape.x, shape.y, onMove, onResize]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -64,6 +99,7 @@ export function RectangleShape({ shape, isSelected, onSelect, onMove, onResize }
 
   return (
     <div
+      ref={nodeRef}
       onPointerDown={(e) => {
         onSelect?.();
         onPointerDown(e, 'move');

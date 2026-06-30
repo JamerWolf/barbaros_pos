@@ -10,28 +10,58 @@ interface LineShapeProps {
 }
 
 export function LineShape({ shape, isSelected, onSelect, onMove }: LineShapeProps): JSX.Element {
+  const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
-  const dragRef = useRef<{ startX: number; startY: number } | null>(null);
+  const dragRef = useRef<{ offset: { x: number; y: number } } | null>(null);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     onSelect?.();
+
+    const points = shape.points || [];
+    const xs = points.map((p: { x: number; y: number }) => p.x);
+    const ys = points.map((p: { x: number; y: number }) => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+
+    const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
+    const offset = parentRect
+      ? {
+          x: (e.clientX - parentRect.left) / zoom - minX,
+          y: (e.clientY - parentRect.top) / zoom - minY,
+        }
+      : { x: 0, y: 0 };
+
+    dragRef.current = { offset };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startY: e.clientY };
-  }, [onSelect]);
+  }, [shape.points, zoom]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current || !nodeRef.current) return;
     e.stopPropagation();
-    const dx = (e.clientX - dragRef.current.startX) / zoom;
-    const dy = (e.clientY - dragRef.current.startY) / zoom;
-    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+
+    const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
+    if (!parentRect) return;
+
+    const points = shape.points || [];
+    const xs = points.map((p: { x: number; y: number }) => p.x);
+    const ys = points.map((p: { x: number; y: number }) => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+
+    const newX = (e.clientX - parentRect.left) / zoom - dragRef.current.offset.x;
+    const newY = (e.clientY - parentRect.top) / zoom - dragRef.current.offset.y;
+    const dx = newX - minX;
+    const dy = newY - minY;
+
+    if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
       onMove?.(dx, dy);
-      dragRef.current.startX = e.clientX;
-      dragRef.current.startY = e.clientY;
+      // Update offset so subsequent moves are relative to new position
+      dragRef.current.offset.x -= dx;
+      dragRef.current.offset.y -= dy;
     }
-  }, [zoom, onMove]);
+  }, [zoom, shape.points, onMove]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -55,6 +85,7 @@ export function LineShape({ shape, isSelected, onSelect, onMove }: LineShapeProp
 
   return (
     <div
+      ref={nodeRef}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
