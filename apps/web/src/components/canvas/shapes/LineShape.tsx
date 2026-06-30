@@ -1,16 +1,46 @@
+import { useRef, useCallback } from 'react';
 import type { IShape } from '@barbaros/shared';
+import { useAccountUIStore } from '../../../store/accountUIStore.js';
 
 interface LineShapeProps {
   shape: IShape;
   isSelected?: boolean;
   onSelect?: () => void;
+  onMove?: (dx: number, dy: number) => void;
 }
 
-export function LineShape({ shape, isSelected, onSelect }: LineShapeProps): JSX.Element {
+export function LineShape({ shape, isSelected, onSelect, onMove }: LineShapeProps): JSX.Element {
+  const zoom = useAccountUIStore((s) => s.zoom);
+  const dragRef = useRef<{ startX: number; startY: number } | null>(null);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect?.();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY };
+  }, [onSelect]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    e.stopPropagation();
+    const dx = (e.clientX - dragRef.current.startX) / zoom;
+    const dy = (e.clientY - dragRef.current.startY) / zoom;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      onMove?.(dx, dy);
+      dragRef.current.startX = e.clientX;
+      dragRef.current.startY = e.clientY;
+    }
+  }, [zoom, onMove]);
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    dragRef.current = null;
+  }, []);
+
   const points = shape.points || [];
   if (points.length < 2) return <></>;
 
-  // Calculate bounding box for the SVG viewBox
   const xs = points.map((p: { x: number; y: number }) => p.x);
   const ys = points.map((p: { x: number; y: number }) => p.y);
   const minX = Math.min(...xs);
@@ -19,18 +49,16 @@ export function LineShape({ shape, isSelected, onSelect }: LineShapeProps): JSX.
   const maxY = Math.max(...ys);
   const padding = 10;
 
-  // Build SVG path
   const pathData = points
     .map((p: { x: number; y: number }, i: number) => `${i === 0 ? 'M' : 'L'} ${p.x - minX + padding} ${p.y - minY + padding}`)
     .join(' ');
 
   return (
     <div
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect?.();
-      }}
-      className={`absolute cursor-pointer pointer-events-auto ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      className={`absolute cursor-move pointer-events-auto ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
       style={{
         left: minX - padding,
         top: minY - padding,

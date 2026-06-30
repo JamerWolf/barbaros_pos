@@ -5,7 +5,7 @@ import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
 
 export function ShapeLayer(): JSX.Element {
-  const { shapes, activeTool, drawingColor, selectedShapeId, loadShapes, addShape, deleteShape, setActiveTool, setSelectedShapeId } = useShapeStore();
+  const { shapes, activeTool, drawingColor, selectedShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId } = useShapeStore();
   const { zoom, panOffset } = useAccountUIStore();
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
@@ -108,6 +108,24 @@ export function ShapeLayer(): JSX.Element {
     setLinePoints([]);
   }, [activeTool, linePoints, drawingColor, addShape]);
 
+  const handleShapeMove = useCallback((id: string, dx: number, dy: number) => {
+    const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
+    if (!shape) return;
+    if (shape.type === 'RECTANGLE') {
+      updateShape(id, { x: shape.x + dx, y: shape.y + dy });
+    } else if (shape.type === 'LINE' && shape.points) {
+      updateShape(id, {
+        x: shape.x + dx,
+        y: shape.y + dy,
+        points: shape.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+      });
+    }
+  }, [updateShape]);
+
+  const handleShapeResize = useCallback((id: string, x: number, y: number, width: number, height: number) => {
+    updateShape(id, { x, y, width, height });
+  }, [updateShape]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -168,6 +186,8 @@ export function ShapeLayer(): JSX.Element {
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
                 onSelect={() => setSelectedShapeId(shape.id)}
+                onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
+                onResize={(x, y, w, h) => handleShapeResize(shape.id, x, y, w, h)}
               />
             );
           }
@@ -178,6 +198,7 @@ export function ShapeLayer(): JSX.Element {
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
                 onSelect={() => setSelectedShapeId(shape.id)}
+                onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
               />
             );
           }
