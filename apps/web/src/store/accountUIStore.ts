@@ -77,7 +77,8 @@ export const useAccountUIStore = create<AccountUIState>()(
             h + NODE_GAP
           );
           return {
-            nodePositions: { ...state.nodePositions, [accountId]: freeSpace }
+            nodePositions: { ...state.nodePositions, [accountId]: freeSpace },
+            cardSizes: { ...state.cardSizes, [accountId]: state.cardSize }
           };
         });
       },
@@ -87,6 +88,7 @@ export const useAccountUIStore = create<AccountUIState>()(
           const { w, h } = CARD_SIZES[state.cardSize];
           const newPositions = { ...state.nodePositions };
           const currentPositions = { ...state.nodePositions };
+          const newCardSizes = { ...state.cardSizes };
           for (const id of accountIds) {
             if (!newPositions[id]) {
               const freeSpace = calculateFirstFreeSpace(
@@ -96,9 +98,10 @@ export const useAccountUIStore = create<AccountUIState>()(
               );
               newPositions[id] = freeSpace;
               currentPositions[id] = freeSpace;
+              newCardSizes[id] = state.cardSize;
             }
           }
-          return { nodePositions: newPositions };
+          return { nodePositions: newPositions, cardSizes: newCardSizes };
         });
       },
 
@@ -153,86 +156,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         const size = s.cardSizes[accountId] ?? s.cardSize;
         return CARD_SIZES[size];
       },
-      setCardSize: (size: CardSize) => set((state) => {
-        // If in selection mode with selected cards, only change those
-        if (state.selectionMode && state.selectedIds.size > 0) {
-          const cardSizes = { ...state.cardSizes };
-          const positions = { ...state.nodePositions };
-          const { w: newW, h: newH } = CARD_SIZES[size];
-
-          for (const id of state.selectedIds) {
-            cardSizes[id] = size;
-
-            // Resolve overlaps with all other cards after size change
-            for (const otherId of Object.keys(positions)) {
-              if (otherId === id) continue;
-              const overrideSize = state.cardSizes[otherId];
-              const otherDims = overrideSize
-                ? CARD_SIZES[overrideSize]
-                : CARD_SIZES[state.cardSize];
-              const a = positions[id];
-              const b = positions[otherId];
-
-              const overlapX = (a.x + newW > b.x) && (b.x + otherDims.w > a.x);
-              const overlapY = (a.y + newH > b.y) && (b.y + otherDims.h > a.y);
-
-              if (overlapX && overlapY) {
-                const pushRight = (a.x + newW) - b.x;
-                const pushLeft = (b.x + otherDims.w) - a.x;
-                const pushDown = (a.y + newH) - b.y;
-                const pushUp = (b.y + otherDims.h) - a.y;
-                const minPush = Math.min(pushRight, pushLeft, pushDown, pushUp);
-
-                if (minPush === pushRight) {
-                  positions[otherId] = { x: a.x + newW, y: b.y };
-                } else if (minPush === pushLeft) {
-                  positions[otherId] = { x: b.x - pushLeft, y: b.y };
-                } else if (minPush === pushDown) {
-                  positions[otherId] = { x: b.x, y: a.y + newH };
-                } else {
-                  positions[otherId] = { x: b.x, y: b.y - pushUp };
-                }
-              }
-            }
-          }
-
-          return { cardSizes, nodePositions: positions };
-        }
-
-        // No selection: change global size, resolve all overlaps
-        const positions = { ...state.nodePositions };
-        const { w, h } = CARD_SIZES[size];
-        const ids = Object.keys(positions);
-
-        for (let i = 0; i < ids.length; i++) {
-          for (let j = i + 1; j < ids.length; j++) {
-            const a = positions[ids[i]];
-            const b = positions[ids[j]];
-            const overlapX = (a.x + w > b.x) && (b.x + w > a.x);
-            const overlapY = (a.y + h > b.y) && (b.y + h > a.y);
-
-            if (overlapX && overlapY) {
-              const pushRight = (a.x + w) - b.x;
-              const pushLeft = (b.x + w) - a.x;
-              const pushDown = (a.y + h) - b.y;
-              const pushUp = (b.y + h) - a.y;
-              const minPush = Math.min(pushRight, pushLeft, pushDown, pushUp);
-
-              if (minPush === pushRight) {
-                positions[ids[j]] = { x: a.x + w, y: b.y };
-              } else if (minPush === pushLeft) {
-                positions[ids[j]] = { x: b.x - pushLeft, y: b.y };
-              } else if (minPush === pushDown) {
-                positions[ids[j]] = { x: b.x, y: a.y + h };
-              } else {
-                positions[ids[j]] = { x: b.x, y: b.y - pushUp };
-              }
-            }
-          }
-        }
-
-        return { cardSize: size, cardSizes: {}, nodePositions: positions };
-      }),
+      setCardSize: (size: CardSize) => set({ cardSize: size }),
       fitToContent: (containerWidth: number, containerHeight: number, shapes?: { x: number; y: number; width: number; height: number; points?: { x: number; y: number }[] }[]) => set((state) => {
         const entries = Object.entries(state.nodePositions);
         const hasCards = entries.length > 0;
