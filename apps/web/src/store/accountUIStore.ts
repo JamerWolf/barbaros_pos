@@ -137,7 +137,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { nodePositions: next };
       }),
       setCanvasHeight: (height) => set({ canvasHeight: height }),
-      setCardSize: (size) => set({ cardSize: size, nodePositions: {} }),
+      setCardSize: (size) => set({ cardSize: size }),
       fitToContent: (containerWidth, containerHeight) => set((state) => {
         const positions = Object.values(state.nodePositions);
         if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
