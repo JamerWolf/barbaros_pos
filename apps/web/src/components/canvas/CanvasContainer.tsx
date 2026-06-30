@@ -10,7 +10,7 @@ interface CanvasContainerProps {
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight } = useAccountUIStore()
-  const { activeTool } = useShapeStore()
+  const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
 
@@ -23,14 +23,14 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
   const fit = useCallback(() => {
     const container = containerRef.current
     if (!container) return
-    fitToContent(container.clientWidth, container.clientHeight)
-  }, [fitToContent])
+    fitToContent(container.clientWidth, container.clientHeight, shapeData)
+  }, [fitToContent, shapeData])
 
   // Fit on mount and when node count changes
   useEffect(() => {
     const timer = setTimeout(fit, 50)
     return () => clearTimeout(timer)
-  }, [Object.keys(nodePositions).length, fit])
+  }, [Object.keys(nodePositions).length, shapeData.length, fit])
 
   // ResizeObserver to re-fit when container resizes
   useEffect(() => {

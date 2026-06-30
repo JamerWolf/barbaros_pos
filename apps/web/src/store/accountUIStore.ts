@@ -28,7 +28,7 @@ export interface AccountUIState {
   toggleSelection: (accountId: string) => void;
   clearSelection: () => void;
   movePositions: (accountIds: string[], delta: Position) => void;
-  fitToContent: (containerWidth: number, containerHeight: number) => void;
+  fitToContent: (containerWidth: number, containerHeight: number, shapes?: { x: number; y: number; width: number; height: number; points?: { x: number; y: number }[] }[]) => void;
   setCanvasHeight: (height: number | null) => void;
   setCardSize: (size: CardSize) => void;
   getCardSize: (accountId: string) => CardSize;
@@ -230,13 +230,17 @@ export const useAccountUIStore = create<AccountUIState>()(
 
         return { cardSize: size, cardSizes: {}, nodePositions: positions };
       }),
-      fitToContent: (containerWidth: number, containerHeight: number) => set((state) => {
+      fitToContent: (containerWidth: number, containerHeight: number, shapes?: { x: number; y: number; width: number; height: number; points?: { x: number; y: number }[] }[]) => set((state) => {
         const entries = Object.entries(state.nodePositions);
-        if (entries.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
+        const hasCards = entries.length > 0;
+        const hasShapes = shapes && shapes.length > 0;
+
+        if (!hasCards && !hasShapes) return { zoom: 1, panOffset: { x: 0, y: 0 } };
 
         const padding = 20;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
+        // Include account cards
         for (const [id, pos] of entries) {
           const overrideSize = state.cardSizes[id];
           const { w, h } = overrideSize
@@ -246,6 +250,27 @@ export const useAccountUIStore = create<AccountUIState>()(
           minY = Math.min(minY, pos.y);
           maxX = Math.max(maxX, pos.x + w);
           maxY = Math.max(maxY, pos.y + h);
+        }
+
+        // Include shapes
+        if (shapes) {
+          for (const shape of shapes) {
+            if (shape.points && shape.points.length > 0) {
+              // LINE: use actual point bounds
+              for (const p of shape.points) {
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+              }
+            } else {
+              // RECTANGLE: use x, y, width, height
+              minX = Math.min(minX, shape.x);
+              minY = Math.min(minY, shape.y);
+              maxX = Math.max(maxX, shape.x + shape.width);
+              maxY = Math.max(maxY, shape.y + shape.height);
+            }
+          }
         }
 
         const contentWidth = maxX - minX;
