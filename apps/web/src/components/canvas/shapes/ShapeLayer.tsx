@@ -3,13 +3,8 @@ import { useShapeStore } from '../../../store/shapeStore.js';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
-import type { IShape } from '@barbaros/shared';
 
-interface ShapeLayerProps {
-  shiftId: string | null;
-}
-
-export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
+export function ShapeLayer(): JSX.Element {
   const { shapes, activeTool, drawingColor, loadShapes, addShape, deleteShape, setActiveTool } = useShapeStore();
   const { zoom, panOffset } = useAccountUIStore();
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
@@ -19,12 +14,10 @@ export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
   const [linePoints, setLinePoints] = useState<{ x: number; y: number }[]>([]);
   const layerRef = useRef<HTMLDivElement>(null);
 
-  // Load shapes when shift changes
+  // Load shapes on mount
   useEffect(() => {
-    if (shiftId) {
-      loadShapes(shiftId);
-    }
-  }, [shiftId, loadShapes]);
+    loadShapes();
+  }, [loadShapes]);
 
   // Convert screen coords to canvas coords
   const screenToCanvas = useCallback(
@@ -72,7 +65,7 @@ export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
   );
 
   const handlePointerUp = useCallback(async () => {
-    if (!activeTool || !shiftId) return;
+    if (!activeTool) return;
 
     if (activeTool === 'rectangle' && drawStart && drawCurrent) {
       const x = Math.min(drawStart.x, drawCurrent.x);
@@ -82,7 +75,6 @@ export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
 
       if (width > 5 && height > 5) {
         await addShape({
-          shiftId,
           type: 'RECTANGLE',
           x,
           y,
@@ -97,13 +89,12 @@ export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
     setIsDrawing(false);
     setDrawStart(null);
     setDrawCurrent(null);
-  }, [activeTool, shiftId, drawStart, drawCurrent, drawingColor, addShape]);
+  }, [activeTool, drawStart, drawCurrent, drawingColor, addShape]);
 
   const handleLineDoubleClick = useCallback(async () => {
-    if (activeTool !== 'line' || linePoints.length < 2 || !shiftId) return;
+    if (activeTool !== 'line' || linePoints.length < 2) return;
 
       await addShape({
-        shiftId,
         type: 'LINE',
         x: linePoints[0].x,
         y: linePoints[0].y,
@@ -115,7 +106,7 @@ export function ShapeLayer({ shiftId }: ShapeLayerProps): JSX.Element {
       });
 
     setLinePoints([]);
-  }, [activeTool, linePoints, shiftId, drawingColor, addShape]);
+  }, [activeTool, linePoints, drawingColor, addShape]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

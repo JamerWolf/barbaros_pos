@@ -14,7 +14,7 @@ export interface ShapeState {
 
   setActiveTool: (tool: ShapeTool) => void;
   setDrawingColor: (color: string) => void;
-  loadShapes: (shiftId: string) => Promise<void>;
+  loadShapes: () => Promise<void>;
   addShape: (shape: Omit<IShape, 'id' | 'createdAt' | 'updatedAt'>) => Promise<IShape>;
   updateShape: (id: string, input: Partial<IShape>) => Promise<void>;
   deleteShape: (id: string) => Promise<void>;
@@ -31,10 +31,10 @@ export const useShapeStore = create<ShapeState>()(
       setActiveTool: (tool) => set({ activeTool: tool }),
       setDrawingColor: (color) => set({ drawingColor: color }),
 
-      loadShapes: async (shiftId) => {
+      loadShapes: async () => {
         set({ isLoading: true });
         try {
-          const res = await fetch(`${API_URL}/shapes/${shiftId}`);
+          const res = await fetch(`${API_URL}/shapes`);
           if (res.ok) {
             const shapes = await res.json();
             set({ shapes });

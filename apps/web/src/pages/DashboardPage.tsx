@@ -379,7 +379,7 @@ export function DashboardPage(): JSX.Element {
               </div>
             </div>
             <CanvasContainer>
-              <ShapeLayer shiftId={activeShiftId} />
+              <ShapeLayer />
               {filteredOpenAccounts.map((acc) => (
                 <DragNode
                   key={acc.id}

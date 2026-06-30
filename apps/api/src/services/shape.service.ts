@@ -1,7 +1,6 @@
 import { prisma } from '../db/prisma.js';
 
 export interface CreateShapeInput {
-  shiftId: string;
   type: 'RECTANGLE' | 'LINE';
   x: number;
   y: number;
@@ -26,9 +25,8 @@ export interface UpdateShapeInput {
 }
 
 export class ShapeService {
-  static async getShapesByShift(shiftId: string) {
+  static async getAllShapes() {
     return prisma.shape.findMany({
-      where: { shiftId },
       orderBy: { zIndex: 'asc' },
     });
   }
@@ -36,7 +34,6 @@ export class ShapeService {
   static async createShape(input: CreateShapeInput) {
     return prisma.shape.create({
       data: {
-        shiftId: input.shiftId,
         type: input.type,
         x: input.x,
         y: input.y,

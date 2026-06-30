@@ -12,11 +12,10 @@ function emitSocketEvent(fastify: any, event: string, payload: any) {
 }
 
 const shapeRoutes: FastifyPluginAsync = async (fastify) => {
-  // Get shapes for a shift
-  fastify.get('/:shiftId', async (request, reply) => {
-    const { shiftId } = request.params as { shiftId: string };
+  // Get all shapes (global)
+  fastify.get('/', async (_request, reply) => {
     try {
-      const shapes = await ShapeService.getShapesByShift(shiftId);
+      const shapes = await ShapeService.getAllShapes();
       return reply.send(shapes);
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
