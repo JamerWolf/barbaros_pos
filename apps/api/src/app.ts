@@ -11,6 +11,7 @@ import accountRoutes from './routes/accounts/index.js'
 import categoryRoutes from './routes/categories/index.js'
 import productRoutes from './routes/products/index.js'
 import reportRoutes from './routes/reports.js'
+import shapeRoutes from './routes/shapes/index.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -44,6 +45,7 @@ export async function buildApp() {
   await app.register(categoryRoutes, { prefix: '/categories' })
   await app.register(productRoutes, { prefix: '/products' })
   await app.register(reportRoutes, { prefix: '/reports' })
+  await app.register(shapeRoutes, { prefix: '/shapes' })
 
   // Socket connection handler
   app.register(async function (fastify) {

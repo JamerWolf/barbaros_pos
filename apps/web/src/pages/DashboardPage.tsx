@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccountStore } from '../store/accountStore.js'
 import { useAccountUIStore } from '../store/accountUIStore.js'
+import { useShapeStore, type ShapeTool } from '../store/shapeStore.js'
 import { AccountCard } from '../components/Accounts/AccountCard.js'
 import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
 import { CanvasContainer } from '../components/canvas/CanvasContainer.js'
 import { DragNode } from '../components/canvas/DragNode.js'
+import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
 import type { IAccount } from '@barbaros/shared'
@@ -17,6 +19,7 @@ export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
   const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, _hasHydrated } = useAccountUIStore()
+  const { activeTool, setActiveTool, drawingColor, setDrawingColor } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
@@ -343,9 +346,40 @@ export function DashboardPage(): JSX.Element {
                 >
                   + Agregar cuenta de otro turno
                 </button>
+                {/* Shape tools */}
+                <div className="flex rounded-lg bg-gray-700 p-1">
+                  <button
+                    onClick={() => setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                    className={`h-8 rounded-md px-2 text-xs font-bold ${
+                      activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
+                    }`}
+                    title="Rectángulo"
+                  >
+                    ▭
+                  </button>
+                  <button
+                    onClick={() => setActiveTool(activeTool === 'line' ? null : 'line')}
+                    className={`h-8 rounded-md px-2 text-xs font-bold ${
+                      activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
+                    }`}
+                    title="Línea"
+                  >
+                    ╱
+                  </button>
+                  {activeTool && (
+                    <input
+                      type="color"
+                      value={drawingColor}
+                      onChange={(e) => setDrawingColor(e.target.value)}
+                      className="h-8 w-8 cursor-pointer rounded-md border-0 bg-transparent p-0"
+                      title="Color"
+                    />
+                  )}
+                </div>
               </div>
             </div>
             <CanvasContainer>
+              <ShapeLayer shiftId={activeShiftId} />
               {filteredOpenAccounts.map((acc) => (
                 <DragNode
                   key={acc.id}

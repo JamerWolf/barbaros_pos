@@ -37,6 +37,7 @@ model Shift {
   updatedAt DateTime    @updatedAt
 
   accounts Account[]
+  shapes   Shape[]
 
   @@map("shifts")
 }
@@ -116,4 +117,29 @@ model Payment {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+enum ShapeType {
+  RECTANGLE
+  LINE
+}
+
+model Shape {
+  id        String    @id @default(uuid())
+  shiftId   String
+  type      ShapeType
+  x         Float
+  y         Float
+  width     Float     @default(0)
+  height    Float     @default(0)
+  points    Json?     // [{x,y}] for LINE type
+  color     String    @default("#ffffff")
+  label     String?
+  zIndex    Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@map("shapes")
 }

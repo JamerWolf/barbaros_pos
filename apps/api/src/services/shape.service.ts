@@ -1,0 +1,73 @@
+import { prisma } from '../db/prisma.js';
+
+export interface CreateShapeInput {
+  shiftId: string;
+  type: 'RECTANGLE' | 'LINE';
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  points?: { x: number; y: number }[];
+  color?: string;
+  label?: string;
+  zIndex?: number;
+}
+
+export interface UpdateShapeInput {
+  type?: 'RECTANGLE' | 'LINE';
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  points?: { x: number; y: number }[];
+  color?: string;
+  label?: string;
+  zIndex?: number;
+}
+
+export class ShapeService {
+  static async getShapesByShift(shiftId: string) {
+    return prisma.shape.findMany({
+      where: { shiftId },
+      orderBy: { zIndex: 'asc' },
+    });
+  }
+
+  static async createShape(input: CreateShapeInput) {
+    return prisma.shape.create({
+      data: {
+        shiftId: input.shiftId,
+        type: input.type,
+        x: input.x,
+        y: input.y,
+        width: input.width ?? 0,
+        height: input.height ?? 0,
+        points: input.points ?? undefined,
+        color: input.color ?? '#ffffff',
+        label: input.label ?? undefined,
+        zIndex: input.zIndex ?? 0,
+      },
+    });
+  }
+
+  static async updateShape(id: string, input: UpdateShapeInput) {
+    return prisma.shape.update({
+      where: { id },
+      data: {
+        ...(input.type !== undefined && { type: input.type }),
+        ...(input.x !== undefined && { x: input.x }),
+        ...(input.y !== undefined && { y: input.y }),
+        ...(input.width !== undefined && { width: input.width }),
+        ...(input.height !== undefined && { height: input.height }),
+        ...(input.points !== undefined && { points: input.points }),
+        ...(input.color !== undefined && { color: input.color }),
+        ...(input.label !== undefined && { label: input.label }),
+        ...(input.zIndex !== undefined && { zIndex: input.zIndex }),
+      },
+    });
+  }
+
+  static async deleteShape(id: string) {
+    return prisma.shape.delete({ where: { id } });
+  }
+}
