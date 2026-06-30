@@ -18,7 +18,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, canvasLocked, setCanvasLocked, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, canvasLocked, setCanvasLocked, _hasHydrated } = useAccountUIStore()
   const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
@@ -320,10 +320,10 @@ export function DashboardPage(): JSX.Element {
                     </button>
                   ))}
                 </div>
-                {selectionMode && selectedIds.size > 0 && (
+                {selectionMode && (
                   <button
                     onClick={() => {
-                      // Deselect all
+                      restoreSelectionSnapshot()
                       clearSelection()
                       setSelectionMode(false)
                     }}
@@ -333,7 +333,15 @@ export function DashboardPage(): JSX.Element {
                   </button>
                 )}
                 <button
-                  onClick={() => setSelectionMode(!selectionMode)}
+                  onClick={() => {
+                    if (selectionMode) {
+                      clearSelection()
+                      setSelectionMode(false)
+                    } else {
+                      saveSelectionSnapshot()
+                      setSelectionMode(true)
+                    }
+                  }}
                   className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
                     selectionMode ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
                   }`}
