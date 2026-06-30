@@ -137,7 +137,45 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { nodePositions: next };
       }),
       setCanvasHeight: (height) => set({ canvasHeight: height }),
-      setCardSize: (size) => set({ cardSize: size }),
+      setCardSize: (size) => set((state) => {
+        const { w, h } = CARD_SIZES[size];
+        const positions = { ...state.nodePositions };
+        const ids = Object.keys(positions);
+
+        // Resolve overlaps: push cards apart minimally, preserving relative layout
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const a = positions[ids[i]];
+            const b = positions[ids[j]];
+
+            const overlapX = (a.x + w > b.x) && (b.x + w > a.x);
+            const overlapY = (a.y + h > b.y) && (b.y + h > a.y);
+
+            if (overlapX && overlapY) {
+              // Calculate minimum push on each axis
+              const pushRight = (a.x + w) - b.x;
+              const pushLeft = (b.x + w) - a.x;
+              const pushDown = (a.y + h) - b.y;
+              const pushUp = (b.y + h) - a.y;
+
+              // Pick the smallest push
+              const minPush = Math.min(pushRight, pushLeft, pushDown, pushUp);
+
+              if (minPush === pushRight) {
+                positions[ids[j]] = { x: a.x + w, y: b.y };
+              } else if (minPush === pushLeft) {
+                positions[ids[j]] = { x: b.x - pushLeft, y: b.y };
+              } else if (minPush === pushDown) {
+                positions[ids[j]] = { x: b.x, y: a.y + h };
+              } else {
+                positions[ids[j]] = { x: b.x, y: b.y - pushUp };
+              }
+            }
+          }
+        }
+
+        return { cardSize: size, nodePositions: positions };
+      }),
       fitToContent: (containerWidth, containerHeight) => set((state) => {
         const positions = Object.values(state.nodePositions);
         if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
