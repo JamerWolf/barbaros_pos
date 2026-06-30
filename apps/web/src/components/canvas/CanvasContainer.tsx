@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 
 interface CanvasContainerProps {
@@ -7,12 +7,11 @@ interface CanvasContainerProps {
 
 export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight } = useAccountUIStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
 
   // Resize state
-  const [canvasHeight, setCanvasHeight] = useState<number | null>(null) // null = flex-1 (fill)
   const isResizing = useRef(false)
   const resizeStartY = useRef(0)
   const resizeStartHeight = useRef(0)

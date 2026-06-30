@@ -11,6 +11,7 @@ export interface AccountUIState {
   viewMode: 'list' | 'canvas';
   selectionMode: boolean;
   selectedIds: Set<string>;
+  canvasHeight: number | null;
   _hasHydrated: boolean;
   updatePosition: (accountId: string, pos: Position) => void;
   assignInitialPosition: (accountId: string) => void;
@@ -24,6 +25,7 @@ export interface AccountUIState {
   clearSelection: () => void;
   movePositions: (accountIds: string[], delta: Position) => void;
   fitToContent: (containerWidth: number, containerHeight: number) => void;
+  setCanvasHeight: (height: number | null) => void;
   setHasHydrated: (state: boolean) => void;
 }
 
@@ -40,6 +42,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       viewMode: 'list',
       selectionMode: false,
       selectedIds: new Set<string>(),
+      canvasHeight: null,
       _hasHydrated: false,
 
       updatePosition: (accountId, pos) => set((state) => ({
@@ -123,6 +126,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         }
         return { nodePositions: next };
       }),
+      setCanvasHeight: (height) => set({ canvasHeight: height }),
       fitToContent: (containerWidth, containerHeight) => set((state) => {
         const positions = Object.values(state.nodePositions);
         if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
@@ -168,6 +172,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         panOffset: state.panOffset,
         zoom: state.zoom,
         viewMode: state.viewMode,
+        canvasHeight: state.canvasHeight,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
