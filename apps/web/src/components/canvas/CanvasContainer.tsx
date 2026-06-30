@@ -23,14 +23,15 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
   const fit = useCallback(() => {
     const container = containerRef.current
     if (!container) return
-    fitToContent(container.clientWidth, container.clientHeight, shapeData)
-  }, [fitToContent, shapeData])
+    const currentShapes = useShapeStore.getState().shapes
+    fitToContent(container.clientWidth, container.clientHeight, currentShapes)
+  }, [fitToContent])
 
   // Fit on mount and when node count changes
   useEffect(() => {
     const timer = setTimeout(fit, 50)
     return () => clearTimeout(timer)
-  }, [Object.keys(nodePositions).length, shapeData.length, fit])
+  }, [Object.keys(nodePositions).length, fit])
 
   // ResizeObserver to re-fit when container resizes
   useEffect(() => {
