@@ -7,6 +7,7 @@ export interface IShape {
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   points?: { x: number; y: number }[];
   color: string;
   label?: string;

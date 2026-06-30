@@ -246,6 +246,7 @@ export function ShapeLayer(): JSX.Element {
                 onStopEdit={() => setEditingShapeId(null)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
                 onResize={(x, y, w, h) => handleShapeResize(shape.id, x, y, w, h)}
+                onRotate={(degrees) => updateShape(shape.id, { rotation: degrees })}
               />
             );
           }

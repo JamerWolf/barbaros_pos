@@ -13,11 +13,16 @@ interface TextShapeProps {
   onStopEdit?: () => void;
   onMove?: (dx: number, dy: number) => void;
   onResize?: (x: number, y: number, width: number, height: number) => void;
+  onRotate?: (degrees: number) => void;
 }
 
-type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'move';
+type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'move' | 'rotate';
 
-export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, onStartEdit, onStopEdit, onMove, onResize }: TextShapeProps): JSX.Element {
+function getAngle(cx: number, cy: number, mx: number, my: number): number {
+  return Math.atan2(my - cy, mx - cx) * (180 / Math.PI);
+}
+
+export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, onStartEdit, onStopEdit, onMove, onResize, onRotate }: TextShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
@@ -31,6 +36,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     origY: number;
     origW: number;
     origH: number;
+    startAngle: number;
+    origRotation: number;
   } | null>(null);
 
   // Sync local text when shape changes externally
@@ -62,6 +69,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
 
     let offset = { x: 0, y: 0 };
+    let startAngle = 0;
+
     if (parentRect) {
       const mouseX = (e.clientX - parentRect.left) / zoom;
       const mouseY = (e.clientY - parentRect.top) / zoom;
@@ -69,6 +78,13 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         x: mouseX - shape.x,
         y: mouseY - shape.y,
       };
+
+      // For rotation: calculate angle from center of shape to mouse
+      if (handle === 'rotate') {
+        const centerX = shape.x + shape.width / 2;
+        const centerY = shape.y + shape.height / 2;
+        startAngle = getAngle(centerX, centerY, mouseX, mouseY);
+      }
     }
 
     dragRef.current = {
@@ -79,14 +95,16 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
       origY: shape.y,
       origW: shape.width,
       origH: shape.height,
+      startAngle,
+      origRotation: shape.rotation ?? 0,
     };
-  }, [isLocked, zoom, shape.x, shape.y, shape.width, shape.height]);
+  }, [isLocked, zoom, shape.x, shape.y, shape.width, shape.height, shape.rotation]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current || !nodeRef.current) return;
     e.stopPropagation();
 
-    const { handle, offset, origX, origY, origW, origH } = dragRef.current;
+    const { handle, offset, origX, origY, origW, origH, startAngle, origRotation } = dragRef.current;
     const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
     if (!parentRect) return;
 
@@ -94,6 +112,14 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
       const newX = (e.clientX - parentRect.left) / zoom - offset.x;
       const newY = (e.clientY - parentRect.top) / zoom - offset.y;
       onMove?.(newX - shape.x, newY - shape.y);
+    } else if (handle === 'rotate') {
+      const mouseX = (e.clientX - parentRect.left) / zoom;
+      const mouseY = (e.clientY - parentRect.top) / zoom;
+      const centerX = shape.x + shape.width / 2;
+      const centerY = shape.y + shape.height / 2;
+      const currentAngle = getAngle(centerX, centerY, mouseX, mouseY);
+      const delta = currentAngle - startAngle;
+      onRotate?.(origRotation + delta);
     } else {
       const mouseX = (e.clientX - parentRect.left) / zoom;
       const mouseY = (e.clientY - parentRect.top) / zoom;
@@ -119,7 +145,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
 
       onResize?.(newX, newY, newW, newH);
     }
-  }, [zoom, onMove, onResize]);
+  }, [zoom, shape.x, shape.y, shape.width, shape.height, onMove, onResize, onRotate]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -144,6 +170,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
   }, [saveText]);
 
   const handleSize = 8;
+  const rotation = shape.rotation || 0;
 
   return (
     <div
@@ -163,6 +190,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         width: shape.width,
         height: shape.height,
         zIndex: shape.zIndex,
+        transform: rotation ? `rotate(${rotation}deg)` : undefined,
+        transformOrigin: 'center center',
       }}
     >
       {/* Selection ring */}
@@ -216,6 +245,29 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               />
             );
           })}
+          {/* Rotation handle */}
+          <div
+            className="pointer-events-auto absolute flex flex-col items-center"
+            style={{
+              top: -32,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 20,
+            }}
+            onPointerDown={(e) => onPointerDown(e, 'rotate')}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
+            {/* Line from handle to shape */}
+            <div className="h-4 w-px bg-white/40" />
+            {/* Rotation icon */}
+            <div
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/40 bg-gray-800 text-xs text-white"
+              style={{ cursor: 'grab' }}
+            >
+              ↻
+            </div>
+          </div>
         </>
       )}
     </div>
