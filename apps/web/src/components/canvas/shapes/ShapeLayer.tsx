@@ -153,68 +153,76 @@ export function ShapeLayer(): JSX.Element {
       onPointerUp={handlePointerUp}
       onDoubleClick={handleLineDoubleClick}
     >
-      {/* Rendered shapes */}
-      {shapes.map((shape) => {
-        if (shape.type === 'RECTANGLE') {
-          return (
-            <RectangleShape
-              key={shape.id}
-              shape={shape}
-              isSelected={selectedShapeId === shape.id}
-              onSelect={() => setSelectedShapeId(shape.id)}
-            />
-          );
-        }
-        if (shape.type === 'LINE') {
-          return (
-            <LineShape
-              key={shape.id}
-              shape={shape}
-              isSelected={selectedShapeId === shape.id}
-              onSelect={() => setSelectedShapeId(shape.id)}
-            />
-          );
-        }
-        return null;
-      })}
+      {/* Transformed layer — renders shapes and previews in canvas space */}
+      <div
+        style={{
+          transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+        }}
+        className="absolute left-0 top-0 h-full w-full origin-top-left pointer-events-none"
+      >
+        {/* Rendered shapes */}
+        {shapes.map((shape) => {
+          if (shape.type === 'RECTANGLE') {
+            return (
+              <RectangleShape
+                key={shape.id}
+                shape={shape}
+                isSelected={selectedShapeId === shape.id}
+                onSelect={() => setSelectedShapeId(shape.id)}
+              />
+            );
+          }
+          if (shape.type === 'LINE') {
+            return (
+              <LineShape
+                key={shape.id}
+                shape={shape}
+                isSelected={selectedShapeId === shape.id}
+                onSelect={() => setSelectedShapeId(shape.id)}
+              />
+            );
+          }
+          return null;
+        })}
 
-      {/* Preview rectangle while drawing */}
-      {previewRect && (
-        <div
-          className="pointer-events-none border-2 border-dashed"
-          style={{
-            position: 'absolute',
-            left: previewRect.x,
-            top: previewRect.y,
-            width: previewRect.width,
-            height: previewRect.height,
-            backgroundColor: `${drawingColor}22`,
-            borderColor: drawingColor,
-          }}
-        />
-      )}
+        {/* Preview rectangle while drawing */}
+        {previewRect && (
+          <div
+            className="pointer-events-none border-2 border-dashed"
+            style={{
+              position: 'absolute',
+              left: previewRect.x,
+              top: previewRect.y,
+              width: previewRect.width,
+              height: previewRect.height,
+              backgroundColor: `${drawingColor}22`,
+              borderColor: drawingColor,
+            }}
+          />
+        )}
 
-      {/* Preview line points */}
-      {previewLinePoints && previewLinePoints.length > 0 && (
-        <svg className="pointer-events-none absolute inset-0 h-full w-full">
-          {previewLinePoints.length >= 2 && (
-            <path
-              d={previewLinePoints
-                .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-                .join(' ')}
-              stroke={drawingColor}
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray="6 3"
-            />
-          )}
-          {previewLinePoints.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r="4" fill={drawingColor} />
-          ))}
-        </svg>
-      )}
+        {/* Preview line points */}
+        {previewLinePoints && previewLinePoints.length > 0 && (
+          <svg className="pointer-events-none absolute inset-0 h-full w-full">
+            {previewLinePoints.length >= 2 && (
+              <path
+                d={previewLinePoints
+                  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+                  .join(' ')}
+                stroke={drawingColor}
+                strokeWidth="3"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="6 3"
+              />
+            )}
+            {previewLinePoints.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r="4" fill={drawingColor} />
+            ))}
+          </svg>
+        )}
+      </div>
     </div>
   );
 }

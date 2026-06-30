@@ -153,13 +153,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         >
           {children}
         </div>
-        {/* Shapes layer — same transform, pointer-events controlled by activeTool */}
+        {/* Shapes layer — NOT transformed, direct child of container for correct coords */}
         {shapes && (
           <div
-            style={{
-              transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-            }}
-            className={`absolute left-0 top-0 h-full w-full origin-top-left ${activeTool ? '' : 'pointer-events-none'}`}
+            className={`absolute left-0 top-0 h-full w-full ${activeTool ? '' : 'pointer-events-none'}`}
           >
             {shapes}
           </div>
