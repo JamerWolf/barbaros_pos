@@ -90,13 +90,13 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
   }
 
   return (
-    <div className="relative flex-1">
+    <div className="relative min-h-0 flex-1">
       <div
         ref={containerRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="relative h-full w-full touch-none overflow-hidden rounded-xl bg-gray-800"
+        className="absolute inset-0 touch-none overflow-hidden rounded-xl bg-gray-800"
       >
         <div
           style={{
