@@ -16,6 +16,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const updatePosition = useAccountUIStore((s) => s.updatePosition)
   const movePositions = useAccountUIStore((s) => s.movePositions)
   const toggleSelection = useAccountUIStore((s) => s.toggleSelection)
+  const canvasLocked = useAccountUIStore((s) => s.canvasLocked)
   const zoom = useAccountUIStore((s) => s.zoom)
   const offset = useRef({ x: 0, y: 0 })
 
@@ -23,6 +24,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const isDragging = useRef(false)
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (canvasLocked) return
     e.stopPropagation()
     isDragging.current = false
     startPos.current = { x: e.clientX, y: e.clientY }

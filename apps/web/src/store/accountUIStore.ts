@@ -16,6 +16,7 @@ export interface AccountUIState {
   canvasHeight: number | null;
   cardSize: CardSize;
   cardSizes: Record<string, CardSize>;
+  canvasLocked: boolean;
   _hasHydrated: boolean;
   updatePosition: (accountId: string, pos: Position) => void;
   assignInitialPosition: (accountId: string) => void;
@@ -33,6 +34,7 @@ export interface AccountUIState {
   setCardSize: (size: CardSize) => void;
   getCardSize: (accountId: string) => CardSize;
   getCardDimensions: (accountId: string) => { w: number; h: number };
+  setCanvasLocked: (locked: boolean) => void;
   setHasHydrated: (state: boolean) => void;
 }
 
@@ -55,6 +57,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       canvasHeight: null,
       cardSize: 'md',
       cardSizes: {},
+      canvasLocked: false,
       _hasHydrated: false,
 
       updatePosition: (accountId, pos) => set((state) => ({
@@ -295,6 +298,7 @@ export const useAccountUIStore = create<AccountUIState>()(
 
         return { zoom, panOffset };
       }),
+      setCanvasLocked: (locked) => set({ canvasLocked: locked }),
       setHasHydrated: (val: boolean) => set({ _hasHydrated: val })
     }),
     {
@@ -307,6 +311,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         canvasHeight: state.canvasHeight,
         cardSize: state.cardSize,
         cardSizes: state.cardSizes,
+        canvasLocked: state.canvasLocked,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

@@ -18,7 +18,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, canvasLocked, setCanvasLocked, _hasHydrated } = useAccountUIStore()
   const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
@@ -347,9 +347,10 @@ export function DashboardPage(): JSX.Element {
                   + Agregar cuenta de otro turno
                 </button>
                 {/* Shape tools */}
-                <div className="flex rounded-lg bg-gray-700 p-1">
+                <div className={`flex rounded-lg bg-gray-700 p-1 ${canvasLocked ? 'opacity-50' : ''}`}>
                   <button
-                    onClick={() => setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                    disabled={canvasLocked}
                     className={`h-8 rounded-md px-2 text-xs font-bold ${
                       activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
                     }`}
@@ -358,7 +359,8 @@ export function DashboardPage(): JSX.Element {
                     ▭
                   </button>
                   <button
-                    onClick={() => setActiveTool(activeTool === 'line' ? null : 'line')}
+                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
+                    disabled={canvasLocked}
                     className={`h-8 rounded-md px-2 text-xs font-bold ${
                       activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
                     }`}
@@ -388,6 +390,22 @@ export function DashboardPage(): JSX.Element {
                     </button>
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    setCanvasLocked(!canvasLocked);
+                    if (!canvasLocked) {
+                      setActiveTool(null);
+                      setSelectionMode(false);
+                      setSelectedShapeId(null);
+                    }
+                  }}
+                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
+                    canvasLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                  }`}
+                  title={canvasLocked ? 'Desbloquear canvas' : 'Bloquear canvas'}
+                >
+                  {canvasLocked ? '🔒' : '🔓'}
+                </button>
               </div>
             </div>
             <CanvasContainer shapes={<ShapeLayer />}>

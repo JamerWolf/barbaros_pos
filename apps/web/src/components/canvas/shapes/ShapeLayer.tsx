@@ -6,7 +6,7 @@ import { LineShape } from './LineShape.jsx';
 
 export function ShapeLayer(): JSX.Element {
   const { shapes, activeTool, drawingColor, selectedShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId } = useShapeStore();
-  const { zoom, panOffset } = useAccountUIStore();
+  const { zoom, panOffset, canvasLocked } = useAccountUIStore();
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -32,7 +32,7 @@ export function ShapeLayer(): JSX.Element {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!layerRef.current) return;
+      if (!layerRef.current || canvasLocked) return;
 
       // When a tool is active, start drawing
       if (activeTool) {
@@ -48,7 +48,7 @@ export function ShapeLayer(): JSX.Element {
       // When no tool is active, let the event propagate for panning
       // Shape clicks are handled by each shape's own onSelect
     },
-    [activeTool, screenToCanvas]
+    [activeTool, screenToCanvas, canvasLocked]
   );
 
   const handlePointerMove = useCallback(
