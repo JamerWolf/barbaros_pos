@@ -31,6 +31,29 @@ CanvasContainer
 
 ## Patterns
 
+### ShapeTool Types
+
+| Tool | Shape | Drawing | Editing |
+|------|-------|---------|---------|
+| `rectangle` | RECTANGLE | Drag to define bounds | Drag handles to resize |
+| `line` | LINE | Drag start → end | Drag endpoint handles |
+| `text` | TEXT | Drag to define text box | Double-click to edit text |
+
+### TextShape
+
+```
+Draw: select T tool → drag on canvas → textarea auto-focuses
+Edit: double-click text shape → textarea appears
+Save: blur, Escape, or click elsewhere
+Cancel: Escape restores original text
+```
+
+- `editingShapeId` in shapeStore tracks which text is being edited
+- `onSelect` MUST be called AFTER `isLocked` check (same as other shapes)
+- Text uses `shape.label` field (same as RectangleShape)
+- Default color from `drawingColor` at creation time
+- Resize handles: 4 corners (nw/ne/sw/se), same as RectangleShape
+
 ### DragNode (Account Cards)
 
 ```
@@ -143,10 +166,11 @@ Formula ensures point under cursor stays fixed.
 | File | Role |
 |------|------|
 | `apps/web/src/store/accountUIStore.ts` | UI state, positions, zoom, pan, selection, lock |
-| `apps/web/src/store/shapeStore.ts` | Shapes CRUD, active tool |
+| `apps/web/src/store/shapeStore.ts` | Shapes CRUD, active tool, editingShapeId |
 | `apps/web/src/components/canvas/CanvasContainer.tsx` | Canvas wrapper, panning, zoom, resize |
 | `apps/web/src/components/canvas/DragNode.tsx` | Account card drag/select |
 | `apps/web/src/components/canvas/shapes/ShapeLayer.tsx` | Shape drawing + event routing |
 | `apps/web/src/components/canvas/shapes/RectangleShape.tsx` | Rectangle move/resize |
 | `apps/web/src/components/canvas/shapes/LineShape.tsx` | Line move/resize |
+| `apps/web/src/components/canvas/shapes/TextShape.tsx` | Text editable shape |
 | `apps/web/src/pages/DashboardPage.tsx` | Toolbar, mode toggles, shape tools |
