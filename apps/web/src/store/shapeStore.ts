@@ -11,9 +11,11 @@ export interface ShapeState {
   activeTool: ShapeTool;
   drawingColor: string;
   isLoading: boolean;
+  selectedShapeId: string | null;
 
   setActiveTool: (tool: ShapeTool) => void;
   setDrawingColor: (color: string) => void;
+  setSelectedShapeId: (id: string | null) => void;
   loadShapes: () => Promise<void>;
   addShape: (shape: Omit<IShape, 'id' | 'createdAt' | 'updatedAt'>) => Promise<IShape>;
   updateShape: (id: string, input: Partial<IShape>) => Promise<void>;
@@ -27,9 +29,11 @@ export const useShapeStore = create<ShapeState>()(
       activeTool: null,
       drawingColor: '#3b82f6',
       isLoading: false,
+      selectedShapeId: null,
 
       setActiveTool: (tool) => set({ activeTool: tool }),
       setDrawingColor: (color) => set({ drawingColor: color }),
+      setSelectedShapeId: (id) => set({ selectedShapeId: id }),
 
       loadShapes: async () => {
         set({ isLoading: true });

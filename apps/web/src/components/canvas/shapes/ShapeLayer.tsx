@@ -5,9 +5,8 @@ import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
 
 export function ShapeLayer(): JSX.Element {
-  const { shapes, activeTool, drawingColor, loadShapes, addShape, deleteShape, setActiveTool } = useShapeStore();
+  const { shapes, activeTool, drawingColor, selectedShapeId, loadShapes, addShape, deleteShape, setActiveTool, setSelectedShapeId } = useShapeStore();
   const { zoom, panOffset } = useAccountUIStore();
-  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -34,25 +33,25 @@ export function ShapeLayer(): JSX.Element {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!activeTool) return;
       if (!layerRef.current) return;
-      e.stopPropagation();
 
-      const canvasPos = screenToCanvas(e.clientX, e.clientY);
+      // When a tool is active, start drawing
+      if (activeTool) {
+        e.stopPropagation();
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
 
-      if (activeTool === 'rectangle') {
-        setIsDrawing(true);
-        setDrawStart(canvasPos);
-        setDrawCurrent(canvasPos);
-        setSelectedShapeId(null);
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      } else if (activeTool === 'line') {
-        // Add point to line
-        setLinePoints((prev) => {
-          const next = [...prev, canvasPos];
-          return next;
-        });
+        if (activeTool === 'rectangle') {
+          setIsDrawing(true);
+          setDrawStart(canvasPos);
+          setDrawCurrent(canvasPos);
+          setSelectedShapeId(null);
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        } else if (activeTool === 'line') {
+          setLinePoints((prev) => [...prev, canvasPos]);
+        }
       }
+      // When no tool is active, let the event propagate for panning
+      // Shape clicks are handled by each shape's own onSelect
     },
     [activeTool, screenToCanvas]
   );
@@ -120,7 +119,7 @@ export function ShapeLayer(): JSX.Element {
         setSelectedShapeId(null);
       }
     },
-    [setActiveTool, selectedShapeId, deleteShape]
+    [setActiveTool, selectedShapeId, deleteShape, setSelectedShapeId]
   );
 
   useEffect(() => {
@@ -146,7 +145,7 @@ export function ShapeLayer(): JSX.Element {
   return (
     <div
       ref={layerRef}
-      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`}
+      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair' : 'pointer-events-none'}`}
       style={{ zIndex: 10 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -158,7 +157,7 @@ export function ShapeLayer(): JSX.Element {
         style={{
           transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
         }}
-        className="absolute left-0 top-0 h-full w-full origin-top-left pointer-events-none"
+        className="absolute left-0 top-0 h-full w-full origin-top-left"
       >
         {/* Rendered shapes */}
         {shapes.map((shape) => {

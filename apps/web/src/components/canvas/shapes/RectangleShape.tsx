@@ -13,7 +13,7 @@ export function RectangleShape({ shape, isSelected, onSelect }: RectangleShapePr
         e.stopPropagation();
         onSelect?.();
       }}
-      className={`absolute cursor-pointer border-2 ${
+      className={`absolute cursor-pointer pointer-events-auto border-2 ${
         isSelected ? 'ring-2 ring-white' : ''
       }`}
       style={{

@@ -19,7 +19,7 @@ export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
   const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, getCardSize, _hasHydrated } = useAccountUIStore()
-  const { activeTool, setActiveTool, drawingColor, setDrawingColor } = useShapeStore()
+  const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
@@ -374,6 +374,18 @@ export function DashboardPage(): JSX.Element {
                       className="h-8 w-8 cursor-pointer rounded-md border-0 bg-transparent p-0"
                       title="Color"
                     />
+                  )}
+                  {selectedShapeId && (
+                    <button
+                      onClick={() => {
+                        deleteShape(selectedShapeId);
+                        setSelectedShapeId(null);
+                      }}
+                      className="h-8 rounded-md px-2 text-xs font-bold text-red-400 hover:bg-red-900/50"
+                      title="Eliminar figura (o presiona Delete)"
+                    >
+                      🗑️
+                    </button>
                   )}
                 </div>
               </div>

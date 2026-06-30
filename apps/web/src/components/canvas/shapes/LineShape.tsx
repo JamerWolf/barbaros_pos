@@ -30,7 +30,7 @@ export function LineShape({ shape, isSelected, onSelect }: LineShapeProps): JSX.
         e.stopPropagation();
         onSelect?.();
       }}
-      className={`absolute cursor-pointer ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
+      className={`absolute cursor-pointer pointer-events-auto ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
       style={{
         left: minX - padding,
         top: minY - padding,
@@ -51,6 +51,13 @@ export function LineShape({ shape, isSelected, onSelect }: LineShapeProps): JSX.
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
+        />
+        {/* Wider invisible hit area */}
+        <path
+          d={pathData}
+          stroke="transparent"
+          strokeWidth="12"
+          fill="none"
         />
       </svg>
     </div>
