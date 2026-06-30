@@ -163,7 +163,7 @@ export function ShapeLayer(): JSX.Element {
   return (
     <div
       ref={layerRef}
-      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair' : 'pointer-events-none'}`}
+      className={`absolute inset-0 ${activeTool ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`}
       style={{ zIndex: 10 }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
