@@ -46,6 +46,7 @@ Draw: select T tool → drag on canvas → textarea auto-focuses
 Edit: double-click text shape → textarea appears
 Save: blur, Escape, or click elsewhere
 Cancel: Escape restores original text
+Rotate: drag ↻ handle at top center → rotates around shape center
 ```
 
 - `editingShapeId` in shapeStore tracks which text is being edited
@@ -53,6 +54,8 @@ Cancel: Escape restores original text
 - Text uses `shape.label` field (same as RectangleShape)
 - Default color from `drawingColor` at creation time
 - Resize handles: 4 corners (nw/ne/sw/se), same as RectangleShape
+- Rotation handle: ↻ icon at top center, rotates around `transformOrigin: center center`
+- Rotation formula: `getAngle(centerX, centerY, mouseX, mouseY)` → delta from start angle
 
 ### DragNode (Account Cards)
 
