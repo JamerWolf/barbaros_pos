@@ -1,4 +1,4 @@
-export type ShapeType = 'RECTANGLE' | 'LINE';
+export type ShapeType = 'RECTANGLE' | 'LINE' | 'TEXT';
 
 export interface IShape {
   id: string;

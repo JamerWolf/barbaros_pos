@@ -376,6 +376,16 @@ export function DashboardPage(): JSX.Element {
                   >
                     ╱
                   </button>
+                  <button
+                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
+                    disabled={canvasLocked}
+                    className={`h-8 rounded-md px-2 text-xs font-bold ${
+                      activeTool === 'text' ? 'bg-green-600 text-white' : 'text-gray-400'
+                    }`}
+                    title="Texto"
+                  >
+                    T
+                  </button>
                   {activeTool && (
                     <input
                       type="color"

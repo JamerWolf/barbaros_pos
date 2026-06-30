@@ -4,7 +4,7 @@ import type { IShape } from '@barbaros/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export type ShapeTool = null | 'rectangle' | 'line';
+export type ShapeTool = null | 'rectangle' | 'line' | 'text';
 
 export interface ShapeState {
   shapes: IShape[];
@@ -12,10 +12,12 @@ export interface ShapeState {
   drawingColor: string;
   isLoading: boolean;
   selectedShapeId: string | null;
+  editingShapeId: string | null;
 
   setActiveTool: (tool: ShapeTool) => void;
   setDrawingColor: (color: string) => void;
   setSelectedShapeId: (id: string | null) => void;
+  setEditingShapeId: (id: string | null) => void;
   loadShapes: () => Promise<void>;
   addShape: (shape: Omit<IShape, 'id' | 'createdAt' | 'updatedAt'>) => Promise<IShape>;
   updateShape: (id: string, input: Partial<IShape>) => Promise<void>;
@@ -30,10 +32,12 @@ export const useShapeStore = create<ShapeState>()(
       drawingColor: '#3b82f6',
       isLoading: false,
       selectedShapeId: null,
+      editingShapeId: null,
 
       setActiveTool: (tool) => set({ activeTool: tool }),
       setDrawingColor: (color) => set({ drawingColor: color }),
       setSelectedShapeId: (id) => set({ selectedShapeId: id }),
+      setEditingShapeId: (id) => set({ editingShapeId: id }),
 
       loadShapes: async () => {
         set({ isLoading: true });

@@ -121,6 +121,7 @@ model Payment {
 enum ShapeType {
   RECTANGLE
   LINE
+  TEXT
 }
 
 model Shape {
@@ -130,7 +131,7 @@ model Shape {
   y         Float
   width     Float     @default(0)
   height    Float     @default(0)
-  points    Json?     // [{x,y}] for LINE type
+  points    Json?     // [{x,y}] for LINE and TEXT types
   color     String    @default("#ffffff")
   label     String?
   zIndex    Int       @default(0)

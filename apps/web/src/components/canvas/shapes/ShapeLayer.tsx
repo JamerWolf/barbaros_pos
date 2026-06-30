@@ -3,9 +3,10 @@ import { useShapeStore } from '../../../store/shapeStore.js';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
+import { TextShape } from './TextShape.jsx';
 
 export function ShapeLayer(): JSX.Element {
-  const { shapes, activeTool, drawingColor, selectedShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId } = useShapeStore();
+  const { shapes, activeTool, drawingColor, selectedShapeId, editingShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId, setEditingShapeId } = useShapeStore();
   const { zoom, panOffset, canvasLocked } = useAccountUIStore();
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
@@ -95,6 +96,24 @@ export function ShapeLayer(): JSX.Element {
           zIndex: 0,
         });
       }
+    } else if (activeTool === 'text') {
+      const x = Math.min(drawStart.x, drawCurrent.x);
+      const y = Math.min(drawStart.y, drawCurrent.y);
+      const width = Math.max(Math.abs(drawCurrent.x - drawStart.x), 80);
+      const height = Math.max(Math.abs(drawCurrent.y - drawStart.y), 32);
+
+      const newShape = await addShape({
+        type: 'TEXT',
+        x,
+        y,
+        width,
+        height,
+        label: '',
+        color: drawingColor,
+        zIndex: 0,
+      });
+      setEditingShapeId(newShape.id);
+      setActiveTool(null);
     }
 
     setIsDrawing(false);
@@ -105,7 +124,7 @@ export function ShapeLayer(): JSX.Element {
   const handleShapeMove = useCallback((id: string, dx: number, dy: number) => {
     const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
     if (!shape) return;
-    if (shape.type === 'RECTANGLE') {
+    if (shape.type === 'RECTANGLE' || shape.type === 'TEXT') {
       updateShape(id, { x: shape.x + dx, y: shape.y + dy });
     } else if (shape.type === 'LINE' && shape.points) {
       updateShape(id, {
@@ -159,6 +178,17 @@ export function ShapeLayer(): JSX.Element {
       ? { start: drawStart, end: drawCurrent }
       : null;
 
+  // Draw preview text box
+  const previewText =
+    isDrawing && drawStart && drawCurrent && activeTool === 'text'
+      ? {
+          x: Math.min(drawStart.x, drawCurrent.x),
+          y: Math.min(drawStart.y, drawCurrent.y),
+          width: Math.abs(drawCurrent.x - drawStart.x),
+          height: Math.abs(drawCurrent.y - drawStart.y),
+        }
+      : null;
+
   return (
     <div
       ref={layerRef}
@@ -203,6 +233,22 @@ export function ShapeLayer(): JSX.Element {
               />
             );
           }
+          if (shape.type === 'TEXT') {
+            return (
+              <TextShape
+                key={shape.id}
+                shape={shape}
+                isSelected={selectedShapeId === shape.id}
+                isLocked={canvasLocked}
+                isEditing={editingShapeId === shape.id}
+                onSelect={() => setSelectedShapeId(shape.id)}
+                onStartEdit={() => setEditingShapeId(shape.id)}
+                onStopEdit={() => setEditingShapeId(null)}
+                onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
+                onResize={(x, y, w, h) => handleShapeResize(shape.id, x, y, w, h)}
+              />
+            );
+          }
           return null;
         })}
 
@@ -238,6 +284,21 @@ export function ShapeLayer(): JSX.Element {
             <circle cx={previewLine.start.x} cy={previewLine.start.y} r="4" fill={drawingColor} />
             <circle cx={previewLine.end.x} cy={previewLine.end.y} r="4" fill={drawingColor} />
           </svg>
+        )}
+
+        {/* Preview text box while drawing */}
+        {previewText && (
+          <div
+            className="pointer-events-none border-2 border-dashed"
+            style={{
+              position: 'absolute',
+              left: previewText.x,
+              top: previewText.y,
+              width: previewText.width,
+              height: previewText.height,
+              borderColor: drawingColor,
+            }}
+          />
         )}
       </div>
     </div>
