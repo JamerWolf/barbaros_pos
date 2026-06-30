@@ -33,9 +33,12 @@ export interface AccountUIState {
   setHasHydrated: (state: boolean) => void;
 }
 
-const NODE_WIDTH = 128; // w-32 = 128px
-const NODE_HEIGHT = 128; // h-32 = 128px
-const NODE_GAP = 16; // 16px gap between nodes
+const CARD_SIZES: Record<CardSize, { w: number; h: number }> = {
+  sm: { w: 80, h: 80 },
+  md: { w: 128, h: 128 },
+  lg: { w: 176, h: 176 },
+};
+const NODE_GAP = 16;
 
 export const useAccountUIStore = create<AccountUIState>()(
   persist(
@@ -60,10 +63,11 @@ export const useAccountUIStore = create<AccountUIState>()(
       assignInitialPosition: (accountId) => {
         set((state) => {
           if (state.nodePositions[accountId]) return state;
+          const { w, h } = CARD_SIZES[state.cardSize];
           const freeSpace = calculateFirstFreeSpace(
             state.nodePositions,
-            NODE_WIDTH + NODE_GAP,
-            NODE_HEIGHT + NODE_GAP
+            w + NODE_GAP,
+            h + NODE_GAP
           );
           return {
             nodePositions: { ...state.nodePositions, [accountId]: freeSpace }
@@ -73,14 +77,15 @@ export const useAccountUIStore = create<AccountUIState>()(
 
       assignPositionsBatch: (accountIds) => {
         set((state) => {
+          const { w, h } = CARD_SIZES[state.cardSize];
           const newPositions = { ...state.nodePositions };
           const currentPositions = { ...state.nodePositions };
           for (const id of accountIds) {
             if (!newPositions[id]) {
               const freeSpace = calculateFirstFreeSpace(
                 currentPositions,
-                NODE_WIDTH + NODE_GAP,
-                NODE_HEIGHT + NODE_GAP
+                w + NODE_GAP,
+                h + NODE_GAP
               );
               newPositions[id] = freeSpace;
               currentPositions[id] = freeSpace;
@@ -132,19 +137,20 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { nodePositions: next };
       }),
       setCanvasHeight: (height) => set({ canvasHeight: height }),
-      setCardSize: (size) => set({ cardSize: size }),
+      setCardSize: (size) => set({ cardSize: size, nodePositions: {} }),
       fitToContent: (containerWidth, containerHeight) => set((state) => {
         const positions = Object.values(state.nodePositions);
         if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
 
+        const { w, h } = CARD_SIZES[state.cardSize];
         const padding = 20;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
         for (const pos of positions) {
           minX = Math.min(minX, pos.x);
           minY = Math.min(minY, pos.y);
-          maxX = Math.max(maxX, pos.x + NODE_WIDTH);
-          maxY = Math.max(maxY, pos.y + NODE_HEIGHT);
+          maxX = Math.max(maxX, pos.x + w);
+          maxY = Math.max(maxY, pos.y + h);
         }
 
         const contentWidth = maxX - minX;
