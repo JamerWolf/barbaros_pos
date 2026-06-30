@@ -5,6 +5,7 @@ import { useAccountUIStore } from '../../../store/accountUIStore.js';
 interface LineShapeProps {
   shape: IShape;
   isSelected?: boolean;
+  isLocked?: boolean;
   onSelect?: () => void;
   onMove?: (dx: number, dy: number) => void;
   onResize?: (x: number, y: number, width: number, height: number, points: { x: number; y: number }[]) => void;
@@ -12,7 +13,7 @@ interface LineShapeProps {
 
 type Handle = 'start' | 'end' | 'move';
 
-export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: LineShapeProps): JSX.Element {
+export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onResize }: LineShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
   const dragRef = useRef<{
@@ -37,6 +38,7 @@ export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: Lin
     .join(' ');
 
   const onPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
+    if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
     onSelect?.();
@@ -112,7 +114,7 @@ export function LineShape({ shape, isSelected, onSelect, onMove, onResize }: Lin
 
       onResize?.(nMinX, nMinY, nMaxX - nMinX, nMaxY - nMinY, newPoints);
     }
-  }, [zoom, shape.points, onMove, onResize]);
+  }, [isLocked, zoom, shape.points, onMove, onResize]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();

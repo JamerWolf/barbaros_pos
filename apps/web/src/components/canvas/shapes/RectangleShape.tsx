@@ -5,6 +5,7 @@ import { useAccountUIStore } from '../../../store/accountUIStore.js';
 interface RectangleShapeProps {
   shape: IShape;
   isSelected?: boolean;
+  isLocked?: boolean;
   onSelect?: () => void;
   onMove?: (dx: number, dy: number) => void;
   onResize?: (x: number, y: number, width: number, height: number) => void;
@@ -12,7 +13,7 @@ interface RectangleShapeProps {
 
 type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'move';
 
-export function RectangleShape({ shape, isSelected, onSelect, onMove, onResize }: RectangleShapeProps): JSX.Element {
+export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, onResize }: RectangleShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
   const dragRef = useRef<{
@@ -26,6 +27,7 @@ export function RectangleShape({ shape, isSelected, onSelect, onMove, onResize }
   } | null>(null);
 
   const onPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
+    if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -88,7 +90,7 @@ export function RectangleShape({ shape, isSelected, onSelect, onMove, onResize }
 
       onResize?.(x, y, w, h);
     }
-  }, [zoom, shape.x, shape.y, onMove, onResize]);
+  }, [isLocked, zoom, shape.x, shape.y, onMove, onResize]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();

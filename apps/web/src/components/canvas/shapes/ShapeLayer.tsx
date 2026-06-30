@@ -183,6 +183,7 @@ export function ShapeLayer(): JSX.Element {
                 key={shape.id}
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
+                isLocked={canvasLocked}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
                 onResize={(x, y, w, h) => handleShapeResize(shape.id, x, y, w, h)}
@@ -195,6 +196,7 @@ export function ShapeLayer(): JSX.Element {
                 key={shape.id}
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
+                isLocked={canvasLocked}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
                 onResize={(x, y, w, h, pts) => handleShapeResize(shape.id, x, y, w, h, pts)}
