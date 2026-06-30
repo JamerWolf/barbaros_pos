@@ -259,7 +259,7 @@ export function DashboardPage(): JSX.Element {
         </button>
       </div>
 
-      <section className="flex-1">
+      <section className="flex flex-1 flex-col">
         {!_hasHydrated ? (
           <p className="text-center text-gray-500">Cargando...</p>
         ) : viewMode === 'list' ? (
