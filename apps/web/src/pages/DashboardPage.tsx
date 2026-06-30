@@ -16,7 +16,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, cardSize, setCardSize, _hasHydrated } = useAccountUIStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
@@ -290,7 +290,24 @@ export function DashboardPage(): JSX.Element {
                   {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
                 </span>
               )}
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg bg-gray-700 p-1">
+                  {([
+                    ['sm', 'S'],
+                    ['md', 'M'],
+                    ['lg', 'L'],
+                  ] as const).map(([size, label]) => (
+                    <button
+                      key={size}
+                      onClick={() => setCardSize(size)}
+                      className={`h-8 rounded-md px-2 text-xs font-bold ${
+                        cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 {selectionMode && selectedIds.size > 0 && (
                   <button
                     onClick={() => {
@@ -331,6 +348,7 @@ export function DashboardPage(): JSX.Element {
                     total={acc.total ?? 0}
                     pendingAmount={acc.pendingAmount ?? 0}
                     status={acc.status.toLowerCase() as 'open' | 'closed'}
+                    size={cardSize}
                   />
                 </DragNode>
               ))}

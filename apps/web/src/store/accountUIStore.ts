@@ -4,6 +4,8 @@ import { calculateFirstFreeSpace, Position } from '../utils/canvasUtils.js';
 
 export type { Position };
 
+export type CardSize = 'sm' | 'md' | 'lg';
+
 export interface AccountUIState {
   nodePositions: Record<string, Position>;
   panOffset: Position;
@@ -12,6 +14,7 @@ export interface AccountUIState {
   selectionMode: boolean;
   selectedIds: Set<string>;
   canvasHeight: number | null;
+  cardSize: CardSize;
   _hasHydrated: boolean;
   updatePosition: (accountId: string, pos: Position) => void;
   assignInitialPosition: (accountId: string) => void;
@@ -26,6 +29,7 @@ export interface AccountUIState {
   movePositions: (accountIds: string[], delta: Position) => void;
   fitToContent: (containerWidth: number, containerHeight: number) => void;
   setCanvasHeight: (height: number | null) => void;
+  setCardSize: (size: CardSize) => void;
   setHasHydrated: (state: boolean) => void;
 }
 
@@ -43,6 +47,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       selectionMode: false,
       selectedIds: new Set<string>(),
       canvasHeight: null,
+      cardSize: 'md',
       _hasHydrated: false,
 
       updatePosition: (accountId, pos) => set((state) => ({
@@ -127,6 +132,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { nodePositions: next };
       }),
       setCanvasHeight: (height) => set({ canvasHeight: height }),
+      setCardSize: (size) => set({ cardSize: size }),
       fitToContent: (containerWidth, containerHeight) => set((state) => {
         const positions = Object.values(state.nodePositions);
         if (positions.length === 0) return { zoom: 1, panOffset: { x: 0, y: 0 } };
@@ -173,6 +179,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         zoom: state.zoom,
         viewMode: state.viewMode,
         canvasHeight: state.canvasHeight,
+        cardSize: state.cardSize,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
