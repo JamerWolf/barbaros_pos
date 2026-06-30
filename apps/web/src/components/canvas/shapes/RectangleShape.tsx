@@ -103,6 +103,7 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
     <div
       ref={nodeRef}
       onPointerDown={(e) => {
+        if (isLocked) return;
         onSelect?.();
         onPointerDown(e, 'move');
       }}
