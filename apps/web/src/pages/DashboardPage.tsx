@@ -378,8 +378,7 @@ export function DashboardPage(): JSX.Element {
                 </div>
               </div>
             </div>
-            <CanvasContainer>
-              <ShapeLayer />
+            <CanvasContainer shapes={<ShapeLayer />}>
               {filteredOpenAccounts.map((acc) => (
                 <DragNode
                   key={acc.id}

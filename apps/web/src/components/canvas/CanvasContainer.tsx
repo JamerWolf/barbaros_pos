@@ -4,9 +4,10 @@ import { useShapeStore } from '../../store/shapeStore.js'
 
 interface CanvasContainerProps {
   children: ReactNode
+  shapes?: ReactNode
 }
 
-export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element {
+export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight } = useAccountUIStore()
   const { activeTool } = useShapeStore()
@@ -152,6 +153,17 @@ export function CanvasContainer({ children }: CanvasContainerProps): JSX.Element
         >
           {children}
         </div>
+        {/* Shapes layer — same transform, pointer-events controlled by activeTool */}
+        {shapes && (
+          <div
+            style={{
+              transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+            }}
+            className={`absolute left-0 top-0 h-full w-full origin-top-left ${activeTool ? '' : 'pointer-events-none'}`}
+          >
+            {shapes}
+          </div>
+        )}
       </div>
       {/* Fit button */}
       <button
