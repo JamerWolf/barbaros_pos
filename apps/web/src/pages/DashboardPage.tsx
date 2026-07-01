@@ -219,7 +219,7 @@ export function DashboardPage(): JSX.Element {
         <div className="flex flex-col gap-3 rounded-xl bg-gray-800 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Control de Turno</h2>
-            <div className="flex gap-2">
+      <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAdminProducts(true)}
                 className="h-10 rounded-lg bg-purple-600 px-3 font-bold text-sm text-white active:bg-purple-700"
