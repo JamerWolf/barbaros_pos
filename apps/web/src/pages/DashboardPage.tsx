@@ -263,6 +263,23 @@ export function DashboardPage(): JSX.Element {
             className="h-12 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <div className="flex rounded-lg bg-gray-700 p-1">
+          {([
+            ['sm', 'S'],
+            ['md', 'M'],
+            ['lg', 'L'],
+          ] as const).map(([size, label]) => (
+            <button
+              key={size}
+              onClick={() => setCardSize(size)}
+              className={`h-8 rounded-md px-2 text-xs font-bold ${
+                cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <button
           onClick={createAccount}
           className="h-12 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
@@ -303,23 +320,6 @@ export function DashboardPage(): JSX.Element {
                 </span>
               )}
               <div className="flex items-center gap-2">
-                <div className="flex rounded-lg bg-gray-700 p-1">
-                  {([
-                    ['sm', 'S'],
-                    ['md', 'M'],
-                    ['lg', 'L'],
-                  ] as const).map(([size, label]) => (
-                    <button
-                      key={size}
-                      onClick={() => setCardSize(size)}
-                      className={`h-8 rounded-md px-2 text-xs font-bold ${
-                        cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
                 {selectionMode && (
                   <button
                     onClick={() => {
