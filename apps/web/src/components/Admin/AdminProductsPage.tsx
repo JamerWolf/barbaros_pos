@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useProductStore } from '../../store/productStore.js';
 import { CategoryTabs } from '../CategoryTabs.js';
 import { formatCOP } from '../../utils/format.js';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { productPhotoUrl } from '../../utils/productPhoto.js';
 
 interface AdminProductsPageProps {
   onClose: () => void;
@@ -207,7 +206,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
             >
               {product.photoUrl ? (
                 <img
-                  src={`${API_URL}/${product.photoUrl}`}
+                  src={productPhotoUrl(product.photoUrl)}
                   alt={product.name}
                   className="h-10 w-10 shrink-0 rounded-lg object-cover"
                 />
@@ -305,7 +304,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                   </button>
                   {products.find((p) => p.id === editingProduct)?.photoUrl && (
                     <img
-                      src={`${API_URL}/${products.find((p) => p.id === editingProduct)!.photoUrl}`}
+                      src={productPhotoUrl(products.find((p) => p.id === editingProduct)!.photoUrl)}
                       alt="Foto actual"
                       className="h-10 w-10 rounded-lg object-cover"
                     />

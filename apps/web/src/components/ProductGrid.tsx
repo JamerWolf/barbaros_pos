@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { ICategory, IProduct } from '@barbaros/shared';
 import { CategoryTabs } from './CategoryTabs.js';
 import { formatCOP } from '../utils/format.js';
+import { productPhotoUrl } from '../utils/productPhoto.js';
 import { useProductStore } from '../store/productStore.js';
 
 interface ProductGridProps {
@@ -165,7 +166,7 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
             className="flex flex-col items-center gap-1 rounded-xl bg-gray-800 p-3 active:bg-gray-700"
           >
             {product.photoUrl ? (
-              <img src={product.photoUrl} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />
+              <img src={productPhotoUrl(product.photoUrl)} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-700 text-xl">
                 📦
