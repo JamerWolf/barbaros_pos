@@ -14,9 +14,7 @@ export class ReportService {
       where.createdAt = {};
       if (from) where.createdAt.gte = new Date(from);
       if (to) {
-        const nextDay = new Date(to + 'T00:00:00.000Z');
-        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-        where.createdAt.lt = nextDay;
+        where.createdAt.lt = new Date(to);
       }
     }
 

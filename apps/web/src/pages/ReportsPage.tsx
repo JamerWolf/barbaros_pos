@@ -6,6 +6,13 @@ import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+/** Convert YYYY-MM-DD to ISO string with local timezone offset */
+function localDateToISO(dateStr: string, endOfDay = false): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  return dt.toISOString();
+}
+
 function getCurrentMonthRange(): { from: string; to: string } {
   const now = new Date();
   const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -44,8 +51,8 @@ export function ReportsPage(): JSX.Element {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (dateFrom) params.set('from', dateFrom);
-        if (dateTo) params.set('to', dateTo);
+        if (dateFrom) params.set('from', localDateToISO(dateFrom));
+        if (dateTo) params.set('to', localDateToISO(dateTo, true));
         const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`;
         const res = await fetch(url);
         if (res.ok) {
