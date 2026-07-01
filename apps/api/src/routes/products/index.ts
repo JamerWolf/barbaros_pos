@@ -76,7 +76,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ error: 'Solo se aceptan JPG, PNG o WebP' });
           }
 
-          const uploadsDir = path.join(__dirname, '../../uploads/products');
+          const uploadsDir = path.join(__dirname, '../../../uploads/products');
           await fs.mkdir(uploadsDir, { recursive: true });
 
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
