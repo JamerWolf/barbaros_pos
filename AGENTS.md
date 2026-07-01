@@ -150,14 +150,33 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ Productos y categorías (CRUD admin, ProductGrid, CategoryTabs)
 - ✅ Items en cuentas (add/remove, lista, total computado)
 - ✅ **Pagos** (Payment model, splits, close guard, modal UI, comprobante upload)
+- ✅ **Descuentos** (por item y por cuenta, monto fijo o porcentaje)
+- ✅ **Sistema de formas** (rectángulos, líneas, texto — drag, resize, rotate, color)
+- ✅ **Canvas lock** (bloquea drag, shapes, selection, tools — persiste en localStorage)
+- ✅ **Text formatting** (font family, size, bold, italic, underline, strikethrough, alignment — toolbar flotante)
+- ✅ **Fotos de productos** (upload endpoint, admin UI, ProductGrid, order items — `utils/productPhoto.ts`)
+- ✅ **Cards de productos** (square, full-bleed image, responsive 4-5-6 cols)
+- ✅ **Reportes timezone fix** (fechas con offset de timezone local)
 
 ### Próximas features
-- 🔲 Búsqueda de productos
-- 🔲 Turnos y reportes (historial, ventas por noche, export Excel)
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
 - 🔲 Modificadores de producto (hielo, doble, notas especiales)
 - 🔲 Tests formales (vitest/jest)
 - 🔲 PWA completa (Service Worker, offline sync)
+
+---
+
+## Gotchas
+
+- **PowerShell**: nunca usar `&&`, usar `;` para encadenar comandos
+- **Husky pre-commit**: roto (lint-staged ejecuta `tsc -b` en archivos individuales) — siempre usar `--no-verify`
+- **No remote**: no hay origin configurado, solo commits locales
+- **`__dirname` en routes**: en `routes/products/index.ts`, `__dirname` = `apps/api/src/routes/products`. Para llegar a `apps/api/uploads` se necesitan `../../../uploads`, NO `../../uploads`
+- **Timezone en reportes**: `new Date("YYYY-MM-DD")` crea medianoche UTC, no local. El frontend debe enviar ISO con offset (`localDateToISO()`)
+- **Text drag**: SIEMPRE usar `newX - shape.x` (posición actual), NUNCA `newX - origX` (stale) — previene drift
+- **Shape rotation**: calcular ángulo con `getBoundingClientRect()` (screen coords), NO con coords del canvas (panOffset rompe el cálculo)
+- **Pointer capture en rotation handle**: usar `e.currentTarget`, NO `e.target` — si no, los eventos van al icono ↻ que no tiene `onPointerMove`
+- **Product photo URL**: SIEMPRE usar `productPhotoUrl()` de `utils/productPhoto.ts`, NUNCA concatenar `API_URL` manualmente
 
 ---
 
