@@ -173,8 +173,8 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
               )}
             </div>
             <div className="flex shrink-0 flex-col items-center px-1 py-1">
-              <span className="w-full truncate text-center text-[10px] font-bold text-white leading-tight">{product.name}</span>
-              <span className="text-[10px] text-green-400">{formatCOP(Number(product.price))}</span>
+              <span className="w-full truncate text-center text-xs font-bold text-white leading-tight">{product.name}</span>
+              <span className="text-xs text-green-400">{formatCOP(Number(product.price))}</span>
             </div>
           </button>
         ))}
