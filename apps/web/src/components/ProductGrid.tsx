@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ICategory, IProduct } from '@barbaros/shared';
 import { CategoryTabs } from './CategoryTabs.js';
 import { formatCOP } from '../utils/format.js';
@@ -12,7 +12,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, categories, onAddProduct, quickCount = 5 }: ProductGridProps): JSX.Element {
-  const { createProduct, createCategory, fetchProducts, fetchCategories } = useProductStore();
+  const { createProduct, createCategory, uploadProductPhoto, fetchProducts, fetchCategories } = useProductStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -22,6 +22,8 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCategoryId, setFormCategoryId] = useState('');
+  const [formPhoto, setFormPhoto] = useState<File | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Category inline input state
   const [showCategoryInput, setShowCategoryInput] = useState(false);
@@ -60,10 +62,14 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
       price,
       categoryId: formCategoryId || undefined,
     });
+    if (formPhoto) {
+      await uploadProductPhoto(product.id, formPhoto);
+    }
     setShowProductModal(false);
     setFormName('');
     setFormPrice('');
     setFormCategoryId('');
+    setFormPhoto(null);
     // Auto-agregar el producto recién creado a la cuenta
     onAddProduct(product.id);
   };
@@ -204,6 +210,19 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
                   </option>
                 ))}
               </select>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setFormPhoto(e.target.files?.[0] ?? null)}
+                className="hidden"
+              />
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                className="h-12 rounded-lg bg-gray-700 px-4 text-sm text-gray-300 active:bg-gray-600"
+              >
+                📷 {formPhoto ? formPhoto.name : 'Agregar foto (opcional)'}
+              </button>
             </div>
             <div className="mt-6 flex gap-3">
               <button

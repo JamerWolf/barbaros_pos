@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useProductStore } from '../../store/productStore.js';
 import { CategoryTabs } from '../CategoryTabs.js';
 import { formatCOP } from '../../utils/format.js';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface AdminProductsPageProps {
   onClose: () => void;
@@ -17,6 +19,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
     createProduct,
     updateProduct,
     deleteProduct,
+    uploadProductPhoto,
     createCategory,
     deleteCategory,
   } = useProductStore();
@@ -32,6 +35,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
   const [formPrice, setFormPrice] = useState('');
   const [formCategoryId, setFormCategoryId] = useState('');
   const [formActive, setFormActive] = useState(true);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -106,6 +110,17 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
       if (!confirmed) return;
     }
     await deleteCategory(id);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProduct) return;
+    try {
+      await uploadProductPhoto(editingProduct, file);
+    } catch {
+      alert('Error al subir la foto');
+    }
+    e.target.value = '';
   };
 
   return (
@@ -190,6 +205,17 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
               key={product.id}
               className="flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-2"
             >
+              {product.photoUrl ? (
+                <img
+                  src={`${API_URL}/${product.photoUrl}`}
+                  alt={product.name}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-600 text-lg">
+                  📦
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="truncate font-bold text-white">{product.name}</p>
                 <p className="text-xs text-gray-400">
@@ -262,6 +288,30 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                 />
                 Activo
               </label>
+              {editingProduct && (
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    className="h-10 rounded-lg bg-gray-600 px-3 text-sm font-bold text-white active:bg-gray-500"
+                  >
+                    📷 Cambiar foto
+                  </button>
+                  {products.find((p) => p.id === editingProduct)?.photoUrl && (
+                    <img
+                      src={`${API_URL}/${products.find((p) => p.id === editingProduct)!.photoUrl}`}
+                      alt="Foto actual"
+                      className="h-10 w-10 rounded-lg object-cover"
+                    />
+                  )}
+                </div>
+              )}
             </div>
             <div className="mt-6 flex gap-3">
               <button

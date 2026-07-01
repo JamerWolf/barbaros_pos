@@ -12,6 +12,7 @@ interface ProductState {
   createProduct: (data: { name: string; price: number; categoryId?: string; photoUrl?: string; active?: boolean }) => Promise<IProduct>;
   updateProduct: (id: string, data: { name?: string; price?: number; categoryId?: string; photoUrl?: string; active?: boolean }) => Promise<IProduct>;
   deleteProduct: (id: string) => Promise<void>;
+  uploadProductPhoto: (id: string, file: File) => Promise<IProduct>;
   createCategory: (name: string) => Promise<ICategory>;
   updateCategory: (id: string, name: string) => Promise<ICategory>;
   deleteCategory: (id: string) => Promise<void>;
@@ -74,6 +75,21 @@ export const useProductStore = create<ProductState>((set) => ({
     const res = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete product');
     set((state) => ({ products: state.products.filter((p) => p.id !== id) }));
+  },
+
+  uploadProductPhoto: async (id, file) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const res = await fetch(`${API_URL}/products/${id}/photo`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Failed to upload photo');
+    const product = await res.json();
+    set((state) => ({
+      products: state.products.map((p) => (p.id === id ? product : p)),
+    }));
+    return product;
   },
 
   createCategory: async (name) => {

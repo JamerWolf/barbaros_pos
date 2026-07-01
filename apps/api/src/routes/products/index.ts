@@ -1,5 +1,11 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ProductService } from '../../services/product.service.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import fs from 'fs/promises';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const productRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (request, reply) => {
@@ -48,6 +54,49 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         active: body.active,
       });
       return reply.code(200).send(product);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/:id/photo', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const product = await ProductService.getProduct(id);
+    if (!product) return reply.code(404).send({ error: 'Product not found' });
+
+    try {
+      const parts = request.parts();
+      let photoUrl: string | undefined;
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const ext = path.extname(part.filename).toLowerCase();
+          if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+            return reply.code(400).send({ error: 'Solo se aceptan JPG, PNG o WebP' });
+          }
+
+          const uploadsDir = path.join(__dirname, '../../uploads/products');
+          await fs.mkdir(uploadsDir, { recursive: true });
+
+          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          const buffer = await part.toBuffer();
+          if (buffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ error: 'La imagen debe ser menor a 5MB' });
+          }
+          await fs.writeFile(filepath, buffer);
+          photoUrl = `uploads/products/${filename}`;
+        }
+      }
+
+      if (!photoUrl) {
+        return reply.code(400).send({ error: 'No se envió ninguna imagen' });
+      }
+
+      const updated = await ProductService.updateProduct(id, { photoUrl });
+      return reply.code(200).send(updated);
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });
     }
