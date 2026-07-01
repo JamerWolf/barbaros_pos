@@ -47,6 +47,7 @@ Edit: double-click text shape → textarea appears
 Save: blur, Escape, or click elsewhere
 Cancel: Escape restores original text
 Rotate: drag ↻ handle at top center → rotates around shape center
+Format: toolbar appears above shape when selected
 ```
 
 - `editingShapeId` in shapeStore tracks which text is being edited
@@ -56,6 +57,17 @@ Rotate: drag ↻ handle at top center → rotates around shape center
 - Resize handles: 4 corners (nw/ne/sw/se), same as RectangleShape
 - Rotation handle: ↻ icon at top center, rotates around `transformOrigin: center center`
 - Rotation formula: `getAngle(centerX, centerY, mouseX, mouseY)` → delta from start angle
+- **Rotation uses screen coords** via `getBoundingClientRect()` — NOT canvas coords (panOffset breaks angle calculation)
+
+### TextToolbar
+
+Floating toolbar above selected text shape. Fields:
+- `fontFamily`: Arial, Calibri, Times New Roman, Courier New, Verdana, Georgia
+- `fontSize`: 8–72px
+- `bold`, `italic`, `underline`, `strikethrough`: boolean toggles
+- `textAlign`: left, center, right
+
+All fields stored in Prisma `Shape` model and persisted via API.
 
 ### DragNode (Account Cards)
 
@@ -206,5 +218,6 @@ Formula ensures point under cursor stays fixed.
 | `apps/web/src/components/canvas/shapes/ShapeLayer.tsx` | Shape drawing + event routing |
 | `apps/web/src/components/canvas/shapes/RectangleShape.tsx` | Rectangle move/resize |
 | `apps/web/src/components/canvas/shapes/LineShape.tsx` | Line move/resize |
-| `apps/web/src/components/canvas/shapes/TextShape.tsx` | Text editable shape |
+| `apps/web/src/components/canvas/shapes/TextShape.tsx` | Text editable shape with formatting |
+| `apps/web/src/components/canvas/shapes/TextToolbar.tsx` | Text formatting toolbar |
 | `apps/web/src/pages/DashboardPage.tsx` | Toolbar, mode toggles, shape tools |
