@@ -252,7 +252,7 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
@@ -263,7 +263,7 @@ export function DashboardPage(): JSX.Element {
             className="h-12 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="flex rounded-lg bg-gray-700 p-1">
+        <div className="flex h-12 items-center rounded-lg bg-gray-700 px-1">
           {([
             ['sm', 'S'],
             ['md', 'M'],
