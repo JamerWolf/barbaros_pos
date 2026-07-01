@@ -1,5 +1,6 @@
 import type { IOrderItem } from '@barbaros/shared';
 import { formatCOP } from '../utils/format.js';
+import { productPhotoUrl } from '../utils/productPhoto.js';
 
 interface OrderItemListProps {
   items: IOrderItem[];
@@ -24,6 +25,17 @@ export function OrderItemList({ items, onRemoveItem, onIncrementItem }: OrderIte
           onClick={() => onIncrementItem(item.id)}
           className="flex items-center gap-3 rounded-xl bg-gray-800 px-4 py-3 active:bg-gray-700 cursor-pointer"
         >
+          {item.product?.photoUrl ? (
+            <img
+              src={productPhotoUrl(item.product.photoUrl)}
+              alt={item.product.name}
+              className="h-10 w-10 shrink-0 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-700 text-lg">
+              📦
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="truncate font-bold text-white">{item.product?.name ?? 'Producto'}</p>
             <p className="text-sm text-gray-400">
