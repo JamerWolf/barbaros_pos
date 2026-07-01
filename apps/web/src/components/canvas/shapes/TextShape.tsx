@@ -79,11 +79,14 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         y: mouseY - shape.y,
       };
 
-      // For rotation: calculate angle from center of shape to mouse
+      // For rotation: use screen coords to avoid panOffset conversion errors
       if (handle === 'rotate') {
-        const centerX = shape.x + shape.width / 2;
-        const centerY = shape.y + shape.height / 2;
-        startAngle = getAngle(centerX, centerY, mouseX, mouseY);
+        const shapeRect = nodeRef.current?.getBoundingClientRect();
+        if (shapeRect) {
+          const cx = shapeRect.left + shapeRect.width / 2;
+          const cy = shapeRect.top + shapeRect.height / 2;
+          startAngle = getAngle(cx, cy, e.clientX, e.clientY);
+        }
       }
     }
 
@@ -113,13 +116,15 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
       const newY = (e.clientY - parentRect.top) / zoom - offset.y;
       onMove?.(newX - shape.x, newY - shape.y);
     } else if (handle === 'rotate') {
-      const mouseX = (e.clientX - parentRect.left) / zoom;
-      const mouseY = (e.clientY - parentRect.top) / zoom;
-      const centerX = shape.x + shape.width / 2;
-      const centerY = shape.y + shape.height / 2;
-      const currentAngle = getAngle(centerX, centerY, mouseX, mouseY);
-      const delta = currentAngle - startAngle;
-      onRotate?.(origRotation + delta);
+      // Use screen coords to avoid panOffset conversion errors
+      const shapeRect = nodeRef.current?.getBoundingClientRect();
+      if (shapeRect) {
+        const cx = shapeRect.left + shapeRect.width / 2;
+        const cy = shapeRect.top + shapeRect.height / 2;
+        const currentAngle = getAngle(cx, cy, e.clientX, e.clientY);
+        const delta = currentAngle - startAngle;
+        onRotate?.(origRotation + delta);
+      }
     } else {
       const mouseX = (e.clientX - parentRect.left) / zoom;
       const mouseY = (e.clientY - parentRect.top) / zoom;
