@@ -1,5 +1,7 @@
 export type ShapeType = 'RECTANGLE' | 'LINE' | 'TEXT';
 
+export type TextAlign = 'left' | 'center' | 'right';
+
 export interface IShape {
   id: string;
   type: ShapeType;
@@ -11,6 +13,13 @@ export interface IShape {
   points?: { x: number; y: number }[];
   color: string;
   label?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  textAlign?: TextAlign;
   zIndex: number;
   createdAt: Date;
   updatedAt: Date;

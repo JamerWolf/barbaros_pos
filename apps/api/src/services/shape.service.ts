@@ -10,6 +10,13 @@ export interface CreateShapeInput {
   points?: { x: number; y: number }[];
   color?: string;
   label?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  textAlign?: string;
   zIndex?: number;
 }
 
@@ -23,6 +30,13 @@ export interface UpdateShapeInput {
   points?: { x: number; y: number }[];
   color?: string;
   label?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  textAlign?: string;
   zIndex?: number;
 }
 
@@ -45,6 +59,13 @@ export class ShapeService {
         points: input.points ?? undefined,
         color: input.color ?? '#ffffff',
         label: input.label ?? undefined,
+        fontFamily: input.fontFamily ?? 'Arial',
+        fontSize: input.fontSize ?? 16,
+        bold: input.bold ?? false,
+        italic: input.italic ?? false,
+        underline: input.underline ?? false,
+        strikethrough: input.strikethrough ?? false,
+        textAlign: input.textAlign ?? 'left',
         zIndex: input.zIndex ?? 0,
       },
     });
@@ -63,6 +84,13 @@ export class ShapeService {
         ...(input.points !== undefined && { points: input.points }),
         ...(input.color !== undefined && { color: input.color }),
         ...(input.label !== undefined && { label: input.label }),
+        ...(input.fontFamily !== undefined && { fontFamily: input.fontFamily }),
+        ...(input.fontSize !== undefined && { fontSize: input.fontSize }),
+        ...(input.bold !== undefined && { bold: input.bold }),
+        ...(input.italic !== undefined && { italic: input.italic }),
+        ...(input.underline !== undefined && { underline: input.underline }),
+        ...(input.strikethrough !== undefined && { strikethrough: input.strikethrough }),
+        ...(input.textAlign !== undefined && { textAlign: input.textAlign }),
         ...(input.zIndex !== undefined && { zIndex: input.zIndex }),
       },
     });

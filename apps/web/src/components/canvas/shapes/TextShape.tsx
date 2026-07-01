@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { useShapeStore } from '../../../store/shapeStore.js';
+import { TextToolbar } from './TextToolbar.jsx';
 
 interface TextShapeProps {
   shape: IShape;
@@ -211,17 +212,41 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
           onChange={(e) => setLocalText(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="pointer-events-auto h-full w-full resize-none border-none bg-transparent p-2 text-sm text-white outline-none"
-          style={{ color: shape.color }}
+          className="pointer-events-auto h-full w-full resize-none border-none bg-transparent p-2 outline-none"
+          style={{
+            color: shape.color,
+            fontFamily: shape.fontFamily ?? 'Arial',
+            fontSize: shape.fontSize ?? 16,
+            fontWeight: shape.bold ? 'bold' : 'normal',
+            fontStyle: shape.italic ? 'italic' : 'normal',
+            textDecoration: [
+              shape.underline ? 'underline' : '',
+              shape.strikethrough ? 'line-through' : '',
+            ].filter(Boolean).join(' ') || 'none',
+            textAlign: (shape.textAlign as 'left' | 'center' | 'right') ?? 'left',
+          }}
         />
       ) : (
         <div
-          className="pointer-events-none flex h-full w-full items-start p-2 text-sm whitespace-pre-wrap"
-          style={{ color: shape.color }}
+          className="pointer-events-none flex h-full w-full items-start p-2 whitespace-pre-wrap"
+          style={{
+            color: shape.color,
+            fontFamily: shape.fontFamily ?? 'Arial',
+            fontSize: shape.fontSize ?? 16,
+            fontWeight: shape.bold ? 'bold' : 'normal',
+            fontStyle: shape.italic ? 'italic' : 'normal',
+            textDecoration: [
+              shape.underline ? 'underline' : '',
+              shape.strikethrough ? 'line-through' : '',
+            ].filter(Boolean).join(' ') || 'none',
+            textAlign: (shape.textAlign as 'left' | 'center' | 'right') ?? 'left',
+          }}
         >
           {shape.label || 'Escribir...'}
         </div>
       )}
+      {/* Text formatting toolbar */}
+      {isSelected && !isLocked && <TextToolbar shape={shape} />}
       {/* Resize handles */}
       {isSelected && (
         <>

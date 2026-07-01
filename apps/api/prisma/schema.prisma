@@ -125,19 +125,26 @@ enum ShapeType {
 }
 
 model Shape {
-  id        String    @id @default(uuid())
-  type      ShapeType
-  x         Float
-  y         Float
-  width     Float     @default(0)
-  height    Float     @default(0)
-  rotation  Float     @default(0)
-  points    Json?     // [{x,y}] for LINE and TEXT types
-  color     String    @default("#ffffff")
-  label     String?
-  zIndex    Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  type          ShapeType
+  x             Float
+  y             Float
+  width         Float     @default(0)
+  height        Float     @default(0)
+  rotation      Float     @default(0)
+  points        Json?     // [{x,y}] for LINE and TEXT types
+  color         String    @default("#ffffff")
+  label         String?
+  fontFamily    String?   @default("Arial")
+  fontSize      Int?      @default(16)
+  bold          Boolean?  @default(false)
+  italic        Boolean?  @default(false)
+  underline     Boolean?  @default(false)
+  strikethrough Boolean?  @default(false)
+  textAlign     String?   @default("left")
+  zIndex        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("shapes")
 }
