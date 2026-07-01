@@ -3,15 +3,18 @@ import { useShapeStore } from '../../../store/shapeStore.js';
 
 interface TextToolbarProps {
   shape: IShape;
+  zoom: number;
 }
 
 const FONTS = ['Arial', 'Calibri', 'Times New Roman', 'Courier New', 'Verdana', 'Georgia'];
 const SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
 
-export function TextToolbar({ shape }: TextToolbarProps): JSX.Element {
+export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
   const updateShape = useShapeStore((s) => s.updateShape);
 
   const set = (patch: Partial<IShape>) => updateShape(shape.id, patch);
+
+  const invZoom = 1 / zoom;
 
   return (
     <div
@@ -19,8 +22,9 @@ export function TextToolbar({ shape }: TextToolbarProps): JSX.Element {
       style={{
         bottom: '100%',
         left: '50%',
-        transform: 'translateX(-50%)',
-        marginBottom: 8,
+        transform: `translateX(-50%) scale(${invZoom})`,
+        transformOrigin: 'bottom center',
+        marginBottom: 8 / zoom,
       }}
       onPointerDown={(e) => e.stopPropagation()}
     >

@@ -246,7 +246,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         </div>
       )}
       {/* Text formatting toolbar */}
-      {isSelected && !isLocked && <TextToolbar shape={shape} />}
+      {isSelected && !isLocked && <TextToolbar shape={shape} zoom={zoom} />}
       {/* Resize handles */}
       {isSelected && (
         <>
