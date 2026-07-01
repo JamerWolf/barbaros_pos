@@ -158,23 +158,23 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
         </>
       )}
 
-      <div className="grid grid-cols-3 justify-items-center gap-2">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
         {displayProducts.map((product) => (
           <button
             key={product.id}
             onClick={() => onAddProduct(product.id)}
-            className="flex w-full max-w-[120px] flex-col overflow-hidden rounded-xl bg-gray-800 active:bg-gray-700"
+            className="flex aspect-square flex-col overflow-hidden rounded-xl bg-gray-800 active:bg-gray-700"
           >
-            <div className="flex aspect-square items-center justify-center bg-gray-700">
+            <div className="flex flex-1 items-center justify-center bg-gray-700 p-2">
               {product.photoUrl ? (
-                <img src={productPhotoUrl(product.photoUrl)} alt={product.name} className="h-full w-full object-cover" />
+                <img src={productPhotoUrl(product.photoUrl)} alt={product.name} className="h-full w-full object-contain" />
               ) : (
                 <span className="text-3xl">📦</span>
               )}
             </div>
             <div className="flex flex-col items-center px-1 py-1">
-              <span className="w-full truncate text-center text-xs font-bold text-white">{product.name}</span>
-              <span className="text-xs text-green-400">{formatCOP(Number(product.price))}</span>
+              <span className="w-full truncate text-center text-[10px] font-bold text-white leading-tight">{product.name}</span>
+              <span className="text-[10px] text-green-400">{formatCOP(Number(product.price))}</span>
             </div>
           </button>
         ))}
