@@ -1,11 +1,12 @@
 import { prisma } from '../db/prisma.js';
 
 export interface CreateShapeInput {
-  type: 'RECTANGLE' | 'LINE';
+  type: 'RECTANGLE' | 'LINE' | 'TEXT';
   x: number;
   y: number;
   width?: number;
   height?: number;
+  rotation?: number;
   points?: { x: number; y: number }[];
   color?: string;
   label?: string;
@@ -13,11 +14,12 @@ export interface CreateShapeInput {
 }
 
 export interface UpdateShapeInput {
-  type?: 'RECTANGLE' | 'LINE';
+  type?: 'RECTANGLE' | 'LINE' | 'TEXT';
   x?: number;
   y?: number;
   width?: number;
   height?: number;
+  rotation?: number;
   points?: { x: number; y: number }[];
   color?: string;
   label?: string;
@@ -39,6 +41,7 @@ export class ShapeService {
         y: input.y,
         width: input.width ?? 0,
         height: input.height ?? 0,
+        rotation: input.rotation ?? 0,
         points: input.points ?? undefined,
         color: input.color ?? '#ffffff',
         label: input.label ?? undefined,
@@ -56,6 +59,7 @@ export class ShapeService {
         ...(input.y !== undefined && { y: input.y }),
         ...(input.width !== undefined && { width: input.width }),
         ...(input.height !== undefined && { height: input.height }),
+        ...(input.rotation !== undefined && { rotation: input.rotation }),
         ...(input.points !== undefined && { points: input.points }),
         ...(input.color !== undefined && { color: input.color }),
         ...(input.label !== undefined && { label: input.label }),
