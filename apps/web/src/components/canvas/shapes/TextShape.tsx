@@ -259,7 +259,30 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               transform: 'translateX(-50%)',
               zIndex: 20,
             }}
-            onPointerDown={(e) => onPointerDown(e, 'rotate')}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              // Manually set dragRef since we skip the shared onPointerDown
+              const shapeRect = nodeRef.current?.getBoundingClientRect();
+              let startAngle = 0;
+              if (shapeRect) {
+                const cx = shapeRect.left + shapeRect.width / 2;
+                const cy = shapeRect.top + shapeRect.height / 2;
+                startAngle = getAngle(cx, cy, e.clientX, e.clientY);
+              }
+              dragRef.current = {
+                handle: 'rotate',
+                startPos: { x: e.clientX, y: e.clientY },
+                offset: { x: 0, y: 0 },
+                origX: shape.x,
+                origY: shape.y,
+                origW: shape.width,
+                origH: shape.height,
+                startAngle,
+                origRotation: shape.rotation ?? 0,
+              };
+            }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           >
