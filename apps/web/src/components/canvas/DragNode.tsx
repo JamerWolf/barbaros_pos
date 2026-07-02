@@ -70,8 +70,15 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (!isDragging.current) {
-      // It's a tap/click
+    const wasDragging = isDragging.current
+    isDragging.current = false
+
+    // Always release pointer capture first
+    nodeRef.current?.releasePointerCapture(e.pointerId)
+
+    if (!wasDragging) {
+      // It's a tap/click — prevent default to stop touch carryover
+      e.preventDefault()
       if (selectionMode) {
         toggleSelection(accountId)
       } else {
@@ -94,8 +101,6 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         }
       }, 300)
     }
-    isDragging.current = false
-    nodeRef.current?.releasePointerCapture(e.pointerId)
   }
 
   return (
