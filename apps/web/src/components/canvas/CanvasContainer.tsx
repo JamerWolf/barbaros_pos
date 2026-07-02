@@ -27,24 +27,6 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     fitToContent(container.clientWidth, container.clientHeight, currentShapes)
   }, [fitToContent])
 
-  // Fit on mount and when node count changes
-  useEffect(() => {
-    const timer = setTimeout(fit, 50)
-    return () => clearTimeout(timer)
-  }, [Object.keys(nodePositions).length, fit])
-
-  // ResizeObserver to re-fit when container resizes
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const observer = new ResizeObserver(() => {
-      fit()
-    })
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [fit])
-
   // Wheel zoom — zoom centered on cursor position
   useEffect(() => {
     const container = containerRef.current
