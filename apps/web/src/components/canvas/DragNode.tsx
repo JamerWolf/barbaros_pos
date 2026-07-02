@@ -27,6 +27,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const dragSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startPos = useRef({ x: 0, y: 0 })
+  const lastMovePos = useRef({ x: 0, y: 0 })
   const isDragging = useRef(false)
   const didMove = useRef(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -38,6 +39,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
     isDragging.current = false
     longPressFired.current = false
     startPos.current = { x: e.clientX, y: e.clientY }
+    lastMovePos.current = { x: e.clientX, y: e.clientY }
 
     const rect = nodeRef.current?.getBoundingClientRect()
     if (rect) {
@@ -63,16 +65,20 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         }
         if (!isDragging.current) return
 
-        const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect()
-        if (!parentRect) return
+        // Incremental delta (not from start, but from last move)
+        const moveDx = ev.clientX - lastMovePos.current.x
+        const moveDy = ev.clientY - lastMovePos.current.y
+        lastMovePos.current = { x: ev.clientX, y: ev.clientY }
 
-        const newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
-        const newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
-        const delta = { x: newX - position.x, y: newY - position.y }
+        const delta = { x: moveDx / zoom, y: moveDy / zoom }
 
         if (isSelected && selectedIds.size > 1) {
           movePositions(Array.from(selectedIds), delta)
         } else {
+          const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect()
+          if (!parentRect) return
+          const newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
+          const newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
           updatePosition(accountId, { x: newX, y: newY })
         }
       }
