@@ -11,6 +11,10 @@ interface CanvasContainerProps {
 let _isPinching = false
 export function isPinching() { return _isPinching }
 
+// Global flag: long press active on a card/shape — canvas should not pan
+let _longPressActive = false
+export function setLongPressActive(v: boolean) { _longPressActive = v }
+
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
@@ -149,31 +153,44 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     return () => container.removeEventListener('wheel', handleWheel)
   }, [setZoom, setPanOffset])
 
-  // Canvas panning
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (isPinching()) return
-    if (e.target === containerRef.current && !activeTool) {
+  // Canvas panning — document-level to work from anywhere (cards, shapes, background)
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (isPinching() || _longPressActive) return
+      if (activeTool) return
+      if (e.button !== 0) return
+      // Don't start pan if target is inside the resize handle
+      const resizeHandle = (e.target as HTMLElement)?.closest?.('[data-resize-handle]')
+      if (resizeHandle) return
       isPanning.current = true
       lastPos.current = { x: e.clientX, y: e.clientY }
-      containerRef.current?.setPointerCapture(e.pointerId)
     }
-  }
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isPanning.current || isPinching()) {
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isPanning.current || isPinching() || _longPressActive) {
+        isPanning.current = false
+        return
+      }
+      const dx = e.clientX - lastPos.current.x
+      const dy = e.clientY - lastPos.current.y
+      lastPos.current = { x: e.clientX, y: e.clientY }
+      const current = useAccountUIStore.getState().panOffset
+      setPanOffset({ x: current.x + dx, y: current.y + dy })
+    }
+
+    const onPointerUp = () => {
       isPanning.current = false
-      return
     }
-    const dx = e.clientX - lastPos.current.x
-    const dy = e.clientY - lastPos.current.y
-    lastPos.current = { x: e.clientX, y: e.clientY }
-    const current = useAccountUIStore.getState().panOffset
-    setPanOffset({ x: current.x + dx, y: current.y + dy })
-  }
 
-  const onPointerUp = () => {
-    isPanning.current = false
-  }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('pointermove', onPointerMove)
+    document.addEventListener('pointerup', onPointerUp)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointerup', onPointerUp)
+    }
+  }, [activeTool, setPanOffset])
 
   // Resize handle
   const onResizeDown = (e: React.PointerEvent) => {
@@ -208,6 +225,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       {/* Resize handle */}
       <div
         onPointerDown={onResizeDown}
+        data-resize-handle
         style={{ touchAction: 'none' }}
         className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
       >
@@ -216,9 +234,6 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       {/* Canvas */}
       <div
         ref={containerRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
         className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800"
       >
         {/* Shapes layer — rendered first so cards are on top */}

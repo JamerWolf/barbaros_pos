@@ -3,6 +3,7 @@ import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { useShapeStore } from '../../../store/shapeStore.js';
 import { TextToolbar } from './TextToolbar.jsx';
+import { isPinching, setLongPressActive } from '../CanvasContainer.js';
 
 interface TextShapeProps {
   shape: IShape;
@@ -23,6 +24,9 @@ function getAngle(cx: number, cy: number, mx: number, my: number): number {
   return Math.atan2(my - cy, mx - cx) * (180 / Math.PI);
 }
 
+const LONG_PRESS_MS = 400;
+const DRAG_THRESHOLD = 3;
+
 export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, onStartEdit, onStopEdit, onMove, onResize, onRotate }: TextShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -40,6 +44,19 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     startAngle: number;
     origRotation: number;
   } | null>(null);
+
+  // Long press state for move handle
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const activePointerId = useRef<number | null>(null);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   // Sync local text when shape changes externally
   useEffect(() => {
@@ -61,11 +78,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     onStopEdit?.();
   }, [localText, shape.label, shape.id, onStopEdit]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
-    if (isLocked) return;
-    e.stopPropagation();
-    e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  const startDrag = useCallback((e: PointerEvent, handle: Handle) => {
+    activePointerId.current = e.pointerId;
 
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
 
@@ -80,7 +94,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         y: mouseY - shape.y,
       };
 
-      // For rotation: use screen coords to avoid panOffset conversion errors
       if (handle === 'rotate') {
         const shapeRect = nodeRef.current?.getBoundingClientRect();
         if (shapeRect) {
@@ -102,61 +115,99 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
       startAngle,
       origRotation: shape.rotation ?? 0,
     };
-  }, [isLocked, zoom, shape.x, shape.y, shape.width, shape.height, shape.rotation]);
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current || !nodeRef.current) return;
+    const onMoveHandler = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current || !dragRef.current || !nodeRef.current) return;
+      const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
+      if (!parentRect) return;
+
+      const { handle: h, offset: off, origX, origY, origW, origH, startAngle: sa, origRotation } = dragRef.current;
+
+      if (h === 'move') {
+        const newX = (ev.clientX - parentRect.left) / zoom - off.x;
+        const newY = (ev.clientY - parentRect.top) / zoom - off.y;
+        onMove?.(newX - shape.x, newY - shape.y);
+      } else if (h === 'rotate') {
+        const shapeRect = nodeRef.current?.getBoundingClientRect();
+        if (shapeRect) {
+          const cx = shapeRect.left + shapeRect.width / 2;
+          const cy = shapeRect.top + shapeRect.height / 2;
+          const currentAngle = getAngle(cx, cy, ev.clientX, ev.clientY);
+          const delta = currentAngle - sa;
+          onRotate?.(origRotation + delta);
+        }
+      } else {
+        const mouseX = (ev.clientX - parentRect.left) / zoom;
+        const mouseY = (ev.clientY - parentRect.top) / zoom;
+        let newX = origX;
+        let newY = origY;
+        let newW = origW;
+        let newH = origH;
+
+        if (h.includes('w')) { newW = Math.max(40, origX + origW - mouseX); newX = mouseX; }
+        if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(40, mouseX - origX); }
+        if (h.includes('n')) { newH = Math.max(20, origY + origH - mouseY); newY = mouseY; }
+        if (h.includes('s')) { newH = Math.max(20, mouseY - origY); }
+
+        onResize?.(newX, newY, newW, newH);
+      }
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current) return;
+      activePointerId.current = null;
+      setLongPressActive(false);
+      dragRef.current = null;
+      document.removeEventListener('pointermove', onMoveHandler);
+      document.removeEventListener('pointerup', onUp);
+    };
+
+    document.addEventListener('pointermove', onMoveHandler);
+    document.addEventListener('pointerup', onUp);
+  }, [shape.x, shape.y, shape.width, shape.height, shape.rotation, zoom, onMove, onResize, onRotate]);
+
+  // Move handle: long press to drag, short tap to select
+  const onMovePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isLocked || isPinching()) return;
     e.stopPropagation();
+    e.preventDefault();
 
-    const { handle, offset, origX, origY, origW, origH, startAngle, origRotation } = dragRef.current;
-    const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
-    if (!parentRect) return;
+    longPressFired.current = false;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
 
-    if (handle === 'move') {
-      const newX = (e.clientX - parentRect.left) / zoom - offset.x;
-      const newY = (e.clientY - parentRect.top) / zoom - offset.y;
-      onMove?.(newX - shape.x, newY - shape.y);
-    } else if (handle === 'rotate') {
-      // Use screen coords to avoid panOffset conversion errors
-      const shapeRect = nodeRef.current?.getBoundingClientRect();
-      if (shapeRect) {
-        const cx = shapeRect.left + shapeRect.width / 2;
-        const cy = shapeRect.top + shapeRect.height / 2;
-        const currentAngle = getAngle(cx, cy, e.clientX, e.clientY);
-        const delta = currentAngle - startAngle;
-        onRotate?.(origRotation + delta);
-      }
-    } else {
-      const mouseX = (e.clientX - parentRect.left) / zoom;
-      const mouseY = (e.clientY - parentRect.top) / zoom;
-      let newX = origX;
-      let newY = origY;
-      let newW = origW;
-      let newH = origH;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setLongPressActive(true);
+      onSelect?.();
+      startDrag(e.nativeEvent, 'move');
+    }, LONG_PRESS_MS);
+  }, [isLocked, onSelect, startDrag]);
 
-      if (handle.includes('w')) {
-        newW = Math.max(40, origX + origW - mouseX);
-        newX = mouseX;
+  const onMovePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!longPressFired.current) {
+      const dx = Math.abs(e.clientX - startPosRef.current.x);
+      const dy = Math.abs(e.clientY - startPosRef.current.y);
+      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        cancelLongPress();
       }
-      if (handle.includes('e') || handle === 'ne' || handle === 'se') {
-        newW = Math.max(40, mouseX - origX);
-      }
-      if (handle.includes('n')) {
-        newH = Math.max(20, origY + origH - mouseY);
-        newY = mouseY;
-      }
-      if (handle.includes('s')) {
-        newH = Math.max(20, mouseY - origY);
-      }
-
-      onResize?.(newX, newY, newW, newH);
     }
-  }, [zoom, shape.x, shape.y, shape.width, shape.height, onMove, onResize, onRotate]);
+  }, [cancelLongPress]);
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const onMovePointerUp = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
-    dragRef.current = null;
-  }, []);
+    if (!longPressFired.current) {
+      cancelLongPress();
+      onSelect?.();
+    }
+  }, [cancelLongPress, onSelect]);
+
+  // Resize and rotation handles: immediate drag
+  const onImmediatePointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
+    if (isLocked) return;
+    e.stopPropagation();
+    e.preventDefault();
+    startDrag(e.nativeEvent, handle);
+  }, [isLocked, startDrag]);
 
   const handleDoubleClick = useCallback(() => {
     if (!isLocked) {
@@ -181,13 +232,9 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
   return (
     <div
       ref={nodeRef}
-      onPointerDown={(e) => {
-        if (isLocked) return;
-        onSelect?.();
-        onPointerDown(e, 'move');
-      }}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      onPointerDown={onMovePointerDown}
+      onPointerMove={onMovePointerMove}
+      onPointerUp={onMovePointerUp}
       onDoubleClick={handleDoubleClick}
       className="absolute pointer-events-auto cursor-move"
       style={{
@@ -269,9 +316,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
                 key={pos}
                 className="pointer-events-auto"
                 style={style}
-                onPointerDown={(e) => onPointerDown(e, pos)}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
+                onPointerDown={(e) => onImmediatePointerDown(e, pos)}
               />
             );
           })}
@@ -288,7 +333,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               e.stopPropagation();
               e.preventDefault();
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-              // Manually set dragRef since we skip the shared onPointerDown
               const shapeRect = nodeRef.current?.getBoundingClientRect();
               let startAngle = 0;
               if (shapeRect) {
@@ -308,12 +352,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
                 origRotation: shape.rotation ?? 0,
               };
             }}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
           >
-            {/* Line from handle to shape */}
             <div className="h-4 w-px bg-white/40" />
-            {/* Rotation icon */}
             <div
               className="flex h-6 w-6 items-center justify-center rounded-full border border-white/40 bg-gray-800 text-xs text-white"
               style={{ cursor: 'grab' }}

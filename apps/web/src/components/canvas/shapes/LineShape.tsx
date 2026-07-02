@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react';
 import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
+import { isPinching, setLongPressActive } from '../CanvasContainer.js';
 
 interface LineShapeProps {
   shape: IShape;
@@ -13,6 +14,9 @@ interface LineShapeProps {
 
 type Handle = 'start' | 'end' | 'move';
 
+const LONG_PRESS_MS = 400;
+const DRAG_THRESHOLD = 3;
+
 export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onResize }: LineShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
@@ -21,6 +25,19 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
     offset: { x: number; y: number };
     origPoints: { x: number; y: number }[];
   } | null>(null);
+
+  // Long press state for move handle
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const activePointerId = useRef<number | null>(null);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   const points = shape.points || [];
   if (points.length < 2) return <></>;
@@ -37,11 +54,8 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
     .map((p: { x: number; y: number }, i: number) => `${i === 0 ? 'M' : 'L'} ${p.x - minX + padding} ${p.y - minY + padding}`)
     .join(' ');
 
-  const onPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
-    if (isLocked) return;
-    e.stopPropagation();
-    e.preventDefault();
-    onSelect?.();
+  const startDrag = useCallback((e: PointerEvent, handle: Handle) => {
+    activePointerId.current = e.pointerId;
 
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
     const origPoints = shape.points || [];
@@ -60,7 +74,6 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
           y: (e.clientY - parentRect.top) / zoom - curPoints[curPoints.length - 1].y,
         };
       } else {
-        // move: offset from first point
         offset = {
           x: (e.clientX - parentRect.left) / zoom - minX,
           y: (e.clientY - parentRect.top) / zoom - minY,
@@ -69,67 +82,113 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
     }
 
     dragRef.current = { handle, offset, origPoints: origPoints.map((p) => ({ ...p })) };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [shape.points, zoom, minX, minY, onSelect]);
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current || !nodeRef.current) return;
-    e.stopPropagation();
+    const onMoveHandler = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current || !dragRef.current || !nodeRef.current) return;
+      const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
+      if (!parentRect) return;
 
-    const parentRect = nodeRef.current.parentElement?.getBoundingClientRect();
-    if (!parentRect) return;
+      const { handle: h, offset: off } = dragRef.current;
+      const mouseX = (ev.clientX - parentRect.left) / zoom;
+      const mouseY = (ev.clientY - parentRect.top) / zoom;
 
-    const { handle, offset, origPoints } = dragRef.current;
-    const mouseX = (e.clientX - parentRect.left) / zoom;
-    const mouseY = (e.clientY - parentRect.top) / zoom;
-
-    if (handle === 'move') {
-      // Use current points from shape prop, not frozen origPoints
-      const curPoints = shape.points || [];
-      const curMinX = Math.min(...curPoints.map((p) => p.x));
-      const curMinY = Math.min(...curPoints.map((p) => p.y));
-      const newX = mouseX - offset.x;
-      const newY = mouseY - offset.y;
-      const dx = newX - curMinX;
-      const dy = newY - curMinY;
-      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        onMove?.(dx, dy);
-      }
-    } else {
-      // Dragging an endpoint — use current shape points
-      const curPoints = shape.points || [];
-      const newPoints = curPoints.map((p) => ({ ...p }));
-      if (handle === 'start') {
-        newPoints[0] = { x: mouseX - offset.x, y: mouseY - offset.y };
+      if (h === 'move') {
+        const curPoints = shape.points || [];
+        const curMinX = Math.min(...curPoints.map((p) => p.x));
+        const curMinY = Math.min(...curPoints.map((p) => p.y));
+        const newX = mouseX - off.x;
+        const newY = mouseY - off.y;
+        const dx = newX - curMinX;
+        const dy = newY - curMinY;
+        if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+          onMove?.(dx, dy);
+        }
       } else {
-        newPoints[newPoints.length - 1] = { x: mouseX - offset.x, y: mouseY - offset.y };
+        const curPoints = shape.points || [];
+        const newPoints = curPoints.map((p) => ({ ...p }));
+        if (h === 'start') {
+          newPoints[0] = { x: mouseX - off.x, y: mouseY - off.y };
+        } else {
+          newPoints[newPoints.length - 1] = { x: mouseX - off.x, y: mouseY - off.y };
+        }
+
+        const pXs = newPoints.map((p) => p.x);
+        const pYs = newPoints.map((p) => p.y);
+        const nMinX = Math.min(...pXs);
+        const nMinY = Math.min(...pYs);
+        const nMaxX = Math.max(...pXs);
+        const nMaxY = Math.max(...pYs);
+
+        onResize?.(nMinX, nMinY, nMaxX - nMinX, nMaxY - nMinY, newPoints);
       }
+    };
 
-      const pXs = newPoints.map((p) => p.x);
-      const pYs = newPoints.map((p) => p.y);
-      const nMinX = Math.min(...pXs);
-      const nMinY = Math.min(...pYs);
-      const nMaxX = Math.max(...pXs);
-      const nMaxY = Math.max(...pYs);
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current) return;
+      activePointerId.current = null;
+      setLongPressActive(false);
+      dragRef.current = null;
+      document.removeEventListener('pointermove', onMoveHandler);
+      document.removeEventListener('pointerup', onUp);
+    };
 
-      onResize?.(nMinX, nMinY, nMaxX - nMinX, nMaxY - nMinY, newPoints);
-    }
-  }, [isLocked, zoom, shape.points, onMove, onResize]);
+    document.addEventListener('pointermove', onMoveHandler);
+    document.addEventListener('pointerup', onUp);
+  }, [shape.points, zoom, minX, minY, onMove, onResize]);
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  // Move handle: long press to drag, short tap to select
+  const onMovePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isLocked || isPinching()) return;
     e.stopPropagation();
-    dragRef.current = null;
-  }, []);
+    e.preventDefault();
+
+    longPressFired.current = false;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setLongPressActive(true);
+      onSelect?.();
+      startDrag(e.nativeEvent, 'move');
+    }, LONG_PRESS_MS);
+  }, [isLocked, onSelect, startDrag]);
+
+  const onMovePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!longPressFired.current) {
+      const dx = Math.abs(e.clientX - startPosRef.current.x);
+      const dy = Math.abs(e.clientY - startPosRef.current.y);
+      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        cancelLongPress();
+      }
+    }
+  }, [cancelLongPress]);
+
+  const onMovePointerUp = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!longPressFired.current) {
+      cancelLongPress();
+      onSelect?.();
+    }
+  }, [cancelLongPress, onSelect]);
+
+  // Endpoint handles: immediate drag
+  const onEndpointPointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
+    if (isLocked) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect?.();
+    startDrag(e.nativeEvent, handle);
+  }, [isLocked, onSelect, startDrag]);
 
   const handleRadius = 6;
 
   return (
     <div
       ref={nodeRef}
-      onPointerDown={(e) => onPointerDown(e, 'move')}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      className={`absolute cursor-move pointer-events-auto ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
+      onPointerDown={onMovePointerDown}
+      onPointerMove={onMovePointerMove}
+      onPointerUp={onMovePointerUp}
+      className={`absolute pointer-events-auto ${isSelected ? 'ring-2 ring-white rounded' : ''}`}
       style={{
         left: minX - padding,
         top: minY - padding,
@@ -161,7 +220,6 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
       </svg>
       {/* Endpoint handles */}
       {isSelected && points.map((p: { x: number; y: number }, i: number) => {
-        // Only show first and last endpoint
         if (i !== 0 && i !== points.length - 1) return null;
         const handle = i === 0 ? 'start' : 'end';
         return (
@@ -180,9 +238,7 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
               cursor: i === 0 ? 'nw-resize' : 'se-resize',
               zIndex: 20,
             }}
-            onPointerDown={(e) => onPointerDown(e, handle)}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
+            onPointerDown={(e) => onEndpointPointerDown(e, handle)}
           />
         );
       })}
