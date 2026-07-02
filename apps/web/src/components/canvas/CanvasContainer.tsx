@@ -9,17 +9,38 @@ interface CanvasContainerProps {
 
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
+  const hasAutoFitted = useRef(false)
 
   // Resize state
   const isResizing = useRef(false)
   const resizeStartY = useRef(0)
   const resizeStartHeight = useRef(0)
 
-  // Auto-fit when positions change
+  // Auto-fit on first load only (no saved positions)
+  useEffect(() => {
+    if (hasAutoFitted.current) return
+    if (!_hasHydrated) return
+    if (Object.keys(nodePositions).length === 0) return
+
+    const container = containerRef.current
+    if (!container) return
+
+    // Check if this is first time (no saved zoom/pan — default values)
+    const state = useAccountUIStore.getState()
+    const isFirstTime = state.zoom === 1 && state.panOffset.x === 0 && state.panOffset.y === 0
+
+    if (isFirstTime) {
+      const currentShapes = useShapeStore.getState().shapes
+      fitToContent(container.clientWidth, container.clientHeight, currentShapes)
+    }
+    hasAutoFitted.current = true
+  }, [nodePositions, _hasHydrated, fitToContent])
+
+  // Manual fit button
   const fit = useCallback(() => {
     const container = containerRef.current
     if (!container) return
