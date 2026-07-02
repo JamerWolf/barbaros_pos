@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useShapeStore } from '../store/shapeStore.js';
+import API_URL from '../utils/apiUrl.js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 export function useShapeSockets() {

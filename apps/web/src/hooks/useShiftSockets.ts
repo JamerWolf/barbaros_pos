@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import API_URL from '../utils/apiUrl.js';
 const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 /** Events that should trigger a shift detail refresh */

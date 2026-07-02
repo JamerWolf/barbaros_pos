@@ -11,9 +11,9 @@ import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
 import { saveAccountCardSize } from '../services/accountApi.js'
+import API_URL from '../utils/apiUrl.js'
 import type { IAccount } from '@barbaros/shared'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const ADMIN_PIN = '1234'
 
 export function DashboardPage(): JSX.Element {

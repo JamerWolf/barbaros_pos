@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IShape } from '@barbaros/shared';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import API_URL from '../utils/apiUrl.js';
 
 export type ShapeTool = null | 'rectangle' | 'line' | 'text';
 

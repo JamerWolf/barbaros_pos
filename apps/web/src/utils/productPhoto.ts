@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import API_URL from './apiUrl.js';
 
 /**
  * Returns the full URL for a product photo.

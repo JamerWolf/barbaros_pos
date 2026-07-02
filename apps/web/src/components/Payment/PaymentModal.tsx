@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { PaymentMethod, DiscountType } from '@barbaros/shared';
 import type { Payment, IAccount } from '@barbaros/shared';
 import { formatCOP } from '../../utils/format.js';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import API_URL from '../../utils/apiUrl.js';
 
 interface PaymentModalProps {
   accountId: string;

@@ -6,8 +6,7 @@ import { OrderItemList } from '../components/OrderItemList.js';
 import { formatCOP } from '../utils/format.js';
 import { ProductGrid } from '../components/ProductGrid.js';
 import { PaymentModal } from '../components/Payment/PaymentModal.js';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import API_URL from '../utils/apiUrl.js';
 
 export function AccountDetailPage(): JSX.Element {
   const { id } = useParams();

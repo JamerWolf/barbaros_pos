@@ -3,9 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatCOP } from '../utils/format.js';
 import { DateRangePicker } from '../components/DateRangePicker.js';
 import { useShiftSockets } from '../hooks/useShiftSockets.js';
+import API_URL from '../utils/apiUrl.js';
 import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /** Convert YYYY-MM-DD to ISO string with local timezone offset */
 function localDateToISO(dateStr: string, endOfDay = false): string {

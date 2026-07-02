@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useAccountStore } from '../store/accountStore.js';
 import { useAccountUIStore } from '../store/accountUIStore.js';
+import API_URL from '../utils/apiUrl.js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 
 export function useAccountSockets() {
