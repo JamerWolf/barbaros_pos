@@ -157,12 +157,18 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Fotos de productos** (upload endpoint, admin UI, ProductGrid, order items — `utils/productPhoto.ts`)
 - ✅ **Cards de productos** (square, full-bleed image, responsive 4-5-6 cols)
 - ✅ **Reportes timezone fix** (fechas con offset de timezone local)
+- ✅ **Canvas WebSocket** (posiciones y tamaños en tiempo real entre dispositivos)
+- ✅ **Cloudflare Tunnel** (script start.ps1 con opción -Tunnel, Vite proxy para API)
+- ✅ **Mobile touch fix** (TouchGuard bloquea ghost clicks después de navegar)
 
 ### Próximas features
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
 - 🔲 Modificadores de producto (hielo, doble, notas especiales)
 - 🔲 Tests formales (vitest/jest)
 - 🔲 PWA completa (Service Worker, offline sync)
+
+### TODO
+- 🔲 Cuenta cerrada no desaparece del canvas en otros dispositivos
 
 ---
 

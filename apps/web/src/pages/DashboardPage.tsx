@@ -181,55 +181,56 @@ export function DashboardPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Bárbaro's POS</h1>
-        <div className="flex items-center gap-2">
+    <div className="flex min-h-screen flex-col gap-2 bg-gray-900 p-2 text-white sm:gap-4 sm:p-4">
+      {/* Header */}
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold sm:text-xl">Bárbaro's POS</h1>
           <div className="flex rounded-lg bg-gray-800 p-1">
             <button
               onClick={() => handleModeChange('personal')}
-              className={`h-10 rounded-md px-4 font-bold ${mode === 'personal' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 ${mode === 'personal' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
             >
               Personal
             </button>
             <button
               onClick={() => handleModeChange('admin')}
-              className={`h-10 rounded-md px-4 font-bold ${mode === 'admin' ? 'bg-purple-600 text-white' : 'text-gray-400'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 ${mode === 'admin' ? 'bg-purple-600 text-white' : 'text-gray-400'}`}
             >
               Admin
             </button>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`h-10 rounded-lg px-3 font-bold ${viewMode === 'list' ? 'bg-blue-600' : 'bg-gray-700'}`}
-            >
-              Lista
-            </button>
-            <button
-              onClick={() => setViewMode('canvas')}
-              className={`h-10 rounded-lg px-3 font-bold ${viewMode === 'canvas' ? 'bg-blue-600' : 'bg-gray-700'}`}
-            >
-              Canvas
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 ${viewMode === 'list' ? 'bg-blue-600' : 'bg-gray-700'}`}
+          >
+            Lista
+          </button>
+          <button
+            onClick={() => setViewMode('canvas')}
+            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 ${viewMode === 'canvas' ? 'bg-blue-600' : 'bg-gray-700'}`}
+          >
+            Canvas
+          </button>
         </div>
       </header>
 
       {mode === 'admin' && (
-        <div className="flex flex-col gap-3 rounded-xl bg-gray-800 p-4">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 rounded-xl bg-gray-800 p-3 sm:p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-bold text-white">Control de Turno</h2>
-      <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => setShowAdminProducts(true)}
-                className="h-10 rounded-lg bg-purple-600 px-3 font-bold text-sm text-white active:bg-purple-700"
+                className="h-10 flex-1 rounded-lg bg-purple-600 px-3 text-sm font-bold text-white active:bg-purple-700 sm:flex-none"
               >
                 ☰ Productos
               </button>
               <button
                 onClick={() => navigate('/reports')}
-                className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+                className="h-10 flex-1 rounded-lg bg-blue-600 px-3 text-sm font-bold text-white active:bg-blue-700 sm:flex-none"
               >
                 📊 Reportes
               </button>
@@ -253,7 +254,8 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      <div className="sticky top-0 z-20 flex items-center gap-2 bg-gray-900 py-1">
+      {/* Toolbar */}
+      <div className="sticky top-0 z-20 flex flex-col gap-2 bg-gray-900 py-1 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
@@ -261,40 +263,41 @@ export function DashboardPage(): JSX.Element {
             placeholder="Buscar cuenta..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-11 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500 sm:h-12"
           />
         </div>
-        <div className="flex h-12 items-center rounded-lg bg-gray-700 px-1">
-          {([
-            ['sm', 'S'],
-            ['md', 'M'],
-            ['lg', 'L'],
-          ] as const).map(([size, label]) => (
-            <button
-              key={size}
-              onClick={() => {
-                setCardSize(size)
-                // Sync selected cards' size to other devices
-                if (selectionMode && selectedIds.size > 0) {
-                  for (const id of selectedIds) {
-                    saveAccountCardSize(id, size)
+        <div className="flex gap-2">
+          <div className="flex h-11 items-center rounded-lg bg-gray-700 px-1 sm:h-12">
+            {([
+              ['sm', 'S'],
+              ['md', 'M'],
+              ['lg', 'L'],
+            ] as const).map(([size, label]) => (
+              <button
+                key={size}
+                onClick={() => {
+                  setCardSize(size)
+                  if (selectionMode && selectedIds.size > 0) {
+                    for (const id of selectedIds) {
+                      saveAccountCardSize(id, size)
+                    }
                   }
-                }
-              }}
-              className={`h-8 rounded-md px-2 text-xs font-bold ${
-                cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+                }}
+                className={`h-8 rounded-md px-2 text-xs font-bold ${
+                  cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={createAccount}
+            className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-bold text-white active:bg-green-700 sm:h-12 sm:flex-none sm:px-4"
+          >
+            + Cuenta
+          </button>
         </div>
-        <button
-          onClick={createAccount}
-          className="h-12 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
-        >
-          + Cuenta
-        </button>
       </div>
 
       <section className="flex flex-1 flex-col">
@@ -322,13 +325,15 @@ export function DashboardPage(): JSX.Element {
           <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
         ) : (
           <>
-            <div className="mb-3 flex items-center justify-between">
-              {selectionMode && (
-                <span className="text-sm text-blue-400">
-                  {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
-                </span>
-              )}
-      <div className="flex items-center gap-2">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                {selectionMode && (
+                  <span className="text-sm text-blue-400">
+                    {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+      <div className="flex flex-wrap items-center gap-2">
                 {selectionMode && (
                   <button
                     onClick={() => {

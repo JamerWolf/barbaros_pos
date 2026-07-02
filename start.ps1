@@ -9,6 +9,40 @@ param(
 
 Write-Host "=== Barbaros POS - Start ===" -ForegroundColor Cyan
 
+# 0. Verificar que Docker este corriendo, si no, levantarlo
+Write-Host ""
+Write-Host "[0/4] Verificando Docker..." -ForegroundColor Yellow
+$dockerRunning = docker info 2>&1 | Select-String "Server Version"
+if (-not $dockerRunning) {
+    Write-Host "  Docker no esta corriendo. Abriendo Docker Desktop..." -ForegroundColor Yellow
+    $dockerDesktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerDesktop) {
+        Start-Process $dockerDesktop
+    } else {
+        Write-Host "  No se encontro Docker Desktop. Abrilo manualmente." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Esperando a que Docker este listo..." -ForegroundColor Yellow
+    $maxWait = 60
+    $waited = 0
+    while ($waited -lt $maxWait) {
+        Start-Sleep -Seconds 2
+        $waited += 2
+        $check = docker info 2>&1 | Select-String "Server Version"
+        if ($check) {
+            Write-Host "  Docker listo!" -ForegroundColor Green
+            break
+        }
+        Write-Host "  Esperando... ($waited s)"
+    }
+    if ($waited -ge $maxWait) {
+        Write-Host "  Docker no se inicio a tiempo" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "  Docker listo!" -ForegroundColor Green
+}
+
 # 1. Levantar PostgreSQL
 Write-Host ""
 Write-Host "[1/4] Levantando PostgreSQL..." -ForegroundColor Yellow
