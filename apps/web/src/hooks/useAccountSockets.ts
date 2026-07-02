@@ -24,33 +24,51 @@ export function useAccountSockets() {
           // Merge positions: DB is source of truth, localStorage fills gaps
           const uiState = useAccountUIStore.getState();
           const positions = { ...uiState.nodePositions };
-          let changed = false;
+          const cardSizes = { ...uiState.cardSizes };
+          let positionsChanged = false;
+          let sizesChanged = false;
 
           for (const acc of accounts) {
             const hasDBPosition = acc.posX != null && acc.posY != null;
             const hasLocalPosition = uiState.nodePositions[acc.id] != null;
 
             if (hasDBPosition) {
-              // DB has position — use it
               positions[acc.id] = { x: acc.posX, y: acc.posY };
-              changed = true;
+              positionsChanged = true;
             } else if (hasLocalPosition) {
-              // DB has no position but local does — publish to DB
               const localPos = uiState.nodePositions[acc.id];
               positions[acc.id] = localPos;
-              changed = true;
-              // Fire-and-forget save to DB
+              positionsChanged = true;
               fetch(`${API_URL}/accounts/${acc.id}/position`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ posX: localPos.x, posY: localPos.y }),
               }).catch(() => {});
             }
-            // else: neither has position — let DashboardPage assign one
+
+            const hasDBSize = acc.cardSize != null && acc.cardSize !== '';
+            const hasLocalSize = uiState.cardSizes[acc.id] != null;
+
+            if (hasDBSize) {
+              cardSizes[acc.id] = acc.cardSize;
+              sizesChanged = true;
+            } else if (hasLocalSize) {
+              const localSize = uiState.cardSizes[acc.id];
+              cardSizes[acc.id] = localSize;
+              sizesChanged = true;
+              fetch(`${API_URL}/accounts/${acc.id}/card-size`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cardSize: localSize }),
+              }).catch(() => {});
+            }
           }
 
-          if (changed) {
-            useAccountUIStore.setState({ nodePositions: positions });
+          const updates: Record<string, any> = {};
+          if (positionsChanged) updates.nodePositions = positions;
+          if (sizesChanged) updates.cardSizes = cardSizes;
+          if (positionsChanged || sizesChanged) {
+            useAccountUIStore.setState(updates);
           }
         }
       } catch (err) {
