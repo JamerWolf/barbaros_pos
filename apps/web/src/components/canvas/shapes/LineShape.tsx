@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
 import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
-import { isPinching, setLongPressActive } from '../CanvasContainer.js';
+import { isPinching, setLongPressActive, setCardTouched } from '../CanvasContainer.js';
 
 interface LineShapeProps {
   shape: IShape;
@@ -141,6 +141,7 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
     if (isLocked || isPinching()) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
 
     longPressFired.current = false;
     startPosRef.current = { x: e.clientX, y: e.clientY };
@@ -176,6 +177,7 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
     if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
     onSelect?.();
     startDrag(e.nativeEvent, handle);
   }, [isLocked, onSelect, startDrag]);

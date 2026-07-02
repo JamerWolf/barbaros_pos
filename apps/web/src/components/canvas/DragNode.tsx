@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { saveAccountPosition } from '../../services/accountApi.js'
-import { isPinching, setLongPressActive } from './CanvasContainer.js'
+import { isPinching, setLongPressActive, setCardTouched } from './CanvasContainer.js'
 
 interface DragNodeProps {
   accountId: string
@@ -85,10 +85,12 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         document.removeEventListener('pointerup', onUp)
 
         if (!isDragging.current) {
-          // Long press without drag → select
-          if (selectionMode) {
-            toggleSelection(accountId)
+          // Long press without drag → enter selection mode + select this card
+          const uiState = useAccountUIStore.getState()
+          if (!uiState.selectionMode) {
+            useAccountUIStore.getState().setSelectionMode(true)
           }
+          useAccountUIStore.getState().toggleSelection(accountId)
         } else {
           // Long press + drag → save position
           const uiState = useAccountUIStore.getState()
@@ -122,6 +124,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
     if (canvasLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
     didMove.current = false
+    setCardTouched()
     startDrag(e.nativeEvent)
   }
 

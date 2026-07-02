@@ -3,7 +3,7 @@ import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { useShapeStore } from '../../../store/shapeStore.js';
 import { TextToolbar } from './TextToolbar.jsx';
-import { isPinching, setLongPressActive } from '../CanvasContainer.js';
+import { isPinching, setLongPressActive, setCardTouched } from '../CanvasContainer.js';
 
 interface TextShapeProps {
   shape: IShape;
@@ -171,6 +171,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     if (isLocked || isPinching()) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
 
     longPressFired.current = false;
     startPosRef.current = { x: e.clientX, y: e.clientY };
@@ -206,6 +207,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
     startDrag(e.nativeEvent, handle);
   }, [isLocked, startDrag]);
 
@@ -332,6 +334,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
             onPointerDown={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              setCardTouched();
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
               const shapeRect = nodeRef.current?.getBoundingClientRect();
               let startAngle = 0;

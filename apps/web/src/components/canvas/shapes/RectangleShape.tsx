@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
 import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
-import { isPinching, setLongPressActive } from '../CanvasContainer.js';
+import { isPinching, setLongPressActive, setCardTouched } from '../CanvasContainer.js';
 
 interface RectangleShapeProps {
   shape: IShape;
@@ -109,6 +109,7 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
     if (isLocked || isPinching()) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
 
     longPressFired.current = false;
     startPosRef.current = { x: e.clientX, y: e.clientY };
@@ -143,6 +144,7 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
     if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
+    setCardTouched();
     startDrag(e.nativeEvent, handle);
   }, [isLocked, startDrag]);
 

@@ -15,6 +15,10 @@ export function isPinching() { return _isPinching }
 let _longPressActive = false
 export function setLongPressActive(v: boolean) { _longPressActive = v }
 
+// Global flag: a card/shape was touched this gesture — canvas background tap logic skips
+let _cardTouched = false
+export function setCardTouched() { _cardTouched = true }
+
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
@@ -155,7 +159,11 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
   // Canvas panning — document-level to work from anywhere (cards, shapes, background)
   useEffect(() => {
+    let didPan = false
+
     const onPointerDown = (e: PointerEvent) => {
+      _cardTouched = false
+      didPan = false
       if (isPinching() || _longPressActive) return
       if (activeTool) return
       if (e.button !== 0) return
@@ -171,6 +179,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         isPanning.current = false
         return
       }
+      didPan = true
       const dx = e.clientX - lastPos.current.x
       const dy = e.clientY - lastPos.current.y
       lastPos.current = { x: e.clientX, y: e.clientY }
@@ -180,6 +189,13 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
     const onPointerUp = () => {
       isPanning.current = false
+      // Background tap (not on a card/shape, no pan) → exit selection mode
+      if (!_cardTouched && !didPan) {
+        const { selectionMode, setSelectionMode } = useAccountUIStore.getState()
+        if (selectionMode) {
+          setSelectionMode(false)
+        }
+      }
     }
 
     document.addEventListener('pointerdown', onPointerDown)
