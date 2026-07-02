@@ -138,6 +138,22 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  fastify.patch('/:id/card-size', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { cardSize } = request.body as { cardSize?: string };
+
+    try {
+      const updated = await prisma.account.update({
+        where: { id },
+        data: { cardSize: cardSize ?? null },
+      });
+      emitSocketEvent(fastify, 'account:card-size', { id: updated.id, cardSize: updated.cardSize });
+      return reply.code(200).send(updated);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
   fastify.put('/:id/close', async (request, reply) => {
     const { id } = request.params as { id: string };
 

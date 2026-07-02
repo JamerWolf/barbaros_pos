@@ -65,6 +65,15 @@ export function useAccountSockets() {
               },
             });
           }
+        } else if (event === 'account:card-size') {
+          // Update card size from other clients (only when explicitly changed)
+          const { id, cardSize } = data;
+          if (cardSize != null && cardSize !== '') {
+            const uiState = useAccountUIStore.getState();
+            useAccountUIStore.setState({
+              cardSizes: { ...uiState.cardSizes, [id]: cardSize },
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing websocket message', err);

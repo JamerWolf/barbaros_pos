@@ -10,6 +10,7 @@ import { DragNode } from '../components/canvas/DragNode.js'
 import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
+import { saveAccountCardSize } from '../services/accountApi.js'
 import type { IAccount } from '@barbaros/shared'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -273,6 +274,12 @@ export function DashboardPage(): JSX.Element {
               key={size}
               onClick={() => {
                 setCardSize(size)
+                // Sync selected cards' size to other devices
+                if (selectionMode && selectedIds.size > 0) {
+                  for (const id of selectedIds) {
+                    saveAccountCardSize(id, size)
+                  }
+                }
               }}
               className={`h-8 rounded-md px-2 text-xs font-bold ${
                 cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
