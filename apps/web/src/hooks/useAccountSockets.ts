@@ -21,16 +21,34 @@ export function useAccountSockets() {
           const accounts = await res.json();
           setAccounts(accounts);
 
-          // Sync positions from backend into UI store (cardSize stays local per device)
+          // Merge positions: DB is source of truth, localStorage fills gaps
           const uiState = useAccountUIStore.getState();
           const positions = { ...uiState.nodePositions };
           let changed = false;
+
           for (const acc of accounts) {
-            if (acc.posX != null && acc.posY != null) {
+            const hasDBPosition = acc.posX != null && acc.posY != null;
+            const hasLocalPosition = uiState.nodePositions[acc.id] != null;
+
+            if (hasDBPosition) {
+              // DB has position — use it
               positions[acc.id] = { x: acc.posX, y: acc.posY };
               changed = true;
+            } else if (hasLocalPosition) {
+              // DB has no position but local does — publish to DB
+              const localPos = uiState.nodePositions[acc.id];
+              positions[acc.id] = localPos;
+              changed = true;
+              // Fire-and-forget save to DB
+              fetch(`${API_URL}/accounts/${acc.id}/position`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ posX: localPos.x, posY: localPos.y }),
+              }).catch(() => {});
             }
+            // else: neither has position — let DashboardPage assign one
           }
+
           if (changed) {
             useAccountUIStore.setState({ nodePositions: positions });
           }
@@ -55,7 +73,7 @@ export function useAccountSockets() {
             updateAccount(data.account);
           }
         } else if (event === 'account:position') {
-          // Update card position from other clients (cardSize stays local per device)
+          // Update card position from other clients
           const { id, posX, posY } = data;
           if (posX != null && posY != null) {
             useAccountUIStore.setState({
