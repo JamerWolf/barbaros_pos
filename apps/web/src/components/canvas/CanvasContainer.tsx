@@ -150,6 +150,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         {shapes && (
           <div
             className={`absolute left-0 top-0 h-full w-full ${activeTool ? '' : 'pointer-events-none'}`}
+            style={{ zIndex: 1 }}
           >
             {shapes}
           </div>
@@ -157,6 +158,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         <div
           style={{
             transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10,
           }}
           className="absolute left-0 top-0 h-full w-full origin-top-left pointer-events-none"
         >
