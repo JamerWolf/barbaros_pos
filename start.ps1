@@ -1,18 +1,19 @@
 # start.ps1 — Levanta DB (Docker), API y Web
 # Uso: .\start.ps1
 
-Write-Host "=== Barbaros POS — Start ===" -ForegroundColor Cyan
+Write-Host "=== Barbaros POS - Start ===" -ForegroundColor Cyan
 
 # 1. Levantar PostgreSQL
-Write-Host "`n[1/4] Levantando PostgreSQL..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "[1/4] Levantando PostgreSQL..." -ForegroundColor Yellow
 docker compose up -d
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error al levantar Docker" -ForegroundColor Red
     exit 1
 }
 
-# 2. Esperar a que la DB esté lista
-Write-Host "[2/4] Esperando a que PostgreSQL esté listo..." -ForegroundColor Yellow
+# 2. Esperar a que la DB este lista
+Write-Host "[2/4] Esperando a que PostgreSQL este listo..." -ForegroundColor Yellow
 $maxRetries = 20
 $retries = 0
 while ($retries -lt $maxRetries) {
@@ -26,12 +27,13 @@ while ($retries -lt $maxRetries) {
     Start-Sleep -Seconds 1
 }
 if ($retries -eq $maxRetries) {
-    Write-Host "  PostgreSQL no respondió a tiempo" -ForegroundColor Red
+    Write-Host "  PostgreSQL no respondio a tiempo" -ForegroundColor Red
     exit 1
 }
 
 # 3. Ejecutar migraciones
 Write-Host "[3/4] Ejecutando migraciones..." -ForegroundColor Yellow
+$env:DATABASE_URL = "postgresql://barbaros:barbaros@localhost:5432/barbaros_pos"
 npm run db:migrate
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error en migraciones" -ForegroundColor Red
@@ -41,11 +43,14 @@ if ($LASTEXITCODE -ne 0) {
 # 4. Levantar API y Web en ventanas separadas
 Write-Host "[4/4] Levantando API y Web..." -ForegroundColor Yellow
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot'; Write-Host 'API Server' -ForegroundColor Cyan; npm run dev:api" -WindowStyle Normal
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot'; Write-Host 'Web Frontend' -ForegroundColor Cyan; npm run dev:web" -WindowStyle Normal
+$startPath = $PSScriptRoot
+Start-Process powershell -ArgumentList "-NoExit -Command `"Set-Location '$startPath'; Write-Host 'API Server' -ForegroundColor Cyan; npm run dev:api`""
+Start-Process powershell -ArgumentList "-NoExit -Command `"Set-Location '$startPath'; Write-Host 'Web Frontend' -ForegroundColor Cyan; npm run dev:web`""
 
-Write-Host "`n=== Todo listo! ===" -ForegroundColor Green
-Write-Host "  API:   http://localhost:3000" -ForegroundColor White
-Write-Host "  Web:   http://localhost:5173" -ForegroundColor White
-Write-Host "  DB:    localhost:5432" -ForegroundColor White
-Write-Host "`nPara detener: docker compose down" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "=== Todo listo! ===" -ForegroundColor Green
+Write-Host "  API: http://localhost:3000"
+Write-Host "  Web: http://localhost:5173"
+Write-Host "  DB:  localhost:5432"
+Write-Host ""
+Write-Host "Para detener: docker compose down" -ForegroundColor DarkGray
