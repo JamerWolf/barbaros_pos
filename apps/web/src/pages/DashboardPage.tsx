@@ -110,6 +110,28 @@ export function DashboardPage(): JSX.Element {
       .catch(() => setActiveShiftId(null))
   }, [])
 
+  // Listen for shift events from other devices
+  useEffect(() => {
+    const wsUrl = API_URL.replace(/^http/, 'ws') + '/ws'
+    const ws = new WebSocket(wsUrl)
+
+    ws.onmessage = (message) => {
+      try {
+        const { event, data } = JSON.parse(message.data)
+        if (event === 'shift:opened') {
+          setActiveShiftId(data.id)
+        } else if (event === 'shift:closed') {
+          setActiveShiftId(null)
+          refreshAllOpenAccounts()
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return () => { ws.close() }
+  }, [])
+
   const createAccount = async () => {
     try {
       const res = await fetch(`${API_URL}/accounts`, {
