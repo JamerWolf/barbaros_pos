@@ -120,19 +120,18 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/:id/position', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { posX, posY, cardSize } = request.body as { posX?: number; posY?: number; cardSize?: string };
+    const { posX, posY } = request.body as { posX?: number; posY?: number };
 
     try {
       const data: any = {};
       if (posX !== undefined) data.posX = posX;
       if (posY !== undefined) data.posY = posY;
-      if (cardSize !== undefined) data.cardSize = cardSize;
 
       const updated = await prisma.account.update({
         where: { id },
         data,
       });
-      emitSocketEvent(fastify, 'account:position', { id: updated.id, posX: updated.posX, posY: updated.posY, cardSize: updated.cardSize });
+      emitSocketEvent(fastify, 'account:position', { id: updated.id, posX: updated.posX, posY: updated.posY });
       return reply.code(200).send(updated);
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });

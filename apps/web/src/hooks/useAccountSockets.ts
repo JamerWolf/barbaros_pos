@@ -21,37 +21,18 @@ export function useAccountSockets() {
           const accounts = await res.json();
           setAccounts(accounts);
 
-          // Sync positions from backend into UI store
+          // Sync positions from backend into UI store (cardSize stays local per device)
           const uiState = useAccountUIStore.getState();
           const positions = { ...uiState.nodePositions };
-          const cardSizes = { ...uiState.cardSizes };
           let changed = false;
           for (const acc of accounts) {
             if (acc.posX != null && acc.posY != null) {
-              // Backend has position — use it (authoritative)
               positions[acc.id] = { x: acc.posX, y: acc.posY };
               changed = true;
             }
-            if (acc.cardSize != null && acc.cardSize !== '') {
-              cardSizes[acc.id] = acc.cardSize;
-              changed = true;
-            }
           }
-
-          // Derive global cardSize from most common per-card size
-          const sizeCounts: Record<string, number> = {};
-          for (const acc of accounts) {
-            if (acc.cardSize) {
-              sizeCounts[acc.cardSize] = (sizeCounts[acc.cardSize] || 0) + 1;
-            }
-          }
-          const sorted = Object.entries(sizeCounts).sort((a, b) => b[1] - a[1]);
-          if (sorted.length > 0) {
-            useAccountUIStore.setState({ cardSize: sorted[0][0] as any });
-          }
-
           if (changed) {
-            useAccountUIStore.setState({ nodePositions: positions, cardSizes });
+            useAccountUIStore.setState({ nodePositions: positions });
           }
         }
       } catch (err) {
@@ -74,23 +55,16 @@ export function useAccountSockets() {
             updateAccount(data.account);
           }
         } else if (event === 'account:position') {
-          // Update card position/size from other clients
-          const { id, posX, posY, cardSize } = data;
-          const uiState = useAccountUIStore.getState();
-          const updates: Record<string, any> = {};
+          // Update card position from other clients (cardSize stays local per device)
+          const { id, posX, posY } = data;
           if (posX != null && posY != null) {
-            updates.nodePositions = {
-              ...uiState.nodePositions,
-              [id]: { x: posX, y: posY },
-            };
+            useAccountUIStore.setState({
+              nodePositions: {
+                ...useAccountUIStore.getState().nodePositions,
+                [id]: { x: posX, y: posY },
+              },
+            });
           }
-          if (cardSize != null && cardSize !== '') {
-            updates.cardSizes = {
-              ...uiState.cardSizes,
-              [id]: cardSize,
-            };
-          }
-          useAccountUIStore.setState(updates);
         }
       } catch (err) {
         console.error('Error parsing websocket message', err);
