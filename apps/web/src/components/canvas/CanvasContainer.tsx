@@ -151,6 +151,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
   // Canvas panning
   const onPointerDown = (e: React.PointerEvent) => {
+    if (isPinching()) return
     if (e.target === containerRef.current && !activeTool) {
       isPanning.current = true
       lastPos.current = { x: e.clientX, y: e.clientY }
@@ -159,7 +160,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!isPanning.current) return
+    if (!isPanning.current || isPinching()) {
+      isPanning.current = false
+      return
+    }
     const dx = e.clientX - lastPos.current.x
     const dy = e.clientY - lastPos.current.y
     lastPos.current = { x: e.clientX, y: e.clientY }
