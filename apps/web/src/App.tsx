@@ -1,11 +1,13 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useAccountSockets } from './hooks/useAccountSockets.js'
+import { useShapeSockets } from './hooks/useShapeSockets.js'
 import { DashboardPage } from './pages/DashboardPage.js'
 import { AccountDetailPage } from './pages/AccountDetailPage.js'
 import { ReportsPage } from './pages/ReportsPage.js'
 
 function SocketInitializer(): JSX.Element | null {
   useAccountSockets()
+  useShapeSockets()
   return null
 }
 
