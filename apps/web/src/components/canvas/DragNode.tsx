@@ -78,14 +78,21 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         onClick?.()
       }
     } else {
-      // Drag ended — save position to backend (debounced)
-      const finalPos = useAccountUIStore.getState().nodePositions[accountId]
-      if (finalPos) {
-        if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
-        dragSaveTimer.current = setTimeout(() => {
-          saveAccountPosition(accountId, { posX: finalPos.x, posY: finalPos.y })
-        }, 300)
-      }
+      // Drag ended — save positions for ALL selected cards
+      const uiState = useAccountUIStore.getState()
+      const idsToSave = isSelected && selectedIds.size > 1
+        ? Array.from(selectedIds)
+        : [accountId]
+
+      if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
+      dragSaveTimer.current = setTimeout(() => {
+        for (const id of idsToSave) {
+          const pos = uiState.nodePositions[id]
+          if (pos) {
+            saveAccountPosition(id, { posX: pos.x, posY: pos.y })
+          }
+        }
+      }, 300)
     }
     isDragging.current = false
     nodeRef.current?.releasePointerCapture(e.pointerId)
