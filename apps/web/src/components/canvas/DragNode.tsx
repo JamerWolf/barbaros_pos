@@ -121,7 +121,6 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const onPointerDown = (e: React.PointerEvent) => {
     if (canvasLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
-    e.stopPropagation()
     didMove.current = false
     startDrag(e.nativeEvent)
   }
