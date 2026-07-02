@@ -102,7 +102,10 @@ export const useAccountUIStore = create<AccountUIState>()(
               );
               newPositions[id] = freeSpace;
               currentPositions[id] = freeSpace;
-              newCardSizes[id] = state.cardSize;
+              // Only set cardSize if not already set (from backend)
+              if (!newCardSizes[id]) {
+                newCardSizes[id] = state.cardSize;
+              }
             }
           }
           return { nodePositions: newPositions, cardSizes: newCardSizes };
