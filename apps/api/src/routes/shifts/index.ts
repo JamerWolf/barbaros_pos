@@ -2,6 +2,16 @@ import { FastifyPluginAsync } from 'fastify';
 import { AccountService } from '../../services/account.service.js';
 import { ReportService } from '../../services/report.service.js';
 
+function emitSocketEvent(fastify: any, event: string, payload: any) {
+  if (fastify.websocketServer) {
+    fastify.websocketServer.clients.forEach((client: any) => {
+      if (client.readyState === 1) {
+        client.send(JSON.stringify({ event, data: payload }));
+      }
+    });
+  }
+}
+
 const shiftRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/active', async (request, reply) => {
     try {
@@ -38,6 +48,7 @@ const shiftRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/open', async (request, reply) => {
     try {
       const shift = await AccountService.openShift();
+      emitSocketEvent(fastify, 'shift:opened', shift);
       return reply.code(201).send(shift);
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });
@@ -47,6 +58,7 @@ const shiftRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/close', async (request, reply) => {
     try {
       const shift = await AccountService.closeShift();
+      emitSocketEvent(fastify, 'shift:closed', shift);
       return reply.code(200).send(shift);
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });

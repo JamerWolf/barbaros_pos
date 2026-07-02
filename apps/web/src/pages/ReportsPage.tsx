@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatCOP } from '../utils/format.js';
 import { DateRangePicker } from '../components/DateRangePicker.js';
+import { useShiftSockets } from '../hooks/useShiftSockets.js';
 import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -78,6 +79,28 @@ export function ReportsPage(): JSX.Element {
       setLoadingDetail(false);
     }
   };
+
+  // Real-time refresh via WebSocket
+  const refreshData = useCallback(() => {
+    // Refresh selected shift detail
+    if (selectedShift) {
+      fetch(`${API_URL}/shifts/${selectedShift.id}`)
+        .then((res) => res.json())
+        .then((data) => setSelectedShift(data))
+        .catch(() => {});
+    }
+    // Refresh shifts list
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('from', localDateToISO(dateFrom));
+    if (dateTo) params.set('to', localDateToISO(dateTo, true));
+    const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => setShifts(data))
+      .catch(() => {});
+  }, [selectedShift?.id, dateFrom, dateTo]);
+
+  useShiftSockets(refreshData);
 
   const handleExport = async (shiftId: string) => {
     try {
