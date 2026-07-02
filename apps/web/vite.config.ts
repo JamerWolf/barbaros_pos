@@ -28,6 +28,7 @@ export default defineConfig({
       '/categories': { target: 'http://localhost:3000', changeOrigin: true },
       '/shifts': { target: 'http://localhost:3000', changeOrigin: true },
       '/shapes': { target: 'http://localhost:3000', changeOrigin: true },
+      '/reports': { target: 'http://localhost:3000', changeOrigin: true },
       '/ws': { target: 'ws://localhost:3000', ws: true },
       '/uploads': { target: 'http://localhost:3000', changeOrigin: true },
     },
