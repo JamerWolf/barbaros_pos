@@ -32,11 +32,24 @@ export function useAccountSockets() {
               positions[acc.id] = { x: acc.posX, y: acc.posY };
               changed = true;
             }
-            if (acc.cardSize) {
+            if (acc.cardSize != null && acc.cardSize !== '') {
               cardSizes[acc.id] = acc.cardSize;
               changed = true;
             }
           }
+
+          // Derive global cardSize from most common per-card size
+          const sizeCounts: Record<string, number> = {};
+          for (const acc of accounts) {
+            if (acc.cardSize) {
+              sizeCounts[acc.cardSize] = (sizeCounts[acc.cardSize] || 0) + 1;
+            }
+          }
+          const sorted = Object.entries(sizeCounts).sort((a, b) => b[1] - a[1]);
+          if (sorted.length > 0) {
+            useAccountUIStore.setState({ cardSize: sorted[0][0] as any });
+          }
+
           if (changed) {
             useAccountUIStore.setState({ nodePositions: positions, cardSizes });
           }
@@ -65,13 +78,13 @@ export function useAccountSockets() {
           const { id, posX, posY, cardSize } = data;
           const uiState = useAccountUIStore.getState();
           const updates: Record<string, any> = {};
-          if (posX !== undefined && posY !== undefined) {
+          if (posX != null && posY != null) {
             updates.nodePositions = {
               ...uiState.nodePositions,
               [id]: { x: posX, y: posY },
             };
           }
-          if (cardSize !== undefined) {
+          if (cardSize != null && cardSize !== '') {
             updates.cardSizes = {
               ...uiState.cardSizes,
               [id]: cardSize,
