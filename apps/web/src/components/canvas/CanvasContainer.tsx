@@ -146,6 +146,14 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         onPointerUp={onPointerUp}
         className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800"
       >
+        {/* Shapes layer — rendered first so cards are on top */}
+        {shapes && (
+          <div
+            className={`absolute left-0 top-0 h-full w-full ${activeTool ? '' : 'pointer-events-none'}`}
+          >
+            {shapes}
+          </div>
+        )}
         <div
           style={{
             transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
@@ -154,14 +162,6 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         >
           {children}
         </div>
-        {/* Shapes layer — NOT transformed, direct child of container for correct coords */}
-        {shapes && (
-          <div
-            className={`absolute left-0 top-0 h-full w-full ${activeTool ? '' : 'pointer-events-none'}`}
-          >
-            {shapes}
-          </div>
-        )}
       </div>
       {/* Fit button */}
       <button
