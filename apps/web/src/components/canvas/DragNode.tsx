@@ -28,6 +28,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
 
   const startPos = useRef({ x: 0, y: 0 })
   const isDragging = useRef(false)
+  const didMove = useRef(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
   const activePointerId = useRef<number | null>(null)
@@ -121,6 +122,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
     if (canvasLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
     e.stopPropagation()
+    didMove.current = false
     startDrag(e.nativeEvent)
   }
 
@@ -130,6 +132,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       const dx = Math.abs(e.clientX - startPos.current.x)
       const dy = Math.abs(e.clientY - startPos.current.y)
       if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        didMove.current = true
         cancelLongPress()
       }
     }
@@ -137,12 +140,14 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!longPressFired.current) {
-      // Short tap → navigate
       cancelLongPress()
-      if (selectionMode) {
-        toggleSelection(accountId)
-      } else {
-        onClick?.()
+      // Only navigate on clean tap — not if finger moved (pan gesture)
+      if (!didMove.current) {
+        if (selectionMode) {
+          toggleSelection(accountId)
+        } else {
+          onClick?.()
+        }
       }
     }
     // Long press up is handled by the document listener in startDrag
