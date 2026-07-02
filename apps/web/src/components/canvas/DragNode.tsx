@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { saveAccountPosition } from '../../services/accountApi.js'
+import { isPinching } from './CanvasContainer.js'
 
 interface DragNodeProps {
   accountId: string
@@ -26,7 +27,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const isDragging = useRef(false)
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (canvasLocked) return
+    if (canvasLocked || isPinching()) return
     e.stopPropagation()
     isDragging.current = false
     startPos.current = { x: e.clientX, y: e.clientY }

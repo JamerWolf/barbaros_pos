@@ -7,6 +7,10 @@ interface CanvasContainerProps {
   shapes?: ReactNode
 }
 
+// Global flag so DragNode can check during pinch
+let _isPinching = false
+export function isPinching() { return _isPinching }
+
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
@@ -14,6 +18,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
   const hasAutoFitted = useRef(false)
+
+  // Pinch state
+  const pinchStartDist = useRef(0)
+  const pinchStartZoom = useRef(1)
 
   // Resize state
   const isResizing = useRef(false)
@@ -47,6 +55,69 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     const currentShapes = useShapeStore.getState().shapes
     fitToContent(container.clientWidth, container.clientHeight, currentShapes)
   }, [fitToContent])
+
+  // Pinch-to-zoom
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const getDistance = (t1: Touch, t2: Touch) => {
+      const dx = t1.clientX - t2.clientX
+      const dy = t1.clientY - t2.clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    const getCenter = (t1: Touch, t2: Touch) => ({
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+    })
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        _isPinching = true
+        pinchStartDist.current = getDistance(e.touches[0], e.touches[1])
+        pinchStartZoom.current = useAccountUIStore.getState().zoom
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dist = getDistance(e.touches[0], e.touches[1])
+        const scale = dist / pinchStartDist.current
+        const newZoom = Math.min(Math.max(pinchStartZoom.current * scale, 0.3), 2)
+
+        const state = useAccountUIStore.getState()
+        const center = getCenter(e.touches[0], e.touches[1])
+        const rect = container.getBoundingClientRect()
+        const cx = center.x - rect.left
+        const cy = center.y - rect.top
+
+        const newPanX = cx / newZoom - cx / state.zoom + state.panOffset.x
+        const newPanY = cy / newZoom - cy / state.zoom + state.panOffset.y
+
+        setZoom(newZoom)
+        setPanOffset({ x: newPanX, y: newPanY })
+      }
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        _isPinching = false
+      }
+    }
+
+    container.addEventListener('touchstart', onTouchStart, { passive: false })
+    container.addEventListener('touchmove', onTouchMove, { passive: false })
+    container.addEventListener('touchend', onTouchEnd, { passive: false })
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart)
+      container.removeEventListener('touchmove', onTouchMove)
+      container.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [setZoom, setPanOffset])
 
   // Wheel zoom — zoom centered on cursor position
   useEffect(() => {
