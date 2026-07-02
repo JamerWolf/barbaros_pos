@@ -10,6 +10,7 @@ import { DragNode } from '../components/canvas/DragNode.js'
 import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
+import { saveAccountPosition } from '../services/accountApi.js'
 import type { IAccount } from '@barbaros/shared'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -271,7 +272,15 @@ export function DashboardPage(): JSX.Element {
           ] as const).map(([size, label]) => (
             <button
               key={size}
-              onClick={() => setCardSize(size)}
+              onClick={() => {
+                setCardSize(size)
+                // Save per-card size to backend when in selection mode
+                if (selectionMode && selectedIds.size > 0) {
+                  for (const id of selectedIds) {
+                    saveAccountPosition(id, { cardSize: size })
+                  }
+                }
+              }}
               className={`h-8 rounded-md px-2 text-xs font-bold ${
                 cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
               }`}

@@ -19,6 +19,9 @@ export interface IAccount {
   status: AccountStatus;
   discountType: DiscountType;
   discountValue: number;
+  posX?: number | null;
+  posY?: number | null;
+  cardSize?: string | null;
   items?: IOrderItem[];
   total?: number;
   pendingAmount?: number;

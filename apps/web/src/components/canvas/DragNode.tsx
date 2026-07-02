@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
+import { saveAccountPosition } from '../../services/accountApi.js'
 
 interface DragNodeProps {
   accountId: string
@@ -19,6 +20,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const canvasLocked = useAccountUIStore((s) => s.canvasLocked)
   const zoom = useAccountUIStore((s) => s.zoom)
   const offset = useRef({ x: 0, y: 0 })
+  const dragSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startPos = useRef({ x: 0, y: 0 })
   const isDragging = useRef(false)
@@ -74,6 +76,15 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         toggleSelection(accountId)
       } else {
         onClick?.()
+      }
+    } else {
+      // Drag ended — save position to backend (debounced)
+      const finalPos = useAccountUIStore.getState().nodePositions[accountId]
+      if (finalPos) {
+        if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
+        dragSaveTimer.current = setTimeout(() => {
+          saveAccountPosition(accountId, { posX: finalPos.x, posY: finalPos.y })
+        }, 300)
       }
     }
     isDragging.current = false

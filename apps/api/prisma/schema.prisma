@@ -49,6 +49,9 @@ model Account {
   status         AccountStatus @default(OPEN)
   discountType   DiscountType @default(NONE)
   discountValue  Decimal       @default(0) @db.Decimal(10, 2)
+  posX           Float?
+  posY           Float?
+  cardSize       String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
