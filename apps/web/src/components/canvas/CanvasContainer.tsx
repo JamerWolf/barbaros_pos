@@ -180,6 +180,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     resizeStartHeight.current = containerRef.current?.parentElement?.getBoundingClientRect().height ?? 0
     document.body.style.cursor = 'row-resize'
     document.body.style.userSelect = 'none'
+    e.currentTarget.setPointerCapture(e.pointerId)
 
     const onMove = (ev: PointerEvent) => {
       if (!isResizing.current) return

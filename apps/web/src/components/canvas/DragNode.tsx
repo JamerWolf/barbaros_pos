@@ -25,11 +25,15 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
 
   const startPos = useRef({ x: 0, y: 0 })
   const isDragging = useRef(false)
+  const activePointerId = useRef<number | null>(null)
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (canvasLocked || isPinching()) return
+    if (e.button !== 0 && e.button !== undefined) return // only primary button / touch
     e.stopPropagation()
+    e.preventDefault()
     isDragging.current = false
+    activePointerId.current = e.pointerId
     startPos.current = { x: e.clientX, y: e.clientY }
 
     const rect = nodeRef.current?.getBoundingClientRect()
@@ -39,77 +43,72 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         y: (e.clientY - rect.top) / zoom,
       }
     }
-    nodeRef.current?.setPointerCapture(e.pointerId)
-  }
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!nodeRef.current?.hasPointerCapture(e.pointerId)) return
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current) return
 
-    const dx = Math.abs(e.clientX - startPos.current.x)
-    const dy = Math.abs(e.clientY - startPos.current.y)
+      const dx = Math.abs(ev.clientX - startPos.current.x)
+      const dy = Math.abs(ev.clientY - startPos.current.y)
 
-    if (dx > 5 || dy > 5) {
-      isDragging.current = true
-    }
-
-    if (!isDragging.current) return
-
-    const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect()
-    if (!parentRect) return
-
-    // Calculate raw position for this node
-    const newX = (e.clientX - parentRect.left) / zoom - offset.current.x
-    const newY = (e.clientY - parentRect.top) / zoom - offset.current.y
-    const delta = { x: newX - position.x, y: newY - position.y }
-
-    // If this account is selected, move all selected accounts as a group
-    if (isSelected && selectedIds.size > 1) {
-      movePositions(Array.from(selectedIds), delta)
-    } else {
-      updatePosition(accountId, { x: newX, y: newY })
-    }
-  }
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    const wasDragging = isDragging.current
-    isDragging.current = false
-
-    // Always release pointer capture first
-    nodeRef.current?.releasePointerCapture(e.pointerId)
-
-    if (!wasDragging) {
-      // It's a tap/click — prevent default to stop touch carryover
-      e.preventDefault()
-      if (selectionMode) {
-        toggleSelection(accountId)
-      } else {
-        onClick?.()
+      if (dx > 3 || dy > 3) {
+        isDragging.current = true
       }
-    } else {
-      // Drag ended — save positions for ALL selected cards
-      const uiState = useAccountUIStore.getState()
-      const idsToSave = isSelected && selectedIds.size > 1
-        ? Array.from(selectedIds)
-        : [accountId]
 
-      if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
-      dragSaveTimer.current = setTimeout(() => {
-        for (const id of idsToSave) {
-          const pos = uiState.nodePositions[id]
-          if (pos) {
-            saveAccountPosition(id, { posX: pos.x, posY: pos.y })
-          }
-        }
-      }, 300)
+      if (!isDragging.current) return
+
+      const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect()
+      if (!parentRect) return
+
+      const newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
+      const newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+      const delta = { x: newX - position.x, y: newY - position.y }
+
+      if (isSelected && selectedIds.size > 1) {
+        movePositions(Array.from(selectedIds), delta)
+      } else {
+        updatePosition(accountId, { x: newX, y: newY })
+      }
     }
+
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId.current) return
+      activePointerId.current = null
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+
+      if (!isDragging.current) {
+        if (selectionMode) {
+          toggleSelection(accountId)
+        } else {
+          onClick?.()
+        }
+      } else {
+        const uiState = useAccountUIStore.getState()
+        const idsToSave = isSelected && selectedIds.size > 1
+          ? Array.from(selectedIds)
+          : [accountId]
+
+        if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
+        dragSaveTimer.current = setTimeout(() => {
+          for (const id of idsToSave) {
+            const pos = uiState.nodePositions[id]
+            if (pos) {
+              saveAccountPosition(id, { posX: pos.x, posY: pos.y })
+            }
+          }
+        }, 300)
+      }
+      isDragging.current = false
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
   }
 
   return (
     <div
       ref={nodeRef}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
       style={{
         position: 'absolute',
         left: position.x,
