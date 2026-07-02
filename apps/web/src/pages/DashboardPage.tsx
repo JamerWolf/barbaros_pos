@@ -137,7 +137,7 @@ export function DashboardPage(): JSX.Element {
       const res = await fetch(`${API_URL}/accounts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ cardSize }),
       })
       if (res.ok) {
         const newAccount = await res.json()

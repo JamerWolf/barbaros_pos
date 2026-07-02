@@ -30,10 +30,10 @@ async function broadcastAccountUpdated(fastify: any, accountId: string) {
 
 const accountRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', async (request, reply) => {
-    const { name } = request.body as { name?: string };
+    const { name, cardSize } = request.body as { name?: string; cardSize?: string };
 
     try {
-      const account = await AccountService.createAccount(name || '');
+      const account = await AccountService.createAccount(name || '', cardSize);
       emitSocketEvent(fastify, 'account:created', account);
       return reply.code(201).send(account);
     } catch (err: any) {

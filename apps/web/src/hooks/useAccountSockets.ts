@@ -81,6 +81,13 @@ export function useAccountSockets() {
         const { event, data } = JSON.parse(message.data);
         if (event === 'account:created') {
           addAccount(data);
+          // Set cardSize from backend before assignPositionsBatch runs
+          if (data.cardSize) {
+            const uiState = useAccountUIStore.getState();
+            useAccountUIStore.setState({
+              cardSizes: { ...uiState.cardSizes, [data.id]: data.cardSize },
+            });
+          }
         } else if (event === 'account:updated') {
           updateAccount(data);
         } else if (event === 'account:deleted') {

@@ -24,7 +24,7 @@ export class AccountService {
     });
   }
 
-  static async createAccount(name: string) {
+  static async createAccount(name: string, cardSize?: string) {
     return prisma.$transaction(async (tx: any) => {
       const shift = await tx.shift.findFirst({
         where: { status: 'OPEN' },
@@ -47,7 +47,8 @@ export class AccountService {
           shiftId: shift.id,
           name,
           number: nextNumber,
-          status: 'OPEN'
+          status: 'OPEN',
+          cardSize: cardSize || null
         }
       });
     }, {
