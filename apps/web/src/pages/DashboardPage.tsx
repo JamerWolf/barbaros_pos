@@ -252,7 +252,7 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-20 flex items-center gap-2 bg-gray-900 py-1">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
@@ -319,7 +319,7 @@ export function DashboardPage(): JSX.Element {
                   {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
                 </span>
               )}
-              <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
                 {selectionMode && (
                   <button
                     onClick={() => {
