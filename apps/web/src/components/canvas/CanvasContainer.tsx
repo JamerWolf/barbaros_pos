@@ -178,9 +178,6 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     isResizing.current = true
     resizeStartY.current = e.clientY
     resizeStartHeight.current = containerRef.current?.parentElement?.getBoundingClientRect().height ?? 0
-    document.body.style.cursor = 'row-resize'
-    document.body.style.userSelect = 'none'
-    e.currentTarget.setPointerCapture(e.pointerId)
 
     const onMove = (ev: PointerEvent) => {
       if (!isResizing.current) return
@@ -191,8 +188,6 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
     const onUp = () => {
       isResizing.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
       document.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerup', onUp)
     }
@@ -209,6 +204,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       {/* Resize handle */}
       <div
         onPointerDown={onResizeDown}
+        style={{ touchAction: 'none' }}
         className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
       >
         <div className="h-1 w-8 rounded-full bg-gray-500" />
