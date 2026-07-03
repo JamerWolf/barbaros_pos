@@ -142,6 +142,9 @@ export function DashboardPage(): JSX.Element {
       if (res.ok) {
         const newAccount = await res.json()
         useAccountStore.getState().addAccount(newAccount)
+        // Place new account at the center of the current viewport
+        const center = useAccountUIStore.getState().getViewportCenter(window.innerWidth, window.innerHeight)
+        useAccountUIStore.getState().updatePosition(newAccount.id, center)
         refreshAllOpenAccounts()
       } else {
         const data = await res.json()

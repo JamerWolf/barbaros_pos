@@ -38,6 +38,7 @@ export interface AccountUIState {
   getCardDimensions: (accountId: string) => { w: number; h: number };
   setCanvasLocked: (locked: boolean) => void;
   setFitZone: (zone: { x: number; y: number; width: number; height: number } | null) => void;
+  getViewportCenter: (containerWidth: number, containerHeight: number) => Position;
   saveSelectionSnapshot: () => void;
   restoreSelectionSnapshot: () => void;
   setHasHydrated: (state: boolean) => void;
@@ -244,6 +245,14 @@ export const useAccountUIStore = create<AccountUIState>()(
       }),
       setCanvasLocked: (locked) => set({ canvasLocked: locked }),
       setFitZone: (zone) => set({ fitZone: zone }),
+      getViewportCenter: (containerWidth, containerHeight) => {
+        const state = _get();
+        const centerX = containerWidth / (2 * state.zoom) - state.panOffset.x;
+        const centerY = containerHeight / (2 * state.zoom) - state.panOffset.y;
+        // Offset by half card size so the card is centered, not its top-left
+        const { w, h } = CARD_SIZES[state.cardSize];
+        return { x: centerX - w / 2, y: centerY - h / 2 };
+      },
       saveSelectionSnapshot: () => set((state) => ({
         selectionSnapshot: {
           nodePositions: { ...state.nodePositions },
