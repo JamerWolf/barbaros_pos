@@ -234,6 +234,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
   return (
     <div
       ref={nodeRef}
+      data-canvas-node
       onPointerDown={onMovePointerDown}
       onPointerMove={onMovePointerMove}
       onPointerUp={onMovePointerUp}

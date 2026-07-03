@@ -151,6 +151,7 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
   return (
     <div
       ref={nodeRef}
+      data-canvas-node
       onPointerDown={(e) => onMovePointerDown(e)}
       onPointerMove={onMovePointerMove}
       onPointerUp={onMovePointerUp}

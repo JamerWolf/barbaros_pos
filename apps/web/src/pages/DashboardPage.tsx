@@ -5,12 +5,12 @@ import { useAccountUIStore } from '../store/accountUIStore.js'
 import { useShapeStore, type ShapeTool } from '../store/shapeStore.js'
 import { AccountCard } from '../components/Accounts/AccountCard.js'
 import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
-import { CanvasContainer } from '../components/canvas/CanvasContainer.js'
+import { CanvasContainer, cancelPendingSaves } from '../components/canvas/CanvasContainer.js'
 import { DragNode } from '../components/canvas/DragNode.js'
 import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
-import { saveAccountCardSize } from '../services/accountApi.js'
+import { saveAccountCardSize, saveAccountPosition } from '../services/accountApi.js'
 import API_URL from '../utils/apiUrl.js'
 import type { IAccount } from '@barbaros/shared'
 
@@ -277,7 +277,7 @@ export function DashboardPage(): JSX.Element {
       )}
 
       {/* Toolbar */}
-      <div className="sticky top-0 z-20 flex flex-col gap-2 bg-gray-900 py-1 sm:flex-row sm:items-center">
+      <div data-toolbar className="sticky top-0 z-20 flex flex-col gap-2 bg-gray-900 py-1 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
@@ -359,9 +359,20 @@ export function DashboardPage(): JSX.Element {
                 {selectionMode && (
                   <button
                     onClick={() => {
+                      cancelPendingSaves()
+                      const snapshot = useAccountUIStore.getState().selectionSnapshot
                       restoreSelectionSnapshot()
                       clearSelection()
                       setSelectionMode(false)
+                      // Persist restored positions and sizes to DB
+                      if (snapshot) {
+                        for (const [id, pos] of Object.entries(snapshot.nodePositions)) {
+                          saveAccountPosition(id, { posX: pos.x, posY: pos.y })
+                        }
+                        for (const [id, size] of Object.entries(snapshot.cardSizes)) {
+                          saveAccountCardSize(id, size)
+                        }
+                      }
                     }}
                     className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-sm text-white active:bg-gray-600"
                   >

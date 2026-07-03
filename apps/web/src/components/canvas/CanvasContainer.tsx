@@ -19,6 +19,19 @@ export function setLongPressActive(v: boolean) { _longPressActive = v }
 let _cardTouched = false
 export function setCardTouched() { _cardTouched = true }
 
+// Save generation counter — increment to cancel pending drag-save timers
+let _saveGeneration = 0
+export function getSaveGeneration() { return _saveGeneration }
+export function cancelPendingSaves() { _saveGeneration++ }
+
+// Global flag: canvas was panned during this gesture — DragNode should not navigate
+let _didPan = false
+export function didCanvasPan() { return _didPan }
+
+// Global flag: pinch happened during this gesture — survives touchend/pointerup gap
+let _pinchThisGesture = false
+export function pinchThisGesture() { return _pinchThisGesture }
+
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
@@ -84,6 +97,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       if (e.touches.length === 2) {
         e.preventDefault()
         _isPinching = true
+        _pinchThisGesture = true
         pinchStartDist.current = getDistance(e.touches[0], e.touches[1])
         pinchStartZoom.current = useAccountUIStore.getState().zoom
       }
@@ -113,6 +127,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         _isPinching = false
+      }
+      // Clear pinch flag only when ALL fingers are up
+      if (e.touches.length === 0) {
+        _pinchThisGesture = false
       }
     }
 
@@ -162,8 +180,15 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     let didPan = false
 
     const onPointerDown = (e: PointerEvent) => {
-      _cardTouched = false
+      // Don't reset _cardTouched if target is a card or shape (data-canvas-node)
+      // React handlers fire before native document listeners, so setCardTouched() runs first
+      // but the native handler was overwriting it to false
+      const isCanvasNode = (e.target as HTMLElement)?.closest?.('[data-canvas-node]')
+      if (!isCanvasNode) {
+        _cardTouched = false
+      }
       didPan = false
+      _didPan = false
       if (isPinching() || _longPressActive) return
       if (activeTool) return
       if (e.button !== 0) return
@@ -180,6 +205,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         return
       }
       didPan = true
+      _didPan = true
       const dx = e.clientX - lastPos.current.x
       const dy = e.clientY - lastPos.current.y
       lastPos.current = { x: e.clientX, y: e.clientY }
@@ -187,10 +213,11 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       setPanOffset({ x: current.x + dx, y: current.y + dy })
     }
 
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
       isPanning.current = false
-      // Background tap (not on a card/shape, no pan) → exit selection mode
-      if (!_cardTouched && !didPan) {
+      // Background tap (not on a card/shape/toolbar, no pan) → exit selection mode
+      const isToolbar = (e.target as HTMLElement)?.closest?.('[data-toolbar]')
+      if (!_cardTouched && !didPan && !isToolbar) {
         const { selectionMode, setSelectionMode } = useAccountUIStore.getState()
         if (selectionMode) {
           setSelectionMode(false)

@@ -187,6 +187,7 @@ export function LineShape({ shape, isSelected, isLocked, onSelect, onMove, onRes
   return (
     <div
       ref={nodeRef}
+      data-canvas-node
       onPointerDown={onMovePointerDown}
       onPointerMove={onMovePointerMove}
       onPointerUp={onMovePointerUp}

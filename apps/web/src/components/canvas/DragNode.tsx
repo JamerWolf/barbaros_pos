@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { saveAccountPosition } from '../../services/accountApi.js'
-import { isPinching, setLongPressActive, setCardTouched } from './CanvasContainer.js'
+import { isPinching, setLongPressActive, setCardTouched, getSaveGeneration, didCanvasPan, pinchThisGesture } from './CanvasContainer.js'
 
 interface DragNodeProps {
   accountId: string
@@ -32,12 +32,14 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const didMove = useRef(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
+  const longPressCancelled = useRef(false)
   const activePointerId = useRef<number | null>(null)
 
   const startDrag = (e: PointerEvent) => {
     activePointerId.current = e.pointerId
     isDragging.current = false
     longPressFired.current = false
+    longPressCancelled.current = false
     startPos.current = { x: e.clientX, y: e.clientY }
     lastMovePos.current = { x: e.clientX, y: e.clientY }
 
@@ -57,6 +59,8 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       // Start drag from long press position
       const onMove = (ev: PointerEvent) => {
         if (ev.pointerId !== activePointerId.current) return
+        // If a pinch started, stop dragging this card
+        if (isPinching()) return
 
         const dx = Math.abs(ev.clientX - startPos.current.x)
         const dy = Math.abs(ev.clientY - startPos.current.y)
@@ -90,10 +94,17 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         document.removeEventListener('pointermove', onMove)
         document.removeEventListener('pointerup', onUp)
 
+        // If a pinch happened during this gesture, don't do anything — it was a zoom, not a card interaction
+        if (pinchThisGesture()) {
+          isDragging.current = false
+          return
+        }
+
         if (!isDragging.current) {
           // Long press without drag → enter selection mode + select this card
           const uiState = useAccountUIStore.getState()
           if (!uiState.selectionMode) {
+            useAccountUIStore.getState().saveSelectionSnapshot()
             useAccountUIStore.getState().setSelectionMode(true)
           }
           useAccountUIStore.getState().toggleSelection(accountId)
@@ -104,7 +115,9 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
             ? Array.from(selectedIds)
             : [accountId]
           if (dragSaveTimer.current) clearTimeout(dragSaveTimer.current)
+          const gen = getSaveGeneration()
           dragSaveTimer.current = setTimeout(() => {
+            if (getSaveGeneration() !== gen) return // cancelled by restoreSnapshot
             for (const id of idsToSave) {
               const pos = uiState.nodePositions[id]
               if (pos) saveAccountPosition(id, { posX: pos.x, posY: pos.y })
@@ -119,24 +132,30 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
     }, LONG_PRESS_MS)
   }
 
-  const cancelLongPress = () => {
+  const cancelLongPress = (markCancelled = true) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
+      if (markCancelled) longPressCancelled.current = true
     }
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
+    didMove.current = false
     if (canvasLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
-    didMove.current = false
     setCardTouched()
     startDrag(e.nativeEvent)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (canvasLocked) return
     if (!longPressFired.current) {
-      // Cancel long press if finger moves too much before timer fires
+      // Cancel long press if finger moves too much before timer fires, or if pinch detected
+      if (isPinching()) {
+        cancelLongPress()
+        return
+      }
       const dx = Math.abs(e.clientX - startPos.current.x)
       const dy = Math.abs(e.clientY - startPos.current.y)
       if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
@@ -148,9 +167,9 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!longPressFired.current) {
-      cancelLongPress()
-      // Only navigate on clean tap — not if finger moved (pan gesture)
-      if (!didMove.current) {
+      cancelLongPress(false) // just clear timer, don't mark as cancelled
+      // Only navigate on clean tap — not if finger moved, canvas panned, or long press was cancelled by movement/pinch
+      if (!didMove.current && !didCanvasPan() && !longPressCancelled.current) {
         if (selectionMode) {
           toggleSelection(accountId)
         } else {
@@ -164,6 +183,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   return (
     <div
       ref={nodeRef}
+      data-canvas-node
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
