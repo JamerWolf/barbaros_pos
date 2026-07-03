@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { useShapeStore } from '../../store/shapeStore.js'
 
@@ -38,11 +38,18 @@ export function pinchThisGesture() { return _pinchThisGesture }
 
 export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
   const hasAutoFitted = useRef(false)
+
+  // Zone selection state
+  const [zoneMode, setZoneMode] = useState(false)
+  const [showZoneMenu, setShowZoneMenu] = useState(false)
+  const zoneDrawing = useRef(false)
+  const zoneStart = useRef({ x: 0, y: 0 })
+  const [zonePreview, setZonePreview] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
   // Pinch state
   const pinchStartDist = useRef(0)
@@ -52,6 +59,16 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
   const isResizing = useRef(false)
   const resizeStartY = useRef(0)
   const resizeStartHeight = useRef(0)
+
+  // Convert screen coords to canvas coords
+  const screenToCanvas = useCallback((screenX: number, screenY: number) => {
+    const container = containerRef.current
+    if (!container) return { x: 0, y: 0 }
+    const rect = container.getBoundingClientRect()
+    const x = (screenX - rect.left) / zoom - panOffset.x
+    const y = (screenY - rect.top) / zoom - panOffset.y
+    return { x, y }
+  }, [zoom, panOffset])
 
   // Auto-fit on first load only (no saved positions)
   useEffect(() => {
@@ -73,13 +90,64 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     hasAutoFitted.current = true
   }, [nodePositions, _hasHydrated, fitToContent])
 
-  // Manual fit button
+  // Manual fit button — uses fitZone if set, otherwise fits all content
   const fit = useCallback(() => {
     const container = containerRef.current
     if (!container) return
-    const currentShapes = useShapeStore.getState().shapes
-    fitToContent(container.clientWidth, container.clientHeight, currentShapes)
-  }, [fitToContent])
+
+    const zone = useAccountUIStore.getState().fitZone
+    if (zone) {
+      // Fit to the user-defined zone
+      const padding = 20
+      const availableWidth = container.clientWidth - padding * 2
+      const availableHeight = container.clientHeight - padding * 2
+      const zoomX = availableWidth / zone.width
+      const zoomY = availableHeight / zone.height
+      const newZoom = Math.min(zoomX, zoomY, 1.5)
+      const centerX = zone.x + zone.width / 2
+      const centerY = zone.y + zone.height / 2
+      const newPan = {
+        x: container.clientWidth / (2 * newZoom) - centerX,
+        y: container.clientHeight / (2 * newZoom) - centerY,
+      }
+      setZoom(newZoom)
+      setPanOffset(newPan)
+    } else {
+      const currentShapes = useShapeStore.getState().shapes
+      fitToContent(container.clientWidth, container.clientHeight, currentShapes)
+    }
+  }, [fitToContent, setZoom, setPanOffset])
+
+  // Zone drawing handlers
+  const onZonePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!zoneMode) return
+    e.stopPropagation()
+    e.preventDefault()
+    zoneDrawing.current = true
+    const pos = screenToCanvas(e.clientX, e.clientY)
+    zoneStart.current = pos
+    setZonePreview({ x: pos.x, y: pos.y, width: 0, height: 0 })
+  }, [zoneMode, screenToCanvas])
+
+  const onZonePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!zoneDrawing.current) return
+    const pos = screenToCanvas(e.clientX, e.clientY)
+    const x = Math.min(zoneStart.current.x, pos.x)
+    const y = Math.min(zoneStart.current.y, pos.y)
+    const width = Math.abs(pos.x - zoneStart.current.x)
+    const height = Math.abs(pos.y - zoneStart.current.y)
+    setZonePreview({ x, y, width, height })
+  }, [screenToCanvas])
+
+  const onZonePointerUp = useCallback(() => {
+    if (!zoneDrawing.current) return
+    zoneDrawing.current = false
+    if (zonePreview && zonePreview.width > 10 && zonePreview.height > 10) {
+      setFitZone(zonePreview)
+    }
+    setZonePreview(null)
+    setZoneMode(false)
+  }, [zonePreview, setFitZone])
 
   // Pinch-to-zoom
   useEffect(() => {
@@ -266,6 +334,21 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     document.addEventListener('pointerup', onUp)
   }
 
+  // Convert fitZone from canvas coords to screen coords for the preview overlay
+  const zoneScreen = fitZone ? {
+    left: (fitZone.x + panOffset.x) * zoom,
+    top: (fitZone.y + panOffset.y) * zoom,
+    width: fitZone.width * zoom,
+    height: fitZone.height * zoom,
+  } : null
+
+  const previewScreen = zonePreview ? {
+    left: (zonePreview.x + panOffset.x) * zoom,
+    top: (zonePreview.y + panOffset.y) * zoom,
+    width: zonePreview.width * zoom,
+    height: zonePreview.height * zoom,
+  } : null
+
   return (
     <div
       className="relative flex flex-col"
@@ -283,7 +366,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800"
+        className={`relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800 ${zoneMode ? 'cursor-crosshair' : ''}`}
+        onPointerDown={zoneMode ? onZonePointerDown : undefined}
+        onPointerMove={zoneMode ? onZonePointerMove : undefined}
+        onPointerUp={zoneMode ? onZonePointerUp : undefined}
       >
         {/* Shapes layer — rendered first so cards are on top */}
         {shapes && (
@@ -303,14 +389,95 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
         >
           {children}
         </div>
+        {/* Fit zone overlay — shows the saved zone */}
+        {zoneScreen && !zoneMode && (
+          <div
+            className="pointer-events-none absolute border-2 border-dashed border-blue-400/60 bg-blue-400/10"
+            style={{
+              left: zoneScreen.left,
+              top: zoneScreen.top,
+              width: zoneScreen.width,
+              height: zoneScreen.height,
+              zIndex: 20,
+            }}
+          />
+        )}
+        {/* Zone preview — shows while drawing */}
+        {previewScreen && (
+          <div
+            className="pointer-events-none absolute border-2 border-dashed border-yellow-400/80 bg-yellow-400/10"
+            style={{
+              left: previewScreen.left,
+              top: previewScreen.top,
+              width: previewScreen.width,
+              height: previewScreen.height,
+              zIndex: 20,
+            }}
+          />
+        )}
+        {/* Zone mode hint */}
+        {zoneMode && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-lg bg-black/70 px-3 py-1.5 text-xs font-bold text-white">
+            Dibujá la zona con el mouse
+          </div>
+        )}
       </div>
-      {/* Fit button */}
-      <button
-        onClick={fit}
-        className="absolute bottom-3 right-3 z-10 h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
-      >
-        ⊞ Ajustar
-      </button>
+      {/* Fit + Config buttons */}
+      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5">
+        {fitZone && (
+          <button
+            onClick={() => setFitZone(null)}
+            className="h-9 rounded-lg bg-blue-600/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-blue-500"
+            title="Resetear zona"
+          >
+            ↺
+          </button>
+        )}
+        <button
+          onClick={() => setShowZoneMenu(!showZoneMenu)}
+          className="h-9 rounded-lg bg-gray-700/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+          title="Configurar zona"
+        >
+          ⚙
+        </button>
+        <button
+          onClick={fit}
+          className="h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+        >
+          ⊞ Ajustar
+        </button>
+      </div>
+      {/* Zone config menu */}
+      {showZoneMenu && (
+        <div className="absolute bottom-14 right-3 z-30 w-48 rounded-lg border border-gray-600 bg-gray-800 p-2 shadow-xl">
+          <div className="mb-2 text-xs font-bold text-gray-400">Zona de ajuste</div>
+          <button
+            onClick={() => {
+              setShowZoneMenu(false)
+              setZoneMode(true)
+            }}
+            className="mb-1 w-full rounded-md px-3 py-2 text-left text-xs text-white hover:bg-gray-700 active:bg-gray-600"
+          >
+            📐 Seleccionar zona
+          </button>
+          {fitZone && (
+            <button
+              onClick={() => {
+                setFitZone(null)
+                setShowZoneMenu(false)
+              }}
+              className="w-full rounded-md px-3 py-2 text-left text-xs text-white hover:bg-gray-700 active:bg-gray-600"
+            >
+              ↺ Resetear zona
+            </button>
+          )}
+          {fitZone && (
+            <div className="mt-2 border-t border-gray-600 pt-2 text-[10px] text-gray-500">
+              Zona activa: {Math.round(fitZone.width)}×{Math.round(fitZone.height)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

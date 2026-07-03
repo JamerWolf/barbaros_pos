@@ -18,6 +18,7 @@ export interface AccountUIState {
   cardSizes: Record<string, CardSize>;
   canvasLocked: boolean;
   selectionSnapshot: { nodePositions: Record<string, Position>; cardSizes: Record<string, CardSize> } | null;
+  fitZone: { x: number; y: number; width: number; height: number } | null;
   _hasHydrated: boolean;
   updatePosition: (accountId: string, pos: Position) => void;
   assignInitialPosition: (accountId: string) => void;
@@ -36,6 +37,7 @@ export interface AccountUIState {
   getCardSize: (accountId: string) => CardSize;
   getCardDimensions: (accountId: string) => { w: number; h: number };
   setCanvasLocked: (locked: boolean) => void;
+  setFitZone: (zone: { x: number; y: number; width: number; height: number } | null) => void;
   saveSelectionSnapshot: () => void;
   restoreSelectionSnapshot: () => void;
   setHasHydrated: (state: boolean) => void;
@@ -62,6 +64,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       cardSizes: {},
       canvasLocked: false,
       selectionSnapshot: null,
+      fitZone: null,
       _hasHydrated: false,
 
       updatePosition: (accountId, pos) => set((state) => ({
@@ -240,6 +243,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         return { zoom, panOffset };
       }),
       setCanvasLocked: (locked) => set({ canvasLocked: locked }),
+      setFitZone: (zone) => set({ fitZone: zone }),
       saveSelectionSnapshot: () => set((state) => ({
         selectionSnapshot: {
           nodePositions: { ...state.nodePositions },
@@ -267,6 +271,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         cardSize: state.cardSize,
         cardSizes: state.cardSizes,
         canvasLocked: state.canvasLocked,
+        fitZone: state.fitZone,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
