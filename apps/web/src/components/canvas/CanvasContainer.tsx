@@ -252,6 +252,10 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     let didPan = false
 
     const onPointerDown = (e: PointerEvent) => {
+      // Don't start pan if pointer is outside the canvas container
+      const container = containerRef.current
+      if (!container || !container.contains(e.target as Node)) return
+
       // Don't reset _cardTouched if target is a card or shape (data-canvas-node)
       // React handlers fire before native document listeners, so setCardTouched() runs first
       // but the native handler was overwriting it to false
