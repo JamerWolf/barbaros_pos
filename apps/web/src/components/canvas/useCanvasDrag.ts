@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react'
-import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture } from './CanvasContainer.js'
+import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture, didPanOccur } from './CanvasContainer.js'
 
 const LONG_PRESS_MS = 400
 const DRAG_THRESHOLD = 3
@@ -180,7 +180,7 @@ export function useCanvasDrag({
     pointerDownStarted.current = false
     if (!longPressFired.current) {
       cancelLongPress(false)
-      if (!didMove.current && !longPressCancelled.current) {
+      if (!didMove.current && !longPressCancelled.current && !didPanOccur()) {
         handleTapOrDoubleTap()
       }
     }

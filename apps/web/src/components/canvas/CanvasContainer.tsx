@@ -28,6 +28,10 @@ export function cancelPendingSaves() { _saveGeneration++ }
 let _didPan = false
 export function didCanvasPan() { return _didPan }
 
+// Persistent pan flag — survives pointerdown resets, only clears on pointerup
+let _panOccurred = false
+export function didPanOccur() { return _panOccurred }
+
 // Global flag: pinch happened during this gesture — survives touchend/pointerup gap
 let _pinchThisGesture = false
 export function pinchThisGesture() { return _pinchThisGesture }
@@ -206,6 +210,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       }
       didPan = true
       _didPan = true
+      _panOccurred = true
       const dx = e.clientX - lastPos.current.x
       const dy = e.clientY - lastPos.current.y
       lastPos.current = { x: e.clientX, y: e.clientY }
@@ -215,6 +220,7 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
     const onPointerUp = (e: PointerEvent) => {
       isPanning.current = false
+      _panOccurred = false
       // Background tap (not on a card/shape/toolbar, no pan) → exit selection mode
       const isToolbar = (e.target as HTMLElement)?.closest?.('[data-toolbar]')
       if (!_cardTouched && !didPan && !isToolbar) {
