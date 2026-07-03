@@ -1,50 +1,43 @@
 import { useRef, useCallback } from 'react';
 import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
-import { isPinching, setLongPressActive, setCardTouched } from '../CanvasContainer.js';
+import { setCardTouched } from '../CanvasContainer.js';
+import { useCanvasDrag } from '../useCanvasDrag.js';
 
 interface RectangleShapeProps {
   shape: IShape;
   isSelected?: boolean;
   isLocked?: boolean;
+  interactive?: boolean;
   onSelect?: () => void;
-  onMove?: (dx: number, dy: number) => void;
+  onMove?: (x: number, y: number) => void;
   onResize?: (x: number, y: number, width: number, height: number) => void;
 }
 
 type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'move';
 
-const LONG_PRESS_MS = 400;
-const DRAG_THRESHOLD = 3;
-
-export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, onResize }: RectangleShapeProps): JSX.Element {
+export function RectangleShape({ shape, isSelected, isLocked, interactive = true, onSelect, onMove, onResize }: RectangleShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
   const dragRef = useRef<{
     handle: Handle;
-    startPos: { x: number; y: number };
     offset: { x: number; y: number };
     origX: number;
     origY: number;
     origW: number;
     origH: number;
   } | null>(null);
-
-  // Long press state for move handle
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFired = useRef(false);
-  const startPosRef = useRef({ x: 0, y: 0 });
   const activePointerId = useRef<number | null>(null);
 
-  const cancelLongPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
+  const { onPointerDown, onPointerMove, onPointerUp } = useCanvasDrag({
+    elementRef: nodeRef,
+    zoom,
+    isLocked: !!isLocked,
+    onDragMove: (pos) => onMove?.(pos.x, pos.y),
+    onTap: () => onSelect?.(),
+  });
 
-  // Called when long press fires or when resize handle is used directly
-  const startDrag = useCallback((e: PointerEvent, handle: Handle) => {
+  const startResizeDrag = useCallback((e: PointerEvent, handle: Handle) => {
     activePointerId.current = e.pointerId;
 
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
@@ -57,7 +50,6 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
 
     dragRef.current = {
       handle,
-      startPos: { x: e.clientX, y: e.clientY },
       offset,
       origX: shape.x,
       origY: shape.y,
@@ -74,27 +66,20 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
       const mouseX = (ev.clientX - parentRect.left) / zoom;
       const mouseY = (ev.clientY - parentRect.top) / zoom;
 
-      if (h === 'move') {
-        const newX = mouseX - off.x;
-        const newY = mouseY - off.y;
-        onMove?.(newX - shape.x, newY - shape.y);
-      } else {
-        let newX = origX;
-        let newY = origY;
-        let newW = origW;
-        let newH = origH;
-        if (h.includes('w')) { newW = Math.max(20, origX + origW - mouseX); newX = mouseX; }
-        if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(20, mouseX - origX); }
-        if (h.includes('n')) { newH = Math.max(20, origY + origH - mouseY); newY = mouseY; }
-        if (h.includes('s')) { newH = Math.max(20, mouseY - origY); }
-        onResize?.(newX, newY, newW, newH);
-      }
+      let newX = origX;
+      let newY = origY;
+      let newW = origW;
+      let newH = origH;
+      if (h.includes('w')) { newW = Math.max(20, origX + origW - mouseX); newX = mouseX; }
+      if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(20, mouseX - origX); }
+      if (h.includes('n')) { newH = Math.max(20, origY + origH - mouseY); newY = mouseY; }
+      if (h.includes('s')) { newH = Math.max(20, mouseY - origY); }
+      onResize?.(newX, newY, newW, newH);
     };
 
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== activePointerId.current) return;
       activePointerId.current = null;
-      setLongPressActive(false);
       dragRef.current = null;
       document.removeEventListener('pointermove', onMoveHandler);
       document.removeEventListener('pointerup', onUp);
@@ -102,60 +87,24 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
 
     document.addEventListener('pointermove', onMoveHandler);
     document.addEventListener('pointerup', onUp);
-  }, [shape.x, shape.y, shape.width, shape.height, zoom, onMove, onResize]);
+  }, [shape.x, shape.y, shape.width, shape.height, zoom, onResize]);
 
-  // Move handle: long press to drag, short tap to select
-  const onMovePointerDown = useCallback((e: React.PointerEvent) => {
-    if (isLocked || isPinching()) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setCardTouched();
-
-    longPressFired.current = false;
-    startPosRef.current = { x: e.clientX, y: e.clientY };
-
-    longPressTimer.current = setTimeout(() => {
-      longPressFired.current = true;
-      setLongPressActive(true);
-      startDrag(e.nativeEvent, 'move');
-    }, LONG_PRESS_MS);
-  }, [isLocked, startDrag]);
-
-  const onMovePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!longPressFired.current) {
-      const dx = Math.abs(e.clientX - startPosRef.current.x);
-      const dy = Math.abs(e.clientY - startPosRef.current.y);
-      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-        cancelLongPress();
-      }
-    }
-  }, [cancelLongPress]);
-
-  const onMovePointerUp = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    if (!longPressFired.current) {
-      cancelLongPress();
-      onSelect?.();
-    }
-  }, [cancelLongPress, onSelect]);
-
-  // Resize handles: immediate drag (no long press)
   const onResizePointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
     if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
     setCardTouched();
-    startDrag(e.nativeEvent, handle);
-  }, [isLocked, startDrag]);
+    startResizeDrag(e.nativeEvent, handle);
+  }, [isLocked, startResizeDrag]);
 
   return (
     <div
       ref={nodeRef}
       data-canvas-node
-      onPointerDown={(e) => onMovePointerDown(e)}
-      onPointerMove={onMovePointerMove}
-      onPointerUp={onMovePointerUp}
-      className={`absolute pointer-events-auto ${isSelected ? 'cursor-move' : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      className={`absolute ${interactive ? 'pointer-events-auto' : 'pointer-events-none'} ${isSelected ? 'cursor-move' : ''}`}
       style={{
         left: shape.x,
         top: shape.y,
@@ -171,11 +120,9 @@ export function RectangleShape({ shape, isSelected, isLocked, onSelect, onMove, 
           backgroundColor: `${shape.color}22`,
         }}
       />
-      {/* Selection ring */}
       {isSelected && (
         <div className="pointer-events-none absolute inset-[-2px] border-2 border-dashed border-white/60" />
       )}
-      {/* Resize handles */}
       {isSelected && (
         <>
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {

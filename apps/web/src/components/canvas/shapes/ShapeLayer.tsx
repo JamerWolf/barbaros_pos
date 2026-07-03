@@ -63,6 +63,10 @@ export function ShapeLayer(): JSX.Element {
   const handlePointerUp = useCallback(async () => {
     if (!activeTool || !drawStart || !drawCurrent) return;
 
+    const currentShapes = useShapeStore.getState().shapes;
+    const maxZ = currentShapes.length > 0 ? Math.max(...currentShapes.map((s) => s.zIndex)) : 0;
+    const nextZ = maxZ + 1;
+
     if (activeTool === 'rectangle') {
       const x = Math.min(drawStart.x, drawCurrent.x);
       const y = Math.min(drawStart.y, drawCurrent.y);
@@ -77,7 +81,7 @@ export function ShapeLayer(): JSX.Element {
           width,
           height,
           color: drawingColor,
-          zIndex: 0,
+          zIndex: nextZ,
         });
       }
     } else if (activeTool === 'line') {
@@ -93,7 +97,7 @@ export function ShapeLayer(): JSX.Element {
           height: 0,
           points: [drawStart, drawCurrent],
           color: drawingColor,
-          zIndex: 0,
+          zIndex: nextZ,
         });
       }
     } else if (activeTool === 'text') {
@@ -110,7 +114,7 @@ export function ShapeLayer(): JSX.Element {
         height,
         label: '',
         color: drawingColor,
-        zIndex: 0,
+        zIndex: nextZ,
       });
       setEditingShapeId(newShape.id);
       setActiveTool(null);
@@ -121,15 +125,16 @@ export function ShapeLayer(): JSX.Element {
     setDrawCurrent(null);
   }, [activeTool, drawStart, drawCurrent, drawingColor, addShape]);
 
-  const handleShapeMove = useCallback((id: string, dx: number, dy: number) => {
+  const handleShapeMove = useCallback((id: string, x: number, y: number) => {
     const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
     if (!shape) return;
     if (shape.type === 'RECTANGLE' || shape.type === 'TEXT') {
-      updateShape(id, { x: shape.x + dx, y: shape.y + dy });
+      updateShape(id, { x, y });
     } else if (shape.type === 'LINE' && shape.points) {
+      const dx = x - shape.x;
+      const dy = y - shape.y;
       updateShape(id, {
-        x: shape.x + dx,
-        y: shape.y + dy,
+        x, y,
         points: shape.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
       });
     }
@@ -207,6 +212,7 @@ export function ShapeLayer(): JSX.Element {
       >
         {/* Rendered shapes */}
         {shapes.map((shape) => {
+          const isInteractive = !activeTool;
           if (shape.type === 'RECTANGLE') {
             return (
               <RectangleShape
@@ -214,6 +220,7 @@ export function ShapeLayer(): JSX.Element {
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
                 isLocked={canvasLocked}
+                interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
                 onResize={(x, y, w, h) => handleShapeResize(shape.id, x, y, w, h)}
@@ -227,6 +234,7 @@ export function ShapeLayer(): JSX.Element {
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
                 isLocked={canvasLocked}
+                interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
                 onResize={(x, y, w, h, pts) => handleShapeResize(shape.id, x, y, w, h, pts)}
@@ -241,6 +249,7 @@ export function ShapeLayer(): JSX.Element {
                 isSelected={selectedShapeId === shape.id}
                 isLocked={canvasLocked}
                 isEditing={editingShapeId === shape.id}
+                interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onStartEdit={() => setEditingShapeId(shape.id)}
                 onStopEdit={() => setEditingShapeId(null)}

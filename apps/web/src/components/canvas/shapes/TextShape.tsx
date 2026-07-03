@@ -3,17 +3,19 @@ import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { useShapeStore } from '../../../store/shapeStore.js';
 import { TextToolbar } from './TextToolbar.jsx';
-import { isPinching, setLongPressActive, setCardTouched } from '../CanvasContainer.js';
+import { setCardTouched } from '../CanvasContainer.js';
+import { useCanvasDrag } from '../useCanvasDrag.js';
 
 interface TextShapeProps {
   shape: IShape;
   isSelected?: boolean;
   isLocked?: boolean;
   isEditing?: boolean;
+  interactive?: boolean;
   onSelect?: () => void;
   onStartEdit?: () => void;
   onStopEdit?: () => void;
-  onMove?: (dx: number, dy: number) => void;
+  onMove?: (x: number, y: number) => void;
   onResize?: (x: number, y: number, width: number, height: number) => void;
   onRotate?: (degrees: number) => void;
 }
@@ -24,10 +26,7 @@ function getAngle(cx: number, cy: number, mx: number, my: number): number {
   return Math.atan2(my - cy, mx - cx) * (180 / Math.PI);
 }
 
-const LONG_PRESS_MS = 400;
-const DRAG_THRESHOLD = 3;
-
-export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, onStartEdit, onStopEdit, onMove, onResize, onRotate }: TextShapeProps): JSX.Element {
+export function TextShape({ shape, isSelected, isLocked, isEditing, interactive = true, onSelect, onStartEdit, onStopEdit, onMove, onResize, onRotate }: TextShapeProps): JSX.Element {
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const zoom = useAccountUIStore((s) => s.zoom);
@@ -35,7 +34,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
   const [localText, setLocalText] = useState(shape.label || '');
   const dragRef = useRef<{
     handle: Handle;
-    startPos: { x: number; y: number };
     offset: { x: number; y: number };
     origX: number;
     origY: number;
@@ -44,26 +42,23 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     startAngle: number;
     origRotation: number;
   } | null>(null);
-
-  // Long press state for move handle
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFired = useRef(false);
-  const startPosRef = useRef({ x: 0, y: 0 });
   const activePointerId = useRef<number | null>(null);
 
-  const cancelLongPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
+  const { onPointerDown, onPointerMove, onPointerUp } = useCanvasDrag({
+    elementRef: nodeRef,
+    zoom,
+    isLocked: !!isLocked,
+    onDragMove: (pos) => onMove?.(pos.x, pos.y),
+    onTap: () => onSelect?.(),
+    onDoubleTap: () => {
+      if (!isLocked) onStartEdit?.();
+    },
+  });
 
-  // Sync local text when shape changes externally
   useEffect(() => {
     setLocalText(shape.label || '');
   }, [shape.label]);
 
-  // Focus textarea when editing starts
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
@@ -78,7 +73,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     onStopEdit?.();
   }, [localText, shape.label, shape.id, onStopEdit]);
 
-  const startDrag = useCallback((e: PointerEvent, handle: Handle) => {
+  const startImmediateDrag = useCallback((e: PointerEvent, handle: Handle) => {
     activePointerId.current = e.pointerId;
 
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
@@ -106,7 +101,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
 
     dragRef.current = {
       handle,
-      startPos: { x: e.clientX, y: e.clientY },
       offset,
       origX: shape.x,
       origY: shape.y,
@@ -123,11 +117,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
 
       const { handle: h, offset: off, origX, origY, origW, origH, startAngle: sa, origRotation } = dragRef.current;
 
-      if (h === 'move') {
-        const newX = (ev.clientX - parentRect.left) / zoom - off.x;
-        const newY = (ev.clientY - parentRect.top) / zoom - off.y;
-        onMove?.(newX - shape.x, newY - shape.y);
-      } else if (h === 'rotate') {
+      if (h === 'rotate') {
         const shapeRect = nodeRef.current?.getBoundingClientRect();
         if (shapeRect) {
           const cx = shapeRect.left + shapeRect.width / 2;
@@ -156,7 +146,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== activePointerId.current) return;
       activePointerId.current = null;
-      setLongPressActive(false);
       dragRef.current = null;
       document.removeEventListener('pointermove', onMoveHandler);
       document.removeEventListener('pointerup', onUp);
@@ -164,58 +153,15 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
 
     document.addEventListener('pointermove', onMoveHandler);
     document.addEventListener('pointerup', onUp);
-  }, [shape.x, shape.y, shape.width, shape.height, shape.rotation, zoom, onMove, onResize, onRotate]);
+  }, [shape.x, shape.y, shape.width, shape.height, shape.rotation, zoom, onResize, onRotate]);
 
-  // Move handle: long press to drag, short tap to select
-  const onMovePointerDown = useCallback((e: React.PointerEvent) => {
-    if (isLocked || isPinching()) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setCardTouched();
-
-    longPressFired.current = false;
-    startPosRef.current = { x: e.clientX, y: e.clientY };
-
-    longPressTimer.current = setTimeout(() => {
-      longPressFired.current = true;
-      setLongPressActive(true);
-      onSelect?.();
-      startDrag(e.nativeEvent, 'move');
-    }, LONG_PRESS_MS);
-  }, [isLocked, onSelect, startDrag]);
-
-  const onMovePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!longPressFired.current) {
-      const dx = Math.abs(e.clientX - startPosRef.current.x);
-      const dy = Math.abs(e.clientY - startPosRef.current.y);
-      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-        cancelLongPress();
-      }
-    }
-  }, [cancelLongPress]);
-
-  const onMovePointerUp = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    if (!longPressFired.current) {
-      cancelLongPress();
-      onSelect?.();
-    }
-  }, [cancelLongPress, onSelect]);
-
-  // Resize and rotation handles: immediate drag
   const onImmediatePointerDown = useCallback((e: React.PointerEvent, handle: Handle) => {
     if (isLocked) return;
     e.stopPropagation();
     e.preventDefault();
     setCardTouched();
-    startDrag(e.nativeEvent, handle);
-  }, [isLocked, startDrag]);
-
-  const handleDoubleClick = useCallback(() => {
-    if (!isLocked) {
-      onStartEdit?.();
-    }
-  }, [isLocked, onStartEdit]);
+    startImmediateDrag(e.nativeEvent, handle);
+  }, [isLocked, startImmediateDrag]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -235,11 +181,10 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
     <div
       ref={nodeRef}
       data-canvas-node
-      onPointerDown={onMovePointerDown}
-      onPointerMove={onMovePointerMove}
-      onPointerUp={onMovePointerUp}
-      onDoubleClick={handleDoubleClick}
-      className="absolute pointer-events-auto cursor-move"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      className={`absolute ${(interactive || isEditing) ? 'pointer-events-auto cursor-move' : 'pointer-events-none'}`}
       style={{
         left: shape.x,
         top: shape.y,
@@ -250,11 +195,9 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
         transformOrigin: 'center center',
       }}
     >
-      {/* Selection ring */}
       {isSelected && (
         <div className="pointer-events-none absolute inset-[-2px] border-2 border-dashed border-white/60" />
       )}
-      {/* Text content */}
       {isEditing && !isLocked ? (
         <textarea
           ref={textareaRef}
@@ -290,14 +233,13 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               shape.strikethrough ? 'line-through' : '',
             ].filter(Boolean).join(' ') || 'none',
             textAlign: (shape.textAlign as 'left' | 'center' | 'right') ?? 'left',
+            userSelect: 'none',
           }}
         >
           {shape.label || 'Escribir...'}
         </div>
       )}
-      {/* Text formatting toolbar */}
       {isSelected && !isLocked && <TextToolbar shape={shape} zoom={zoom} />}
-      {/* Resize handles */}
       {isSelected && (
         <>
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
@@ -323,7 +265,6 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               />
             );
           })}
-          {/* Rotation handle */}
           <div
             className="pointer-events-auto absolute flex flex-col items-center"
             style={{
@@ -337,24 +278,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, onSelect, on
               e.preventDefault();
               setCardTouched();
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-              const shapeRect = nodeRef.current?.getBoundingClientRect();
-              let startAngle = 0;
-              if (shapeRect) {
-                const cx = shapeRect.left + shapeRect.width / 2;
-                const cy = shapeRect.top + shapeRect.height / 2;
-                startAngle = getAngle(cx, cy, e.clientX, e.clientY);
-              }
-              dragRef.current = {
-                handle: 'rotate',
-                startPos: { x: e.clientX, y: e.clientY },
-                offset: { x: 0, y: 0 },
-                origX: shape.x,
-                origY: shape.y,
-                origW: shape.width,
-                origH: shape.height,
-                startAngle,
-                origRotation: shape.rotation ?? 0,
-              };
+              startImmediateDrag(e.nativeEvent, 'rotate');
             }}
           >
             <div className="h-4 w-px bg-white/40" />
