@@ -153,7 +153,7 @@ export function AccountDetailPage(): JSX.Element {
   const canClose = pendingAmount === 0;
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
+    <div className="flex min-h-dvh flex-col gap-4 bg-gray-900 p-4 text-white">
       <header className="flex items-center gap-2">
         <button
           onClick={() => readonly ? navigate(shiftId ? `/reports?shiftId=${shiftId}` : '/reports') : navigate('/')}
@@ -182,7 +182,7 @@ export function AccountDetailPage(): JSX.Element {
             onKeyDown={(e) => {
               if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
             }}
-            className="flex-1 rounded-lg bg-gray-700 px-3 py-2 text-xl font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-0 min-w-0 flex-1 rounded-lg bg-gray-700 px-3 py-2 text-xl font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
           />
         )}
       </header>
