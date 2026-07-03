@@ -158,7 +158,7 @@ export function ProductGrid({ products, categories, onAddProduct, quickCount = 5
         </>
       )}
 
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
         {displayProducts.map((product) => (
           <button
             key={product.id}
