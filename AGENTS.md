@@ -160,6 +160,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Canvas WebSocket** (posiciones y tamaños en tiempo real entre dispositivos)
 - ✅ **Cloudflare Tunnel** (script start.ps1 con opción -Tunnel, Vite proxy para API)
 - ✅ **Mobile touch fix** (TouchGuard bloquea ghost clicks después de navegar)
+- ✅ **Canvas interaction fixes** (selection mode, pinch-to-zoom, toolbar, card tap navigation)
 
 ### Próximas features
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
@@ -183,6 +184,10 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Shape rotation**: calcular ángulo con `getBoundingClientRect()` (screen coords), NO con coords del canvas (panOffset rompe el cálculo)
 - **Pointer capture en rotation handle**: usar `e.currentTarget`, NO `e.target` — si no, los eventos van al icono ↻ que no tiene `onPointerMove`
 - **Product photo URL**: SIEMPRE usar `productPhotoUrl()` de `utils/productPhoto.ts`, NUNCA concatenar `API_URL` manualmente
+- **Text drag**: SIEMPRE usar `newX - shape.x` (posición actual), NUNCA `newX - origX` (stale) — previene drift
+- **Selection mode**: Los botones del toolbar (S/M/L, cancelar, etc.) necesitan `data-toolbar` para que CanvasContainer no los trate como taps de fondo
+- **Pinch-to-zoom**: Usar `_pinchThisGesture` flag que solo se limpia cuando `touches.length === 0` — sobrevive el gap entre touchend y pointerup
+- **Long press vs pinch**: El timer de long press (400ms) puede dispararse después de iniciar pinch si ambas manos tocan en <400ms
 
 ---
 
