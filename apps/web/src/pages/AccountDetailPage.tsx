@@ -202,7 +202,7 @@ export function AccountDetailPage(): JSX.Element {
       {account.status === 'OPEN' && !readonly && (
         <button
           onClick={() => setShowPaymentModal(true)}
-          className="h-12 rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
+          className="h-12 w-full rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
         >
           Pagar
         </button>
@@ -214,7 +214,7 @@ export function AccountDetailPage(): JSX.Element {
           <button
             onClick={() => canClose && setConfirmClose(true)}
             disabled={!canClose}
-            className={`h-12 rounded-lg px-4 font-bold text-white ${
+            className={`h-12 w-full rounded-lg px-4 font-bold text-white ${
               canClose
                 ? 'bg-red-600 active:bg-red-700'
                 : 'bg-gray-600 cursor-not-allowed opacity-50'
