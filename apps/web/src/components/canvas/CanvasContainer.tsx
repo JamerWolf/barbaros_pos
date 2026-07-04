@@ -129,6 +129,26 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
     setZonePreview({ x: pos.x, y: pos.y, width: 0, height: 0 })
   }, [zoneMode, screenToCanvas])
 
+  // Fullscreen
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = useCallback(() => {
+    const el = wrapperRef.current
+    if (!el) return
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
   const onZonePointerMove = useCallback((e: React.PointerEvent) => {
     if (!zoneDrawing.current) return
     const pos = screenToCanvas(e.clientX, e.clientY)
@@ -355,8 +375,9 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
 
   return (
     <div
-      className="relative flex flex-col"
-      style={canvasHeight ? { height: canvasHeight, flex: 'none' } : { minHeight: 0, flex: 1 }}
+      ref={wrapperRef}
+      className={`relative flex flex-col ${isFullscreen ? 'h-screen w-screen' : ''}`}
+      style={isFullscreen ? undefined : canvasHeight ? { height: canvasHeight, flex: 'none' } : { minHeight: 0, flex: 1 }}
     >
       {/* Resize handle */}
       <div
@@ -426,8 +447,15 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
           </div>
         )}
       </div>
-      {/* Fit + Config buttons */}
+      {/* Fit + Config + Fullscreen buttons */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5">
+        <button
+          onClick={toggleFullscreen}
+          className="h-9 rounded-lg bg-gray-700/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+          title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+        >
+          {isFullscreen ? '⊡' : '⛶'}
+        </button>
         {fitZone && (
           <button
             onClick={() => setFitZone(null)}
