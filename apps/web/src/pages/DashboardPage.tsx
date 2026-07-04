@@ -476,7 +476,15 @@ export function DashboardPage(): JSX.Element {
                 </button>
               </div>
             </div>
-            <CanvasContainer shapes={<ShapeLayer />} onCreateAccount={createAccount}>
+            <CanvasContainer shapes={<ShapeLayer />} onCreateAccount={createAccount} onToggleSelection={() => {
+              if (selectionMode) {
+                clearSelection()
+                setSelectionMode(false)
+              } else {
+                saveSelectionSnapshot()
+                setSelectionMode(true)
+              }
+            }}>
               {filteredOpenAccounts.map((acc) => (
                 <DragNode
                   key={acc.id}

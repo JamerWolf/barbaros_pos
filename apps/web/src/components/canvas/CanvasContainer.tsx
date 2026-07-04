@@ -6,6 +6,7 @@ interface CanvasContainerProps {
   children: ReactNode
   shapes?: ReactNode
   onCreateAccount?: () => void
+  onToggleSelection?: () => void
 }
 
 // Global flag so DragNode can check during pinch
@@ -37,9 +38,9 @@ export function didPanOccur() { return _panOccurred }
 let _pinchThisGesture = false
 export function pinchThisGesture() { return _pinchThisGesture }
 
-export function CanvasContainer({ children, shapes, onCreateAccount }: CanvasContainerProps): JSX.Element {
+export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSelection }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
@@ -48,6 +49,7 @@ export function CanvasContainer({ children, shapes, onCreateAccount }: CanvasCon
   // Zone selection state
   const [zoneMode, setZoneMode] = useState(false)
   const [showZoneMenu, setShowZoneMenu] = useState(false)
+  const [showFullscreenMenu, setShowFullscreenMenu] = useState(false)
   const zoneDrawing = useRef(false)
   const zoneStart = useRef({ x: 0, y: 0 })
   const [zonePreview, setZonePreview] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -451,12 +453,46 @@ export function CanvasContainer({ children, shapes, onCreateAccount }: CanvasCon
       {/* Fit + Config + Fullscreen buttons */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5">
         {isFullscreen && onCreateAccount && (
-          <button
-            onClick={onCreateAccount}
-            className="h-9 rounded-lg bg-green-600/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-green-500"
-          >
-            + Cuenta
-          </button>
+          <div className="relative flex">
+            <button
+              onClick={onCreateAccount}
+              className="h-9 rounded-l-lg bg-green-600/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-green-500"
+            >
+              + Cuenta
+            </button>
+            <button
+              onClick={() => setShowFullscreenMenu(!showFullscreenMenu)}
+              className="h-9 rounded-r-lg border-l border-green-500 bg-green-600/90 px-1.5 text-xs text-white backdrop-blur active:bg-green-500"
+            >
+              ▾
+            </button>
+            {showFullscreenMenu && (
+              <div className="absolute bottom-10 left-0 z-30 w-44 rounded-lg border border-gray-600 bg-gray-800 p-2 shadow-xl">
+                <div className="mb-1 text-[10px] font-bold text-gray-400">Tamaño de tarjeta</div>
+                <div className="mb-2 flex gap-1">
+                  {(['sm', 'md', 'lg'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setCardSize(s)}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold ${
+                        cardSize === s ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
+                      }`}
+                    >
+                      {s.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { onToggleSelection?.(); setShowFullscreenMenu(false) }}
+                  className={`w-full rounded-md px-3 py-2 text-left text-xs font-bold ${
+                    selectionMode ? 'bg-yellow-600 text-white' : 'text-white hover:bg-gray-700'
+                  }`}
+                >
+                  {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
+                </button>
+              </div>
+            )}
+          </div>
         )}
         <button
           onClick={toggleFullscreen}
