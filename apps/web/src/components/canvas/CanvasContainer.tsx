@@ -5,6 +5,7 @@ import { useShapeStore } from '../../store/shapeStore.js'
 interface CanvasContainerProps {
   children: ReactNode
   shapes?: ReactNode
+  onCreateAccount?: () => void
 }
 
 // Global flag so DragNode can check during pinch
@@ -36,7 +37,7 @@ export function didPanOccur() { return _panOccurred }
 let _pinchThisGesture = false
 export function pinchThisGesture() { return _pinchThisGesture }
 
-export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX.Element {
+export function CanvasContainer({ children, shapes, onCreateAccount }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
@@ -449,6 +450,14 @@ export function CanvasContainer({ children, shapes }: CanvasContainerProps): JSX
       </div>
       {/* Fit + Config + Fullscreen buttons */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5">
+        {isFullscreen && onCreateAccount && (
+          <button
+            onClick={onCreateAccount}
+            className="h-9 rounded-lg bg-green-600/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-green-500"
+          >
+            + Cuenta
+          </button>
+        )}
         <button
           onClick={toggleFullscreen}
           className="h-9 rounded-lg bg-gray-700/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-gray-600"

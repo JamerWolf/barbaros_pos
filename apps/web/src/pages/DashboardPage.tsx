@@ -476,7 +476,7 @@ export function DashboardPage(): JSX.Element {
                 </button>
               </div>
             </div>
-            <CanvasContainer shapes={<ShapeLayer />}>
+            <CanvasContainer shapes={<ShapeLayer />} onCreateAccount={createAccount}>
               {filteredOpenAccounts.map((acc) => (
                 <DragNode
                   key={acc.id}
