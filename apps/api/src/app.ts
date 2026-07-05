@@ -2,6 +2,7 @@ import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 import fastifyStatic from '@fastify/static'
 import multipart from '@fastify/multipart'
@@ -54,6 +55,21 @@ export async function buildApp() {
         // Just acknowledging connection
       })
     })
+  })
+
+  // SPA fallback: serve index.html for non-API GET requests
+  // This handles direct access to the API server (e.g. via Cloudflare Tunnel)
+  const indexPath = path.join(__dirname, '../../web/dist/index.html')
+  app.setNotFoundHandler(async (request, reply) => {
+    if (request.method === 'GET' && request.headers.accept?.includes('text/html')) {
+      try {
+        const html = fs.readFileSync(indexPath, 'utf-8')
+        return reply.type('text/html').send(html)
+      } catch {
+        // dist not built yet, just return 404
+      }
+    }
+    return reply.code(404).send({ message: 'Not Found' })
   })
 
   return app

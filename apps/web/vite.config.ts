@@ -56,12 +56,52 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
     proxy: {
-      '/accounts': { target: 'http://localhost:3000', changeOrigin: true },
-      '/products': { target: 'http://localhost:3000', changeOrigin: true },
-      '/categories': { target: 'http://localhost:3000', changeOrigin: true },
-      '/shifts': { target: 'http://localhost:3000', changeOrigin: true },
+      '/accounts': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html'
+          }
+        },
+      },
+      '/products': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html'
+          }
+        },
+      },
+      '/categories': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html'
+          }
+        },
+      },
+      '/shifts': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html'
+          }
+        },
+      },
       '/shapes': { target: 'http://localhost:3000', changeOrigin: true },
-      '/reports': { target: 'http://localhost:3000', changeOrigin: true },
+      '/reports': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html'
+          }
+        },
+      },
       '/ws': { target: 'ws://localhost:3000', ws: true },
       '/uploads': { target: 'http://localhost:3000', changeOrigin: true },
     },
