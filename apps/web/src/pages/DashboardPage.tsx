@@ -475,6 +475,13 @@ export function DashboardPage(): JSX.Element {
                 saveSelectionSnapshot()
                 setSelectionMode(true)
               }
+            }} onCardSizeChange={(size) => {
+              setCardSize(size)
+              if (selectionMode && selectedIds.size > 0) {
+                for (const id of selectedIds) {
+                  saveAccountCardSize(id, size)
+                }
+              }
             }}>
               {filteredOpenAccounts.map((acc) => (
                 <DragNode

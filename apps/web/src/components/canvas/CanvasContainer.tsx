@@ -7,6 +7,7 @@ interface CanvasContainerProps {
   shapes?: ReactNode
   onCreateAccount?: () => void
   onToggleSelection?: () => void
+  onCardSizeChange?: (size: 'sm' | 'md' | 'lg') => void
 }
 
 // Global flag so DragNode can check during pinch
@@ -38,7 +39,7 @@ export function didPanOccur() { return _panOccurred }
 let _pinchThisGesture = false
 export function pinchThisGesture() { return _pinchThisGesture }
 
-export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSelection }: CanvasContainerProps): JSX.Element {
+export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSelection, onCardSizeChange }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
@@ -481,7 +482,7 @@ export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSel
                   {(['sm', 'md', 'lg'] as const).map((s) => (
                     <button
                       key={s}
-                      onClick={() => setCardSize(s)}
+                      onClick={() => onCardSizeChange?.(s) ?? setCardSize(s)}
                       className={`flex-1 rounded-md py-1.5 text-xs font-bold ${
                         cardSize === s ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
                       }`}
