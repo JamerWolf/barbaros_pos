@@ -104,23 +104,54 @@ export function DashboardPage(): JSX.Element {
   // Listen for shift events from other devices
   useEffect(() => {
     const wsUrl = API_URL.replace(/^http/, 'ws') + '/ws'
-    const ws = new WebSocket(wsUrl)
+    let ws: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let delay = 1000
 
-    ws.onmessage = (message) => {
-      try {
-        const { event, data } = JSON.parse(message.data)
-        if (event === 'shift:opened') {
-          setActiveShiftId(data.id)
-        } else if (event === 'shift:closed') {
-          setActiveShiftId(null)
-          refreshAllOpenAccounts()
+    const connect = () => {
+      if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return
+      ws = new WebSocket(wsUrl)
+
+      ws.onopen = () => { delay = 1000 }
+
+      ws.onmessage = (message) => {
+        try {
+          const { event, data } = JSON.parse(message.data)
+          if (event === 'shift:opened') {
+            setActiveShiftId(data.id)
+          } else if (event === 'shift:closed') {
+            setActiveShiftId(null)
+            refreshAllOpenAccounts()
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(() => {
+          delay = Math.min(delay * 2, 10000)
+          connect()
+        }, delay)
+      }
+
+      ws.onerror = () => { ws?.close() }
     }
 
-    return () => { ws.close() }
+    connect()
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && (ws?.readyState === WebSocket.CLOSED || ws?.readyState === WebSocket.CLOSING)) {
+        connect()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      ws?.close()
+    }
   }, [])
 
   const createAccount = async () => {

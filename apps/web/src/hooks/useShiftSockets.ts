@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 import API_URL from '../utils/apiUrl.js';
 const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
+const RECONNECT_DELAY = 1000;
+const MAX_RECONNECT_DELAY = 10000;
 
 /** Events that should trigger a shift detail refresh */
 const SHIFT_EVENTS = new Set([
@@ -20,11 +22,21 @@ const SHIFT_EVENTS = new Set([
  */
 export function useShiftSockets(onShiftChange: () => void) {
   const ws = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelay = useRef(RECONNECT_DELAY);
   const callbackRef = useRef(onShiftChange);
   callbackRef.current = onShiftChange;
 
-  useEffect(() => {
+  const connect = useCallback(() => {
+    if (ws.current?.readyState === WebSocket.OPEN || ws.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
     ws.current = new WebSocket(WS_URL);
+
+    ws.current.onopen = () => {
+      reconnectDelay.current = RECONNECT_DELAY;
+    };
 
     ws.current.onmessage = (message) => {
       try {
@@ -38,16 +50,35 @@ export function useShiftSockets(onShiftChange: () => void) {
     };
 
     ws.current.onclose = () => {
-      // Reconnect after 2s
-      setTimeout(() => {
-        if (ws.current?.readyState === WebSocket.CLOSED) {
-          ws.current = new WebSocket(WS_URL);
-        }
-      }, 2000);
+      reconnectTimer.current = setTimeout(() => {
+        reconnectDelay.current = Math.min(reconnectDelay.current * 2, MAX_RECONNECT_DELAY);
+        connect();
+      }, reconnectDelay.current);
     };
 
-    return () => {
+    ws.current.onerror = () => {
       ws.current?.close();
     };
   }, []);
+
+  useEffect(() => {
+    connect();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const state = ws.current?.readyState;
+        if (state === WebSocket.CLOSED || state === WebSocket.CLOSING) {
+          connect();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      ws.current?.close();
+    };
+  }, [connect]);
 }

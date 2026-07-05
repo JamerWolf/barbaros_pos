@@ -14,14 +14,3 @@ createRoot(rootElement).render(
     <App />
   </StrictMode>,
 )
-
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker
-    .register('/sw.js')
-    .then((registration) => {
-      console.info('Service worker registered:', registration.scope)
-    })
-    .catch((error) => {
-      console.warn('Service worker registration failed:', error)
-    })
-}

@@ -12,9 +12,42 @@ export default defineConfig({
       devOptions: {
         enabled: false,
       },
-      manifest: false,
+      manifest: {
+        name: "Bárbaro's POS",
+        short_name: "BárbarosPOS",
+        description: "Sistema POS para discoteca Bárbaro's",
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#111827',
+        theme_color: '#111827',
+        orientation: 'portrait',
+        icons: [
+          {
+            src: '/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
+            src: '/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https?:\/\/.*\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 3600 },
+            },
+          },
+        ],
       },
     }),
   ],
