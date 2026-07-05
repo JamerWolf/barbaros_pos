@@ -44,8 +44,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAm
     >
       <div className={`font-bold truncate ${s.name}`}>{name}</div>
       <div className="flex flex-col">
-        <span className="text-[10px] opacity-75 uppercase tracking-wider">Total</span>
-        <span className={`font-bold ${s.total}`}>{formatCOP(total)}</span>
+        <span className="text-[10px] opacity-75 uppercase tracking-wider">Pendiente</span>
+        <span className={`font-bold ${s.total}`}>{formatCOP(pendingAmount)}</span>
       </div>
     </div>
   );
