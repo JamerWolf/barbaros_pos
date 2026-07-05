@@ -152,6 +152,14 @@ export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSel
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
 
+  // Auto-fit when entering/exiting fullscreen
+  useEffect(() => {
+    if (!containerRef.current) return
+    // Small delay so the browser finishes resizing the element
+    const timer = setTimeout(() => fit(), 100)
+    return () => clearTimeout(timer)
+  }, [isFullscreen, fit])
+
   const onZonePointerMove = useCallback((e: React.PointerEvent) => {
     if (!zoneDrawing.current) return
     const pos = screenToCanvas(e.clientX, e.clientY)
