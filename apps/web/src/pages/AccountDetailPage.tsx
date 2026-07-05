@@ -6,6 +6,8 @@ import { OrderItemList } from '../components/OrderItemList.js';
 import { formatCOP } from '../utils/format.js';
 import { ProductGrid } from '../components/ProductGrid.js';
 import { PaymentModal } from '../components/Payment/PaymentModal.js';
+import { Toast } from '../components/Toast.js';
+import { useToast } from '../hooks/useToast.js';
 import API_URL from '../utils/apiUrl.js';
 
 export function AccountDetailPage(): JSX.Element {
@@ -21,6 +23,7 @@ export function AccountDetailPage(): JSX.Element {
   const [confirmClose, setConfirmClose] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     fetchProducts(true);
@@ -69,7 +72,13 @@ export function AccountDetailPage(): JSX.Element {
       if (res.ok) {
         const updated = await res.json();
         updateAccount(updated);
+        const product = products.find(p => p.id === productId);
+        showToast(`${product?.name || 'Producto'} agregado`);
+      } else {
+        showToast('No se pudo agregar el producto', 'error');
       }
+    } catch {
+      showToast('Error de conexión', 'error');
     } finally {
       setLoadingItems(false);
     }
@@ -78,6 +87,7 @@ export function AccountDetailPage(): JSX.Element {
   const handleRemoveItem = async (itemId: string) => {
     const item = account.items.find((i) => i.id === itemId);
     if (!item) return;
+    const productName = item.product?.name || 'Producto';
 
     const newQty = item.quantity - 1;
     if (newQty < 1) {
@@ -88,9 +98,12 @@ export function AccountDetailPage(): JSX.Element {
         if (res.ok) {
           const updated = await res.json();
           updateAccount(updated);
+          showToast(`${productName} eliminado`);
+        } else {
+          showToast('No se pudo eliminar', 'error');
         }
       } catch {
-        // silent
+        showToast('Error de conexión', 'error');
       }
     } else {
       try {
@@ -104,7 +117,7 @@ export function AccountDetailPage(): JSX.Element {
           updateAccount(updated);
         }
       } catch {
-        // silent
+        showToast('Error de conexión', 'error');
       }
     }
   };
@@ -142,10 +155,10 @@ export function AccountDetailPage(): JSX.Element {
         navigate('/');
       } else {
         const data = await res.json();
-        alert(data.message || 'No se pudo cerrar la cuenta');
+        showToast(data.message || 'No se pudo cerrar la cuenta', 'error');
       }
     } catch {
-      alert('Error de conexion');
+      showToast('Error de conexión', 'error');
     }
   };
 
@@ -277,6 +290,7 @@ export function AccountDetailPage(): JSX.Element {
           />
         </section>
       )}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }

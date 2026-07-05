@@ -8,6 +8,8 @@ import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
 import { CanvasContainer, cancelPendingSaves } from '../components/canvas/CanvasContainer.js'
 import { DragNode } from '../components/canvas/DragNode.js'
 import { ShapeLayer } from '../components/canvas/shapes/ShapeLayer.js'
+import { Toast } from '../components/Toast.js'
+import { useToast } from '../hooks/useToast.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
 import { saveAccountCardSize, saveAccountPosition } from '../services/accountApi.js'
@@ -26,18 +28,11 @@ export function DashboardPage(): JSX.Element {
   const [showPinModal, setShowPinModal] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const { toast, showToast } = useToast()
   const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [toast])
 
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
@@ -47,10 +42,6 @@ export function DashboardPage(): JSX.Element {
       })
     }
   }, [viewMode])
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type })
-  }
 
   const openAccounts = useMemo(
     () => Object.values(accounts).filter((acc) => acc.status === 'OPEN'),
@@ -580,15 +571,7 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      {toast && (
-        <div
-          className={`fixed bottom-4 left-4 right-4 rounded-xl p-4 text-center font-bold text-white shadow-xl ${
-            toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   )
 }
