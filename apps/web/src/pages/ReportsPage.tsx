@@ -128,6 +128,23 @@ export function ReportsPage(): JSX.Element {
     });
   };
 
+  // Aggregated summary across all visible shifts (must be before any early return)
+  const summary = useMemo(() => {
+    let totalSales = 0;
+    let totalPaid = 0;
+    let accountsCount = 0;
+    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
+    for (const s of shifts) {
+      totalSales += s.totalSales;
+      totalPaid += s.totalPaid;
+      accountsCount += s.accountsCount;
+      for (const [method, amount] of Object.entries(s.paymentsByMethod)) {
+        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount;
+      }
+    }
+    return { totalSales, totalPaid, pendingAmount: totalSales - totalPaid, accountsCount, paymentsByMethod };
+  }, [shifts]);
+
   // Detail view
   if (selectedShift) {
     return (
@@ -258,22 +275,6 @@ export function ReportsPage(): JSX.Element {
   }
 
   // List view
-  const summary = useMemo(() => {
-    let totalSales = 0;
-    let totalPaid = 0;
-    let accountsCount = 0;
-    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
-    for (const s of shifts) {
-      totalSales += s.totalSales;
-      totalPaid += s.totalPaid;
-      accountsCount += s.accountsCount;
-      for (const [method, amount] of Object.entries(s.paymentsByMethod)) {
-        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount;
-      }
-    }
-    return { totalSales, totalPaid, pendingAmount: totalSales - totalPaid, accountsCount, paymentsByMethod };
-  }, [shifts]);
-
   return (
     <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
       <header className="flex items-center gap-2">
