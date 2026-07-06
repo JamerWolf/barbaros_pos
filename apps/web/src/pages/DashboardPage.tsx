@@ -428,76 +428,80 @@ export function DashboardPage(): JSX.Element {
                 >
                   + Agregar cuenta de otro turno
                 </button>
-                {/* Shape tools */}
-                <div className={`flex rounded-lg bg-gray-700 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
-                  <button
-                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
-                    disabled={shapesLocked}
-                    className={`h-8 rounded-md px-2 text-xs font-bold ${
-                      activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
-                    }`}
-                    title="Rectángulo"
-                  >
-                    ▭
-                  </button>
-                  <button
-                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
-                    disabled={shapesLocked}
-                    className={`h-8 rounded-md px-2 text-xs font-bold ${
-                      activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
-                    }`}
-                    title="Línea"
-                  >
-                    ╱
-                  </button>
-                  <button
-                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
-                    disabled={shapesLocked}
-                    className={`h-8 rounded-md px-2 text-xs font-bold ${
-                      activeTool === 'text' ? 'bg-green-600 text-white' : 'text-gray-400'
-                    }`}
-                    title="Texto"
-                  >
-                    T
-                  </button>
-                  {activeTool && (
-                    <input
-                      type="color"
-                      value={drawingColor}
-                      onChange={(e) => setDrawingColor(e.target.value)}
-                      className="h-8 w-8 cursor-pointer rounded-md border-0 bg-transparent p-0"
-                      title="Color"
-                    />
-                  )}
-                  {selectedShapeId && (
+                {/* Shape tools — admin only */}
+                {mode === 'admin' && (
+                  <>
+                    <div className={`flex rounded-lg bg-gray-700 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
+                      <button
+                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                        disabled={shapesLocked}
+                        className={`h-8 rounded-md px-2 text-xs font-bold ${
+                          activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
+                        }`}
+                        title="Rectángulo"
+                      >
+                        ▭
+                      </button>
+                      <button
+                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
+                        disabled={shapesLocked}
+                        className={`h-8 rounded-md px-2 text-xs font-bold ${
+                          activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
+                        }`}
+                        title="Línea"
+                      >
+                        ╱
+                      </button>
+                      <button
+                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
+                        disabled={shapesLocked}
+                        className={`h-8 rounded-md px-2 text-xs font-bold ${
+                          activeTool === 'text' ? 'bg-green-600 text-white' : 'text-gray-400'
+                        }`}
+                        title="Texto"
+                      >
+                        T
+                      </button>
+                      {activeTool && (
+                        <input
+                          type="color"
+                          value={drawingColor}
+                          onChange={(e) => setDrawingColor(e.target.value)}
+                          className="h-8 w-8 cursor-pointer rounded-md border-0 bg-transparent p-0"
+                          title="Color"
+                        />
+                      )}
+                      {selectedShapeId && (
+                        <button
+                          onClick={() => {
+                            deleteShape(selectedShapeId);
+                            setSelectedShapeId(null);
+                          }}
+                          className="h-8 rounded-md px-2 text-xs font-bold text-red-400 hover:bg-red-900/50"
+                          title="Eliminar figura (o presiona Delete)"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                     <button
                       onClick={() => {
-                        deleteShape(selectedShapeId);
-                        setSelectedShapeId(null);
+                        setShapesLocked(!shapesLocked);
+                        if (!shapesLocked) {
+                          setActiveTool(null);
+                          setSelectionMode(false);
+                          setSelectedShapeId(null);
+                        }
                       }}
-                      className="h-8 rounded-md px-2 text-xs font-bold text-red-400 hover:bg-red-900/50"
-                      title="Eliminar figura (o presiona Delete)"
+                      className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
+                        shapesLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                      }`}
+                      title={shapesLocked ? 'Desbloquear figuras' : 'Bloquear figuras'}
                     >
-                      🗑️
+                      {shapesLocked ? '🔒 Figuras' : '🔓 Figuras'}
                     </button>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setShapesLocked(!shapesLocked);
-                    if (!shapesLocked) {
-                      setActiveTool(null);
-                      setSelectionMode(false);
-                      setSelectedShapeId(null);
-                    }
-                  }}
-                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
-                    shapesLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
-                  }`}
-                  title={shapesLocked ? 'Desbloquear figuras' : 'Bloquear figuras'}
-                >
-                  {shapesLocked ? '🔒 Figuras' : '🔓 Figuras'}
-                </button>
+                  </>
+                )}
                 <button
                   onClick={() => {
                     setCardsLocked(!cardsLocked);

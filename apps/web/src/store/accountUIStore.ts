@@ -69,7 +69,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       cardSize: 'md',
       cardSizes: {},
       cardsLocked: false,
-      shapesLocked: false,
+      shapesLocked: true,
       activeGuides: [],
       selectionSnapshot: null,
       fitZone: null,
