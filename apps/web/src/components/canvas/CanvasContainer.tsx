@@ -5,6 +5,7 @@ import { useShapeStore } from '../../store/shapeStore.js'
 interface CanvasContainerProps {
   children: ReactNode
   shapes?: ReactNode
+  modal?: ReactNode
   onCreateAccount?: () => void
   onToggleSelection?: () => void
   onCardSizeChange?: (size: 'sm' | 'md' | 'lg') => void
@@ -39,7 +40,7 @@ export function didPanOccur() { return _panOccurred }
 let _pinchThisGesture = false
 export function pinchThisGesture() { return _pinchThisGesture }
 
-export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSelection, onCardSizeChange }: CanvasContainerProps): JSX.Element {
+export function CanvasContainer({ children, shapes, modal, onCreateAccount, onToggleSelection, onCardSizeChange }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
@@ -564,6 +565,7 @@ export function CanvasContainer({ children, shapes, onCreateAccount, onToggleSel
           )}
         </div>
       )}
+      {modal}
     </div>
   )
 }

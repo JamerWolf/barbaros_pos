@@ -500,7 +500,9 @@ export function DashboardPage(): JSX.Element {
                 </button>
               </div>
             </div>
-            <CanvasContainer shapes={<ShapeLayer />} onCreateAccount={createAccount} onToggleSelection={() => {
+            <CanvasContainer shapes={<ShapeLayer />} modal={selectedAccountId ? (
+              <AccountDetailModal accountId={selectedAccountId} onClose={() => setSelectedAccountId(null)} />
+            ) : undefined} onCreateAccount={createAccount} onToggleSelection={() => {
               if (selectionMode) {
                 clearSelection()
                 setSelectionMode(false)
@@ -609,10 +611,6 @@ export function DashboardPage(): JSX.Element {
             </button>
           </div>
         </div>
-      )}
-
-      {selectedAccountId && (
-        <AccountDetailModal accountId={selectedAccountId} onClose={() => setSelectedAccountId(null)} />
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
