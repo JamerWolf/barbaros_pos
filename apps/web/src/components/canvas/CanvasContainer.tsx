@@ -82,14 +82,6 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
     if (hasAutoFitted.current) return
     if (!_hasHydrated) return
 
-    // Check if this is first time (no saved zoom/pan — default values)
-    const state = useAccountUIStore.getState()
-    const isFirstTime = state.zoom === 1 && state.panOffset.x === 0 && state.panOffset.y === 0
-    if (!isFirstTime) {
-      hasAutoFitted.current = true
-      return
-    }
-
     // Wait until every open account has a position
     const { accounts } = useAccountStore.getState()
     const openIds = Object.values(accounts).filter(a => a.status === 'OPEN').map(a => a.id)
