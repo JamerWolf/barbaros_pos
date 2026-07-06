@@ -31,10 +31,11 @@ enum DiscountType {
 }
 
 model Shift {
-  id        String      @id @default(uuid())
-  status    ShiftStatus @default(OPEN)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id               String      @id @default(uuid())
+  status           ShiftStatus @default(OPEN)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  pinnedAccountIds String      @default("[]") // JSON array of account IDs added from other shifts
 
   accounts Account[]
 

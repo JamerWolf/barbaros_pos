@@ -37,29 +37,6 @@ export function DashboardPage(): JSX.Element {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [confirmCloseShift, setConfirmCloseShift] = useState(false)
 
-  // Persist added account IDs from other shifts
-  const ADDED_ACCOUNTS_KEY = 'barbaros-added-accounts'
-  const getAddedAccountIds = (): string[] => {
-    try { return JSON.parse(localStorage.getItem(ADDED_ACCOUNTS_KEY) || '[]') } catch { return [] }
-  }
-  const saveAddedAccountIds = (ids: string[]) => {
-    localStorage.setItem(ADDED_ACCOUNTS_KEY, JSON.stringify(ids))
-  }
-
-  // On mount: re-fetch accounts that were added from other shifts
-  useEffect(() => {
-    const addedIds = getAddedAccountIds()
-    if (addedIds.length === 0) return
-    for (const id of addedIds) {
-      fetch(`${API_URL}/accounts/${id}`)
-        .then((res) => { if (res.ok) return res.json(); throw new Error() })
-        .then((data) => {
-          useAccountStore.getState().addAccount(data)
-        })
-        .catch(() => { /* account may have been closed/deleted */ })
-    }
-  }, [])
-
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
     if (viewMode === 'canvas') {
@@ -97,13 +74,8 @@ export function DashboardPage(): JSX.Element {
     // No limpiar ni asignar si las cuentas todavía no se cargaron del servidor
     if (openAccounts.length === 0) return
     
-    // Include accounts added from other shifts (persisted in localStorage)
-    // so clearOrphanPositions doesn't delete their positions
-    let addedIds: string[] = []
-    try { addedIds = JSON.parse(localStorage.getItem(ADDED_ACCOUNTS_KEY) || '[]') } catch { /* ignore */ }
-    const activeIds = [...new Set([...openAccounts.map((acc) => acc.id), ...addedIds])]
-
     // Limpiar huérfanos (cuentas que ya no existen)
+    const activeIds = openAccounts.map((acc) => acc.id)
     clearOrphanPositions(activeIds)
 
     // Asignar en batch solo a los que NO tienen posición
@@ -658,11 +630,8 @@ export function DashboardPage(): JSX.Element {
                       // Add the account to the store so it appears in canvas
                       const { addAccount } = useAccountStore.getState()
                       addAccount(acc)
-                      // Persist so it survives page refresh
-                      const added = getAddedAccountIds()
-                      if (!added.includes(acc.id)) {
-                        saveAddedAccountIds([...added, acc.id])
-                      }
+                      // Pin to backend so it persists across devices
+                      fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(() => {})
                       setShowAddOldAccount(false)
                     }}
                     className="mb-2 flex w-full items-center justify-between rounded-xl bg-gray-700 p-3 text-left text-white active:bg-gray-600"

@@ -45,14 +45,29 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     const activeShift = await AccountService.getActiveShift();
     if (!activeShift) return reply.code(200).send([]);
 
+    // Get accounts from the active shift
     const accounts = await prisma.account.findMany({
       where: { shiftId: activeShift.id },
       include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
     });
 
-    const accountsWithTotal = accounts.map((acc) => {
+    // Get pinned accounts from other shifts
+    let pinnedIds: string[] = [];
+    try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+
+    let pinnedAccounts: any[] = [];
+    if (pinnedIds.length > 0) {
+      pinnedAccounts = await prisma.account.findMany({
+        where: { id: { in: pinnedIds }, shiftId: { not: activeShift.id } },
+        include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
+      });
+    }
+
+    const allAccounts = [...accounts, ...pinnedAccounts];
+
+    const accountsWithTotal = allAccounts.map((acc: any) => {
       const result = calculateAccountTotal({
-        items: acc.orderItems.map((item) => ({
+        items: acc.orderItems.map((item: any) => ({
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
           discountType: item.discountType as DiscountType,
@@ -61,7 +76,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
         accountDiscountType: acc.discountType as DiscountType,
         accountDiscountValue: Number(acc.discountValue),
       });
-      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const paidSum = acc.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const pendingAmount = result.total - paidSum;
       return { ...acc, total: result.total, pendingAmount, payments: acc.payments };
     });
@@ -113,6 +128,70 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
       });
       emitSocketEvent(fastify, 'account:updated', updated);
       return reply.code(200).send(updated);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/:id/position', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { posX, posY } = request.body as { posX?: number; posY?: number };
+
+    try {
+      const data: any = {};
+      if (posX !== undefined) data.posX = posX;
+      if (posY !== undefined) data.posY = posY;
+
+      const updated = await prisma.account.update({
+        where: { id },
+        data,
+      });
+      emitSocketEvent(fastify, 'account:position', { id: updated.id, posX: updated.posX, posY: updated.posY });
+      return reply.code(200).send(updated);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // Pin an account from another shift to the active shift's canvas
+  fastify.patch('/:id/pin', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const activeShift = await AccountService.getActiveShift();
+      if (!activeShift) return reply.code(400).send({ error: 'No active shift' });
+
+      let pinnedIds: string[] = [];
+      try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+
+      if (!pinnedIds.includes(id)) {
+        pinnedIds.push(id);
+        await prisma.shift.update({
+          where: { id: activeShift.id },
+          data: { pinnedAccountIds: JSON.stringify(pinnedIds) },
+        });
+      }
+      return reply.code(200).send({ ok: true });
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // Unpin an account from the active shift's canvas
+  fastify.patch('/:id/unpin', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const activeShift = await AccountService.getActiveShift();
+      if (!activeShift) return reply.code(400).send({ error: 'No active shift' });
+
+      let pinnedIds: string[] = [];
+      try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+
+      pinnedIds = pinnedIds.filter((pid) => pid !== id);
+      await prisma.shift.update({
+        where: { id: activeShift.id },
+        data: { pinnedAccountIds: JSON.stringify(pinnedIds) },
+      });
+      return reply.code(200).send({ ok: true });
     } catch (err: any) {
       return reply.code(400).send({ error: err.message });
     }
