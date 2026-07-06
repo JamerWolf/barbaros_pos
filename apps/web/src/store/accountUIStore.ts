@@ -16,7 +16,8 @@ export interface AccountUIState {
   canvasHeight: number | null;
   cardSize: CardSize;
   cardSizes: Record<string, CardSize>;
-  canvasLocked: boolean;
+  cardsLocked: boolean;
+  shapesLocked: boolean;
   selectionSnapshot: { nodePositions: Record<string, Position>; cardSizes: Record<string, CardSize> } | null;
   fitZone: { x: number; y: number; width: number; height: number } | null;
   _hasHydrated: boolean;
@@ -36,7 +37,8 @@ export interface AccountUIState {
   setCardSize: (size: CardSize) => void;
   getCardSize: (accountId: string) => CardSize;
   getCardDimensions: (accountId: string) => { w: number; h: number };
-  setCanvasLocked: (locked: boolean) => void;
+  setCardsLocked: (locked: boolean) => void;
+  setShapesLocked: (locked: boolean) => void;
   setFitZone: (zone: { x: number; y: number; width: number; height: number } | null) => void;
   getViewportCenter: (containerWidth: number, containerHeight: number) => Position;
   saveSelectionSnapshot: () => void;
@@ -63,7 +65,8 @@ export const useAccountUIStore = create<AccountUIState>()(
       canvasHeight: null,
       cardSize: 'md',
       cardSizes: {},
-      canvasLocked: false,
+      cardsLocked: false,
+      shapesLocked: false,
       selectionSnapshot: null,
       fitZone: null,
       _hasHydrated: false,
@@ -243,7 +246,8 @@ export const useAccountUIStore = create<AccountUIState>()(
 
         return { zoom, panOffset };
       }),
-      setCanvasLocked: (locked) => set({ canvasLocked: locked }),
+      setCardsLocked: (locked) => set({ cardsLocked: locked }),
+      setShapesLocked: (locked) => set({ shapesLocked: locked }),
       setFitZone: (zone) => set({ fitZone: zone }),
       getViewportCenter: (containerWidth, containerHeight) => {
         const state = _get();
@@ -279,7 +283,8 @@ export const useAccountUIStore = create<AccountUIState>()(
         canvasHeight: state.canvasHeight,
         cardSize: state.cardSize,
         cardSizes: state.cardSizes,
-        canvasLocked: state.canvasLocked,
+        cardsLocked: state.cardsLocked,
+        shapesLocked: state.shapesLocked,
         fitZone: state.fitZone,
       }),
       onRehydrateStorage: () => (state) => {

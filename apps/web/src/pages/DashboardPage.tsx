@@ -22,7 +22,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, canvasLocked, setCanvasLocked, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, cardsLocked, setCardsLocked, shapesLocked, setShapesLocked, _hasHydrated } = useAccountUIStore()
   const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
@@ -429,10 +429,10 @@ export function DashboardPage(): JSX.Element {
                   + Agregar cuenta de otro turno
                 </button>
                 {/* Shape tools */}
-                <div className={`flex rounded-lg bg-gray-700 p-1 ${canvasLocked ? 'opacity-50' : ''}`}>
+                <div className={`flex rounded-lg bg-gray-700 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
                   <button
-                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
-                    disabled={canvasLocked}
+                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                    disabled={shapesLocked}
                     className={`h-8 rounded-md px-2 text-xs font-bold ${
                       activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
                     }`}
@@ -441,8 +441,8 @@ export function DashboardPage(): JSX.Element {
                     ▭
                   </button>
                   <button
-                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
-                    disabled={canvasLocked}
+                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
+                    disabled={shapesLocked}
                     className={`h-8 rounded-md px-2 text-xs font-bold ${
                       activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
                     }`}
@@ -451,8 +451,8 @@ export function DashboardPage(): JSX.Element {
                     ╱
                   </button>
                   <button
-                    onClick={() => !canvasLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
-                    disabled={canvasLocked}
+                    onClick={() => !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
+                    disabled={shapesLocked}
                     className={`h-8 rounded-md px-2 text-xs font-bold ${
                       activeTool === 'text' ? 'bg-green-600 text-white' : 'text-gray-400'
                     }`}
@@ -484,19 +484,33 @@ export function DashboardPage(): JSX.Element {
                 </div>
                 <button
                   onClick={() => {
-                    setCanvasLocked(!canvasLocked);
-                    if (!canvasLocked) {
+                    setShapesLocked(!shapesLocked);
+                    if (!shapesLocked) {
                       setActiveTool(null);
                       setSelectionMode(false);
                       setSelectedShapeId(null);
                     }
                   }}
                   className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
-                    canvasLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                    shapesLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
                   }`}
-                  title={canvasLocked ? 'Desbloquear canvas' : 'Bloquear canvas'}
+                  title={shapesLocked ? 'Desbloquear figuras' : 'Bloquear figuras'}
                 >
-                  {canvasLocked ? '🔒' : '🔓'}
+                  {shapesLocked ? '🔒 Figuras' : '🔓 Figuras'}
+                </button>
+                <button
+                  onClick={() => {
+                    setCardsLocked(!cardsLocked);
+                    if (!cardsLocked) {
+                      setSelectionMode(false);
+                    }
+                  }}
+                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
+                    cardsLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                  }`}
+                  title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
+                >
+                  {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
                 </button>
               </div>
             </div>

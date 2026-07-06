@@ -18,7 +18,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const isSelected = selectedIds.has(accountId)
   const updatePosition = useAccountUIStore((s) => s.updatePosition)
   const movePositions = useAccountUIStore((s) => s.movePositions)
-  const canvasLocked = useAccountUIStore((s) => s.canvasLocked)
+  const cardsLocked = useAccountUIStore((s) => s.cardsLocked)
   const zoom = useAccountUIStore((s) => s.zoom)
   const dragSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastDragPos = useRef({ x: 0, y: 0 })
@@ -26,7 +26,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const { onPointerDown, onPointerMove, onPointerUp } = useCanvasDrag({
     elementRef: nodeRef,
     zoom,
-    isLocked: canvasLocked,
+    isLocked: cardsLocked,
     onDragMove: (pos) => {
       if (isSelected && selectedIds.size > 1) {
         const delta = { x: pos.x - lastDragPos.current.x, y: pos.y - lastDragPos.current.y }
