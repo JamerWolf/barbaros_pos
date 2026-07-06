@@ -97,8 +97,13 @@ export function DashboardPage(): JSX.Element {
     // No limpiar ni asignar si las cuentas todavía no se cargaron del servidor
     if (openAccounts.length === 0) return
     
+    // Include accounts added from other shifts (persisted in localStorage)
+    // so clearOrphanPositions doesn't delete their positions
+    let addedIds: string[] = []
+    try { addedIds = JSON.parse(localStorage.getItem(ADDED_ACCOUNTS_KEY) || '[]') } catch { /* ignore */ }
+    const activeIds = [...new Set([...openAccounts.map((acc) => acc.id), ...addedIds])]
+
     // Limpiar huérfanos (cuentas que ya no existen)
-    const activeIds = openAccounts.map((acc) => acc.id)
     clearOrphanPositions(activeIds)
 
     // Asignar en batch solo a los que NO tienen posición
