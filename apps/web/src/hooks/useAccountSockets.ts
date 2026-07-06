@@ -7,6 +7,8 @@ const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
 const RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 10000;
 
+const ADDED_ACCOUNTS_KEY = 'barbaros-added-accounts'
+
 export function useAccountSockets() {
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,6 +71,20 @@ export function useAccountSockets() {
         if (positionsChanged || sizesChanged) {
           useAccountUIStore.setState(updates);
         }
+
+        // Re-merge accounts added from other shifts (persisted in localStorage)
+        try {
+          const addedIds: string[] = JSON.parse(localStorage.getItem(ADDED_ACCOUNTS_KEY) || '[]');
+          for (const id of addedIds) {
+            if (!accounts.find((a: any) => a.id === id)) {
+              // This account is not in the current shift, re-fetch and add it
+              fetch(`${API_URL}/accounts/${id}`)
+                .then((r) => { if (r.ok) return r.json(); throw new Error() })
+                .then((data) => addAccount(data))
+                .catch(() => {});
+            }
+          }
+        } catch { /* ignore */ }
       }
     } catch (err) {
       console.error('Failed to fetch initial accounts:', err);
