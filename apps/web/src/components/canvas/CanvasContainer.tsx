@@ -393,15 +393,17 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
       className={`relative flex flex-col ${isFullscreen ? 'h-screen w-screen' : ''}`}
       style={isFullscreen ? undefined : canvasHeight ? { height: canvasHeight, flex: 'none' } : { minHeight: 0, flex: 1 }}
     >
-      {/* Resize handle */}
-      <div
-        onPointerDown={onResizeDown}
-        data-resize-handle
-        style={{ touchAction: 'none' }}
-        className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
-      >
-        <div className="h-1 w-8 rounded-full bg-gray-500" />
-      </div>
+      {/* Resize handle — hidden in fullscreen */}
+      {!isFullscreen && (
+        <div
+          onPointerDown={onResizeDown}
+          data-resize-handle
+          style={{ touchAction: 'none' }}
+          className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
+        >
+          <div className="h-1 w-8 rounded-full bg-gray-500" />
+        </div>
+      )}
       {/* Canvas */}
       <div
         ref={containerRef}
