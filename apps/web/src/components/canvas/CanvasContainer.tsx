@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
+import { useAccountStore } from '../../store/accountStore.js'
 import { useShapeStore } from '../../store/shapeStore.js'
 import { GuideLines } from './GuideLines.js'
 
@@ -76,11 +77,10 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
     return { x, y }
   }, [zoom, panOffset])
 
-  // Auto-fit on first load — waits for positions to stabilize
+  // Auto-fit on first load — waits for ALL cards to have positions
   useEffect(() => {
     if (hasAutoFitted.current) return
     if (!_hasHydrated) return
-    if (Object.keys(nodePositions).length === 0) return
 
     // Check if this is first time (no saved zoom/pan — default values)
     const state = useAccountUIStore.getState()
@@ -89,6 +89,13 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
       hasAutoFitted.current = true
       return
     }
+
+    // Wait until every open account has a position
+    const { accounts } = useAccountStore.getState()
+    const openIds = Object.values(accounts).filter(a => a.status === 'OPEN').map(a => a.id)
+    if (openIds.length === 0) return
+    const allPositioned = openIds.every(id => nodePositions[id])
+    if (!allPositioned) return
 
     // Debounce: wait 500ms for positions to stabilize before fitting
     const timer = setTimeout(() => {
