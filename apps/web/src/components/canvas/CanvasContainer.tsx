@@ -76,24 +76,30 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
     return { x, y }
   }, [zoom, panOffset])
 
-  // Auto-fit on first load only (no saved positions)
+  // Auto-fit on first load — waits for positions to stabilize
   useEffect(() => {
     if (hasAutoFitted.current) return
     if (!_hasHydrated) return
     if (Object.keys(nodePositions).length === 0) return
 
-    const container = containerRef.current
-    if (!container) return
-
     // Check if this is first time (no saved zoom/pan — default values)
     const state = useAccountUIStore.getState()
     const isFirstTime = state.zoom === 1 && state.panOffset.x === 0 && state.panOffset.y === 0
+    if (!isFirstTime) {
+      hasAutoFitted.current = true
+      return
+    }
 
-    if (isFirstTime) {
+    // Debounce: wait 500ms for positions to stabilize before fitting
+    const timer = setTimeout(() => {
+      const container = containerRef.current
+      if (!container) return
       const currentShapes = useShapeStore.getState().shapes
       fitToContent(container.clientWidth, container.clientHeight, currentShapes)
-    }
-    hasAutoFitted.current = true
+      hasAutoFitted.current = true
+    }, 500)
+
+    return () => clearTimeout(timer)
   }, [nodePositions, _hasHydrated, fitToContent])
 
   // Manual fit button — uses fitZone if set, otherwise fits all content

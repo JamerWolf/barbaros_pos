@@ -80,7 +80,19 @@ export function useAccountSockets() {
               // This account is not in the current shift, re-fetch and add it
               fetch(`${API_URL}/accounts/${id}`)
                 .then((r) => { if (r.ok) return r.json(); throw new Error() })
-                .then((data) => addAccount(data))
+                .then((data) => {
+                  addAccount(data);
+                  // If it has a local position but no DB position, save it
+                  const ui = useAccountUIStore.getState();
+                  const localPos = ui.nodePositions[id];
+                  if (localPos && (data.posX == null || data.posY == null)) {
+                    fetch(`${API_URL}/accounts/${id}/position`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ posX: localPos.x, posY: localPos.y }),
+                    }).catch(() => {});
+                  }
+                })
                 .catch(() => {});
             }
           }
