@@ -53,6 +53,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
     onDoubleTap: () => {
       if (!isLocked) onStartEdit?.();
     },
+    onDragEnd: () => useAccountUIStore.getState().setActiveGuides([]),
   });
 
   useEffect(() => {

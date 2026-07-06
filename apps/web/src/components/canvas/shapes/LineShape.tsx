@@ -47,6 +47,7 @@ export function LineShape({ shape, isSelected, isLocked, interactive = true, onS
     isLocked: !!isLocked,
     onDragMove: (pos) => onMove?.(pos.x, pos.y),
     onTap: () => onSelect?.(),
+    onDragEnd: () => useAccountUIStore.getState().setActiveGuides([]),
   });
 
   const startEndpointDrag = useCallback((e: PointerEvent, handle: Handle) => {

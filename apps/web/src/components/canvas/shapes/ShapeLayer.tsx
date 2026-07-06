@@ -4,6 +4,7 @@ import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
 import { TextShape } from './TextShape.jsx';
+import { computeSnap, type SnapBounds } from '../../../utils/snapAlignment.js';
 
 export function ShapeLayer(): JSX.Element {
   const { shapes, activeTool, drawingColor, selectedShapeId, editingShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId, setEditingShapeId } = useShapeStore();
@@ -126,16 +127,38 @@ export function ShapeLayer(): JSX.Element {
   }, [activeTool, drawStart, drawCurrent, drawingColor, addShape]);
 
   const handleShapeMove = useCallback((id: string, x: number, y: number) => {
-    const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
+    const currentShapes = useShapeStore.getState().shapes;
+    const shape = currentShapes.find((s) => s.id === id);
     if (!shape) return;
+
+    // Compute snap against other shapes
+    const getShapeBounds = (s: typeof shape): SnapBounds => ({
+      left: s.x,
+      top: s.y,
+      width: s.width,
+      height: s.height,
+    });
+
+    const draggedBounds = getShapeBounds({ ...shape, x, y });
+    const otherBounds = currentShapes
+      .filter((s) => s.id !== id)
+      .map(getShapeBounds);
+
+    const snapResult = computeSnap(draggedBounds, otherBounds);
+    const snappedX = x + snapResult.dx;
+    const snappedY = y + snapResult.dy;
+
+    // Update guides
+    useAccountUIStore.getState().setActiveGuides(snapResult.guides);
+
     if (shape.type === 'RECTANGLE' || shape.type === 'TEXT') {
-      updateShape(id, { x, y });
+      updateShape(id, { x: snappedX, y: snappedY });
     } else if (shape.type === 'LINE' && shape.points) {
-      const dx = x - shape.x;
-      const dy = y - shape.y;
+      const ddx = snappedX - shape.x;
+      const ddy = snappedY - shape.y;
       updateShape(id, {
-        x, y,
-        points: shape.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+        x: snappedX, y: snappedY,
+        points: shape.points.map((p) => ({ x: p.x + ddx, y: p.y + ddy })),
       });
     }
   }, [updateShape]);

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calculateFirstFreeSpace, Position } from '../utils/canvasUtils.js';
+import type { SnapGuide } from '../utils/snapAlignment.js';
 
 export type { Position };
 
@@ -39,6 +40,8 @@ export interface AccountUIState {
   getCardDimensions: (accountId: string) => { w: number; h: number };
   setCardsLocked: (locked: boolean) => void;
   setShapesLocked: (locked: boolean) => void;
+  activeGuides: SnapGuide[];
+  setActiveGuides: (guides: SnapGuide[]) => void;
   setFitZone: (zone: { x: number; y: number; width: number; height: number } | null) => void;
   getViewportCenter: (containerWidth: number, containerHeight: number) => Position;
   saveSelectionSnapshot: () => void;
@@ -67,6 +70,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       cardSizes: {},
       cardsLocked: false,
       shapesLocked: false,
+      activeGuides: [],
       selectionSnapshot: null,
       fitZone: null,
       _hasHydrated: false,
@@ -248,6 +252,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       }),
       setCardsLocked: (locked) => set({ cardsLocked: locked }),
       setShapesLocked: (locked) => set({ shapesLocked: locked }),
+      setActiveGuides: (guides) => set({ activeGuides: guides }),
       setFitZone: (zone) => set({ fitZone: zone }),
       getViewportCenter: (containerWidth, containerHeight) => {
         const state = _get();

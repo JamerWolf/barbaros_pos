@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { useShapeStore } from '../../store/shapeStore.js'
+import { GuideLines } from './GuideLines.js'
 
 interface CanvasContainerProps {
   children: ReactNode
@@ -427,6 +428,8 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
         >
           {children}
         </div>
+        {/* Snap alignment guides */}
+        <GuideLines />
         {/* Fit zone overlay — shows the saved zone */}
         {zoneScreen && !zoneMode && (
           <div

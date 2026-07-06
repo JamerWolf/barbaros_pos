@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react'
 import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture, didPanOccur } from './CanvasContainer.js'
+import { computeSnap, type SnapBounds, type SnapGuide } from '../../utils/snapAlignment.js'
 
 const LONG_PRESS_MS = 400
 const DRAG_THRESHOLD = 3
@@ -14,6 +15,10 @@ interface UseCanvasDragOptions {
   onDragEnd?: (didDrag: boolean) => void
   onTap?: () => void
   onDoubleTap?: () => void
+  // Snap alignment
+  getSnapBounds?: () => SnapBounds | null
+  getOtherSnapBounds?: () => SnapBounds[]
+  onSnapGuides?: (guides: SnapGuide[]) => void
 }
 
 interface UseCanvasDragReturn {
@@ -31,6 +36,9 @@ export function useCanvasDrag({
   onDragEnd,
   onTap,
   onDoubleTap,
+  getSnapBounds,
+  getOtherSnapBounds,
+  onSnapGuides,
 }: UseCanvasDragOptions): UseCanvasDragReturn {
   const activePointerId = useRef<number | null>(null)
   const startPos = useRef({ x: 0, y: 0 })
@@ -100,8 +108,22 @@ export function useCanvasDrag({
 
       const parentRect = elementRef.current?.parentElement?.getBoundingClientRect()
       if (!parentRect) return
-      const newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
-      const newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+      let newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
+      let newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+
+      // Snap alignment
+      if (getSnapBounds && getOtherSnapBounds && onSnapGuides) {
+        const draggedBounds = getSnapBounds()
+        if (draggedBounds) {
+          const snappedBounds = { ...draggedBounds, left: newX, top: newY }
+          const others = getOtherSnapBounds()
+          const snapResult = computeSnap(snappedBounds, others)
+          newX += snapResult.dx
+          newY += snapResult.dy
+          onSnapGuides(snapResult.guides)
+        }
+      }
+
       onDragMove({ x: newX, y: newY })
     }
 
@@ -111,6 +133,7 @@ export function useCanvasDrag({
       document.removeEventListener('pointerup', onDocUp)
       activePointerId.current = null
       setLongPressActive(false)
+      onSnapGuides?.([])
 
       if (pinchThisGesture()) {
         isDragging.current = false
@@ -127,7 +150,7 @@ export function useCanvasDrag({
 
     document.addEventListener('pointermove', onDocMove)
     document.addEventListener('pointerup', onDocUp)
-  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap])
+  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap, getSnapBounds, getOtherSnapBounds, onSnapGuides])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
