@@ -35,6 +35,7 @@ export function DashboardPage(): JSX.Element {
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  const [confirmCloseShift, setConfirmCloseShift] = useState(false)
 
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
@@ -286,12 +287,32 @@ export function DashboardPage(): JSX.Element {
             </div>
           </div>
           {activeShiftId ? (
-            <button
-              onClick={closeShift}
-              className="h-12 w-full rounded-lg bg-red-600 px-4 font-bold text-white active:bg-red-700"
-            >
-              Cerrar Turno
-            </button>
+            !confirmCloseShift ? (
+              <button
+                onClick={() => setConfirmCloseShift(true)}
+                className="h-12 w-full rounded-lg bg-red-600 px-4 font-bold text-white active:bg-red-700"
+              >
+                Cerrar Turno
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2 rounded-xl bg-red-900/30 p-4">
+                <p className="text-sm text-white">Seguro que queres cerrar el turno?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { closeShift(); setConfirmCloseShift(false) }}
+                    className="h-12 flex-1 rounded-lg bg-red-600 font-bold text-white active:bg-red-700"
+                  >
+                    Si, cerrar
+                  </button>
+                  <button
+                    onClick={() => setConfirmCloseShift(false)}
+                    className="h-12 flex-1 rounded-lg bg-gray-700 font-bold text-white active:bg-gray-600"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
             <button
               onClick={openShift}
