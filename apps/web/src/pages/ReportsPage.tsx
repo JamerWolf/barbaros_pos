@@ -258,6 +258,22 @@ export function ReportsPage(): JSX.Element {
   }
 
   // List view
+  const summary = useMemo(() => {
+    let totalSales = 0;
+    let totalPaid = 0;
+    let accountsCount = 0;
+    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
+    for (const s of shifts) {
+      totalSales += s.totalSales;
+      totalPaid += s.totalPaid;
+      accountsCount += s.accountsCount;
+      for (const [method, amount] of Object.entries(s.paymentsByMethod)) {
+        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount;
+      }
+    }
+    return { totalSales, totalPaid, pendingAmount: totalSales - totalPaid, accountsCount, paymentsByMethod };
+  }, [shifts]);
+
   return (
     <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
       <header className="flex items-center gap-2">
@@ -278,6 +294,41 @@ export function ReportsPage(): JSX.Element {
           setDateTo(to);
         }}
       />
+
+      {/* Aggregated summary */}
+      {shifts.length > 0 && (
+        <>
+          <div className="rounded-xl bg-gray-800 p-4">
+            <div className="flex justify-between text-sm text-gray-400">
+              <span>Cuentas:</span>
+              <span className="font-bold text-white">{summary.accountsCount}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-400">
+              <span>Total Ventas:</span>
+              <span className="font-bold text-green-400">{formatCOP(summary.totalSales)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-400">
+              <span>Total Pagado:</span>
+              <span className="font-bold text-green-400">{formatCOP(summary.totalPaid)}</span>
+            </div>
+            {summary.pendingAmount > 0 && (
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>Pendiente:</span>
+                <span className="font-bold text-yellow-400">{formatCOP(summary.pendingAmount)}</span>
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl bg-gray-800 p-4">
+            <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
+            {Object.entries(summary.paymentsByMethod).map(([method, total]) => (
+              <div key={method} className="flex justify-between text-sm text-gray-400">
+                <span>{method === 'CASH' ? 'Efectivo' : method === 'TRANSFER' ? 'Transferencia' : 'Tarjeta'}</span>
+                <span className="font-bold text-white">{formatCOP(total)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {loading ? (
         <p className="text-gray-400">Cargando turnos...</p>

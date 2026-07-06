@@ -18,6 +18,8 @@ export interface ShiftListItem {
   accountsCount: number;
   totalSales: number;
   totalPaid: number;
+  pendingAmount: number;
+  paymentsByMethod: Record<PaymentMethodType, number>;
 }
 
 export interface ShiftSummary {

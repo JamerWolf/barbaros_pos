@@ -34,6 +34,7 @@ export class ReportService {
     return shifts.map((shift) => {
       let totalSales = 0;
       let totalPaid = 0;
+      const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
 
       for (const account of shift.accounts) {
         const orderItems = (account as any).orderItems ?? [];
@@ -51,7 +52,15 @@ export class ReportService {
         });
 
         totalSales += result.total;
-        totalPaid += payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+        for (const p of payments) {
+          const amount = Number(p.amount);
+          totalPaid += amount;
+          const method = p.method as string;
+          if (method in paymentsByMethod) {
+            paymentsByMethod[method] += amount;
+          }
+        }
       }
 
       return {
@@ -62,6 +71,8 @@ export class ReportService {
         accountsCount: shift.accounts.length,
         totalSales,
         totalPaid,
+        pendingAmount: totalSales - totalPaid,
+        paymentsByMethod: paymentsByMethod as Record<PaymentMethodType, number>,
       };
     });
   }
