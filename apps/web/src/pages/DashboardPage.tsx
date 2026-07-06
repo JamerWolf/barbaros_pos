@@ -37,6 +37,29 @@ export function DashboardPage(): JSX.Element {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [confirmCloseShift, setConfirmCloseShift] = useState(false)
 
+  // Persist added account IDs from other shifts
+  const ADDED_ACCOUNTS_KEY = 'barbaros-added-accounts'
+  const getAddedAccountIds = (): string[] => {
+    try { return JSON.parse(localStorage.getItem(ADDED_ACCOUNTS_KEY) || '[]') } catch { return [] }
+  }
+  const saveAddedAccountIds = (ids: string[]) => {
+    localStorage.setItem(ADDED_ACCOUNTS_KEY, JSON.stringify(ids))
+  }
+
+  // On mount: re-fetch accounts that were added from other shifts
+  useEffect(() => {
+    const addedIds = getAddedAccountIds()
+    if (addedIds.length === 0) return
+    for (const id of addedIds) {
+      fetch(`${API_URL}/accounts/${id}`)
+        .then((res) => { if (res.ok) return res.json(); throw new Error() })
+        .then((data) => {
+          useAccountStore.getState().addAccount(data)
+        })
+        .catch(() => { /* account may have been closed/deleted */ })
+    }
+  }, [])
+
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
     if (viewMode === 'canvas') {
@@ -92,16 +115,7 @@ export function DashboardPage(): JSX.Element {
   const refreshAllOpenAccounts = () => {
     fetch(`${API_URL}/accounts/all-open`)
       .then((res) => res.json())
-      .then((data) => {
-        setAllOpenAccounts(data)
-        // Merge accounts from other shifts into the main store so they persist on canvas
-        const store = useAccountStore.getState()
-        for (const acc of data) {
-          if (!store.accounts[acc.id]) {
-            store.addAccount(acc)
-          }
-        }
-      })
+      .then((data) => setAllOpenAccounts(data))
       .catch(() => setAllOpenAccounts([]))
   }
 
@@ -639,6 +653,11 @@ export function DashboardPage(): JSX.Element {
                       // Add the account to the store so it appears in canvas
                       const { addAccount } = useAccountStore.getState()
                       addAccount(acc)
+                      // Persist so it survives page refresh
+                      const added = getAddedAccountIds()
+                      if (!added.includes(acc.id)) {
+                        saveAddedAccountIds([...added, acc.id])
+                      }
                       setShowAddOldAccount(false)
                     }}
                     className="mb-2 flex w-full items-center justify-between rounded-xl bg-gray-700 p-3 text-left text-white active:bg-gray-600"
