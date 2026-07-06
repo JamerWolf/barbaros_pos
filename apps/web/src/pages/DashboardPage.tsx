@@ -4,6 +4,7 @@ import { useAccountStore } from '../store/accountStore.js'
 import { useAccountUIStore } from '../store/accountUIStore.js'
 import { useShapeStore, type ShapeTool } from '../store/shapeStore.js'
 import { AccountCard } from '../components/Accounts/AccountCard.js'
+import { AccountDetailModal } from '../components/AccountDetailModal.js'
 import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
 import { CanvasContainer, cancelPendingSaves } from '../components/canvas/CanvasContainer.js'
 import { DragNode } from '../components/canvas/DragNode.js'
@@ -33,6 +34,7 @@ export function DashboardPage(): JSX.Element {
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
@@ -363,7 +365,7 @@ export function DashboardPage(): JSX.Element {
                   total={acc.total ?? 0}
                   pendingAmount={acc.pendingAmount ?? 0}
                   status={acc.status.toLowerCase() as 'open' | 'closed'}
-                  onClick={() => navigate(`/accounts/${acc.id}`)}
+                  onClick={() => setSelectedAccountId(acc.id)}
                 />
               ))}
             </div>
@@ -518,7 +520,7 @@ export function DashboardPage(): JSX.Element {
                 <DragNode
                   key={acc.id}
                   accountId={acc.id}
-                  onClick={() => navigate(`/accounts/${acc.id}`)}
+                  onClick={() => setSelectedAccountId(acc.id)}
                 >
                   <AccountCard
                     name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
@@ -607,6 +609,10 @@ export function DashboardPage(): JSX.Element {
             </button>
           </div>
         </div>
+      )}
+
+      {selectedAccountId && (
+        <AccountDetailModal accountId={selectedAccountId} onClose={() => setSelectedAccountId(null)} />
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
