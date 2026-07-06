@@ -150,21 +150,36 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
         </div>
 
         {showCategoryInput && (
-          <div className="mb-3 flex gap-2">
-            <input
-              type="text"
-              placeholder="Nombre categoría"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              className="h-10 flex-1 rounded-lg bg-gray-700 px-3 text-sm text-white outline-none"
-            />
-            <button
-              onClick={handleAddCategory}
-              className="h-10 rounded-lg bg-green-600 px-3 font-bold text-sm text-white active:bg-green-700"
-            >
-              OK
-            </button>
+          <div className="mb-3 flex flex-col gap-2">
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-400 hover:text-red-400"
+                  >
+                    {cat.name} ✕
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Nombre categoría"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                className="h-10 flex-1 rounded-lg bg-gray-700 px-3 text-sm text-white outline-none"
+              />
+              <button
+                onClick={handleAddCategory}
+                className="h-10 rounded-lg bg-green-600 px-3 font-bold text-sm text-white active:bg-green-700"
+              >
+                OK
+              </button>
+            </div>
           </div>
         )}
 
@@ -181,20 +196,6 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
           selectedId={selectedCategory}
           onSelect={setSelectedCategory}
         />
-
-        {categories.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleDeleteCategory(cat.id)}
-                className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-400 hover:text-red-400"
-              >
-                {cat.name} ✕
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="mt-4 flex flex-col gap-2">
           {loading && <p className="text-gray-500">Cargando...</p>}
