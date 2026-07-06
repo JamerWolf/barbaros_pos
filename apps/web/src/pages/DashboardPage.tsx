@@ -92,7 +92,16 @@ export function DashboardPage(): JSX.Element {
   const refreshAllOpenAccounts = () => {
     fetch(`${API_URL}/accounts/all-open`)
       .then((res) => res.json())
-      .then((data) => setAllOpenAccounts(data))
+      .then((data) => {
+        setAllOpenAccounts(data)
+        // Merge accounts from other shifts into the main store so they persist on canvas
+        const store = useAccountStore.getState()
+        for (const acc of data) {
+          if (!store.accounts[acc.id]) {
+            store.addAccount(acc)
+          }
+        }
+      })
       .catch(() => setAllOpenAccounts([]))
   }
 
