@@ -300,6 +300,10 @@ export function ReportsPage(): JSX.Element {
         <>
           <div className="rounded-xl bg-gray-800 p-4">
             <div className="flex justify-between text-sm text-gray-400">
+              <span>Turnos:</span>
+              <span className="font-bold text-white">{shifts.length}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-400">
               <span>Cuentas:</span>
               <span className="font-bold text-white">{summary.accountsCount}</span>
             </div>
