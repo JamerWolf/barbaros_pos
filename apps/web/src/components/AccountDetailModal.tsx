@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccountStore } from '../store/accountStore.js';
 import { useProductStore } from '../store/productStore.js';
 import { OrderItemList } from '../components/OrderItemList.js';
@@ -23,6 +23,14 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
   const [loadingItems, setLoadingItems] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { toast, showToast } = useToast();
+  const [ready, setReady] = useState(false);
+  const readyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Block ghost clicks for 300ms after opening
+  useEffect(() => {
+    readyTimer.current = setTimeout(() => setReady(true), 300);
+    return () => { if (readyTimer.current) clearTimeout(readyTimer.current); };
+  }, []);
 
   useEffect(() => {
     fetchProducts(true);
@@ -168,7 +176,12 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
   const canClose = pendingAmount === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white" style={{ height: '100dvh' }}>
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white"
+      style={{ height: '100dvh' }}
+      onPointerDown={(e) => { if (!ready) e.stopPropagation() }}
+      onClick={(e) => { if (!ready) e.stopPropagation() }}
+    >
       <header className="flex items-center gap-2 p-4">
         <button
           onClick={onClose}
