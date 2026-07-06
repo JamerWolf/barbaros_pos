@@ -179,9 +179,11 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
     <div
       className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white"
       style={{ height: '100dvh' }}
-      onPointerDown={(e) => { if (!ready) e.stopPropagation() }}
-      onClick={(e) => { if (!ready) e.stopPropagation() }}
     >
+      {/* Ghost touch shield — absorbs all pointer events for 300ms after open */}
+      {!ready && (
+        <div className="absolute inset-0 z-[9999]" onPointerDown={(e) => e.preventDefault()} />
+      )}
       <header className="flex items-center gap-2 p-4">
         <button
           onClick={onClose}
