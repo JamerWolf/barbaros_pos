@@ -125,10 +125,12 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white" style={{ height: '100dvh' }}>
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-lg font-bold">Productos</h2>
-        <button onClick={onClose} className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600">
-          ← Volver
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onClose} className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600">
+            ← Volver
+          </button>
+          <h2 className="text-lg font-bold">Productos</h2>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-4">
 
