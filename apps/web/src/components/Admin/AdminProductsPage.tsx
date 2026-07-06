@@ -123,14 +123,14 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex">
-      <div className="w-80 shrink-0 overflow-y-auto bg-gray-800 p-4 text-white">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Productos</h2>
-          <button onClick={onClose} className="text-gray-400 active:text-white">
-            ✕
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white" style={{ height: '100dvh' }}>
+      <div className="flex items-center justify-between p-4">
+        <h2 className="text-lg font-bold">Productos</h2>
+        <button onClick={onClose} className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600">
+          ← Volver
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
 
         <div className="mb-3 flex gap-2">
           <button
@@ -326,7 +326,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                 Guardar
               </button>
             </div>
-          </div>
+           </div>
         </div>
       )}
     </div>
