@@ -125,6 +125,7 @@ export function AccountDetailPage(): JSX.Element {
   const handleIncrementItem = async (itemId: string) => {
     const item = account.items.find((i) => i.id === itemId);
     if (!item) return;
+    const productName = item.product?.name || 'Producto';
 
     try {
       const res = await fetch(`${API_URL}/accounts/${account.id}/items/${itemId}`, {
@@ -135,9 +136,12 @@ export function AccountDetailPage(): JSX.Element {
       if (res.ok) {
         const updated = await res.json();
         updateAccount(updated);
+        showToast(`${productName} × ${item.quantity + 1}`);
+      } else {
+        showToast('No se pudo actualizar', 'error');
       }
     } catch {
-      // silent
+      showToast('Error de conexión', 'error');
     }
   };
 
