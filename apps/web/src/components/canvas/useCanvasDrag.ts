@@ -164,6 +164,7 @@ export function useCanvasDrag({
     if (!enabled) return
     didMove.current = false
     pointerDownStarted.current = true
+    longPressFired.current = false
     longPressActivated.current = false
     if (isLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
