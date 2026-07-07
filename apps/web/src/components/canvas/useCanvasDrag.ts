@@ -213,13 +213,18 @@ export function useCanvasDrag({
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
     pointerDownStarted.current = false
-    if (!longPressFired.current) {
+    if (longPressFired.current) {
+      // Long press activated but drag may not have completed (e.g. canvas panning intercepted)
+      // Ensure longPressActive is cleared
+      setLongPressActive(false)
+      onSnapGuides?.([])
+    } else {
       cancelLongPress(false)
       if (!didMove.current && !longPressCancelled.current && !didPanOccur()) {
         handleTapOrDoubleTap()
       }
     }
-  }, [enabled, cancelLongPress, handleTapOrDoubleTap])
+  }, [enabled, cancelLongPress, handleTapOrDoubleTap, onSnapGuides])
 
   return { onPointerDown, onPointerMove, onPointerUp }
 }
