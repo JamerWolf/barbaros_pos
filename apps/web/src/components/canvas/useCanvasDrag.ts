@@ -166,6 +166,7 @@ export function useCanvasDrag({
     pointerDownStarted.current = true
     longPressFired.current = false
     longPressActivated.current = false
+    longPressCancelled.current = false
     if (isLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
     setCardTouched()
