@@ -247,21 +247,21 @@ export function DashboardPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-2 bg-gray-900 p-2 text-white sm:gap-4 sm:p-4">
+    <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] p-2 text-[#E8E0D0] sm:gap-4 sm:p-4">
       {/* Header */}
       <header className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold sm:text-xl">Bárbaro's POS</h1>
-          <div className="flex rounded-lg bg-gray-800 p-1">
+          <h1 className="text-xl font-bold tracking-wider text-[#C8A84E]" style={{ fontFamily: 'serif' }}>BÁRBARO'S</h1>
+          <div className="flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
             <button
               onClick={() => handleModeChange('personal')}
-              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 ${mode === 'personal' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
             >
               Personal
             </button>
             <button
               onClick={() => handleModeChange('admin')}
-              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 ${mode === 'admin' ? 'bg-purple-600 text-white' : 'text-gray-400'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
             >
               Admin
             </button>
@@ -270,33 +270,33 @@ export function DashboardPage(): JSX.Element {
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode('list')}
-            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 ${viewMode === 'list' ? 'bg-blue-600' : 'bg-gray-700'}`}
+            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 transition-all ${viewMode === 'list' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#7A7060] border border-[#C8A84E]/20'}`}
           >
-            Lista
+            ☰ Lista
           </button>
           <button
             onClick={() => setViewMode('canvas')}
-            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 ${viewMode === 'canvas' ? 'bg-blue-600' : 'bg-gray-700'}`}
+            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 transition-all ${viewMode === 'canvas' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#7A7060] border border-[#C8A84E]/20'}`}
           >
-            Canvas
+            ⊞ Canvas
           </button>
         </div>
       </header>
 
       {mode === 'admin' && (
-        <div className="flex flex-col gap-3 rounded-xl bg-gray-800 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 rounded-xl bg-[#141414] p-3 border border-[#C8A84E]/20 sm:p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-white">Control de Turno</h2>
+            <h2 className="text-lg font-bold text-[#C8A84E] tracking-wide" style={{ fontFamily: 'serif' }}>Control de Turno</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAdminProducts(true)}
-                className="h-10 flex-1 rounded-lg bg-purple-600 px-3 text-sm font-bold text-white active:bg-purple-700 sm:flex-none"
+                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
               >
                 ☰ Productos
               </button>
               <button
                 onClick={() => navigate('/reports')}
-                className="h-10 flex-1 rounded-lg bg-blue-600 px-3 text-sm font-bold text-white active:bg-blue-700 sm:flex-none"
+                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
               >
                 📊 Reportes
               </button>
@@ -306,23 +306,23 @@ export function DashboardPage(): JSX.Element {
             !confirmCloseShift ? (
               <button
                 onClick={() => setConfirmCloseShift(true)}
-                className="h-12 w-full rounded-lg bg-red-600 px-4 font-bold text-white active:bg-red-700"
+                className="h-12 w-full rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 px-4 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
               >
                 Cerrar Turno
               </button>
             ) : (
-              <div className="flex flex-col gap-2 rounded-xl bg-red-900/30 p-4">
-                <p className="text-sm text-white">Seguro que queres cerrar el turno?</p>
+              <div className="flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 border border-[#E85050]/20 p-4">
+                <p className="text-sm text-[#E8E0D0]">Seguro que queres cerrar el turno?</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { closeShift(); setConfirmCloseShift(false) }}
-                    className="h-12 flex-1 rounded-lg bg-red-600 font-bold text-white active:bg-red-700"
+                    className="h-12 flex-1 rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
                   >
                     Si, cerrar
                   </button>
                   <button
                     onClick={() => setConfirmCloseShift(false)}
-                    className="h-12 flex-1 rounded-lg bg-gray-700 font-bold text-white active:bg-gray-600"
+                    className="h-12 flex-1 rounded-lg bg-[#1E1E1E] border border-[#C8A84E]/20 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
                   >
                     Cancelar
                   </button>
@@ -332,7 +332,7 @@ export function DashboardPage(): JSX.Element {
           ) : (
             <button
               onClick={openShift}
-              className="h-12 w-full rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
+              className="h-12 w-full rounded-lg bg-[#2D5A27] border border-[#7CCD7C]/30 px-4 font-bold text-[#7CCD7C] active:bg-[#2D5A27]/80"
             >
               Abrir Turno
             </button>
@@ -341,19 +341,19 @@ export function DashboardPage(): JSX.Element {
       )}
 
       {/* Toolbar */}
-      <div data-toolbar className="sticky top-0 z-20 flex flex-col gap-2 bg-gray-900 py-1 sm:flex-row sm:items-center">
+      <div data-toolbar className="sticky top-0 z-20 flex flex-col gap-2 bg-[#0A0A0A] py-1 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8A84E]">🔍</span>
           <input
             type="text"
             placeholder="Buscar cuenta..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-11 w-full rounded-lg bg-gray-800 py-2 pl-10 pr-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500 sm:h-12"
+            className="h-11 w-full rounded-lg bg-[#141414] border border-[#C8A84E]/20 py-2 pl-10 pr-4 text-sm text-[#E8E0D0] placeholder-[#7A7060] outline-none focus:ring-1 focus:ring-[#C8A84E]/50 sm:h-12"
           />
         </div>
         <div className="flex gap-2">
-          <div className="flex h-11 items-center rounded-lg bg-gray-700 px-1 sm:h-12">
+          <div className="flex h-11 items-center rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-1 sm:h-12">
             {([
               ['sm', 'S'],
               ['md', 'M'],
@@ -370,7 +370,7 @@ export function DashboardPage(): JSX.Element {
                   }
                 }}
                 className={`h-8 rounded-md px-2 text-xs font-bold ${
-                  cardSize === size ? 'bg-blue-600 text-white' : 'text-gray-400'
+                  cardSize === size ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
                 }`}
               >
                 {label}
@@ -379,7 +379,7 @@ export function DashboardPage(): JSX.Element {
           </div>
           <button
             onClick={createAccount}
-            className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-bold text-white active:bg-green-700 sm:h-12 sm:flex-none sm:px-4"
+            className="h-11 flex-1 rounded-lg bg-[#C8A84E] px-3 text-sm font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 sm:h-12 sm:flex-none sm:px-4"
           >
             + Cuenta
           </button>
@@ -453,27 +453,27 @@ export function DashboardPage(): JSX.Element {
                       setSelectionMode(true)
                     }
                   }}
-                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
-                    selectionMode ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                  className={`h-10 rounded-lg px-3 font-bold text-sm ${
+                    selectionMode ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
                   }`}
                 >
                   {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
                 </button>
                 <button
                   onClick={() => setShowAddOldAccount(true)}
-                  className="h-10 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+                  className="h-10 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 font-bold text-sm text-[#C8A84E] active:bg-[#C8A84E]/20"
                 >
                   + Agregar cuenta de otro turno
                 </button>
                 {/* Shape tools — admin only */}
                 {mode === 'admin' && (
                   <>
-                    <div className={`flex rounded-lg bg-gray-700 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
+                    <div className={`flex rounded-lg bg-[#141414] border border-[#C8A84E]/20 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
                       <button
                         onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
-                          activeTool === 'rectangle' ? 'bg-green-600 text-white' : 'text-gray-400'
+                          activeTool === 'rectangle' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
                         }`}
                         title="Rectángulo"
                       >
@@ -483,7 +483,7 @@ export function DashboardPage(): JSX.Element {
                         onClick={() => !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
-                          activeTool === 'line' ? 'bg-green-600 text-white' : 'text-gray-400'
+                          activeTool === 'line' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
                         }`}
                         title="Línea"
                       >
@@ -493,7 +493,7 @@ export function DashboardPage(): JSX.Element {
                         onClick={() => !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
-                          activeTool === 'text' ? 'bg-green-600 text-white' : 'text-gray-400'
+                          activeTool === 'text' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
                         }`}
                         title="Texto"
                       >
@@ -514,7 +514,7 @@ export function DashboardPage(): JSX.Element {
                             deleteShape(selectedShapeId);
                             setSelectedShapeId(null);
                           }}
-                          className="h-8 rounded-md px-2 text-xs font-bold text-red-400 hover:bg-red-900/50"
+                          className="h-8 rounded-md px-2 text-xs font-bold text-[#E85050] hover:bg-[#5C1A1A]"
                           title="Eliminar figura (o presiona Delete)"
                         >
                           🗑️
@@ -530,8 +530,8 @@ export function DashboardPage(): JSX.Element {
                           setSelectedShapeId(null);
                         }
                       }}
-                      className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
-                        shapesLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                      className={`h-10 rounded-lg px-3 font-bold text-sm ${
+                        shapesLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
                       }`}
                       title={shapesLocked ? 'Desbloquear figuras' : 'Bloquear figuras'}
                     >
@@ -546,8 +546,8 @@ export function DashboardPage(): JSX.Element {
                       setSelectionMode(false);
                     }
                   }}
-                  className={`h-10 rounded-lg px-3 font-bold text-sm text-white ${
-                    cardsLocked ? 'bg-yellow-600 active:bg-yellow-700' : 'bg-gray-700 active:bg-gray-600'
+                  className={`h-10 rounded-lg px-3 font-bold text-sm ${
+                    cardsLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
                   }`}
                   title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
                 >
