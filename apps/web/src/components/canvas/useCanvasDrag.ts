@@ -57,6 +57,7 @@ export function useCanvasDrag({
   const isLockedRef = useRef(isLocked)
   isLockedRef.current = isLocked
   const pointerTypeRef = useRef<'mouse' | 'touch' | 'pen'>('mouse')
+  const longPressActivated = useRef(false) // true only when long press timer fires (not mouse)
 
   const cancelLongPress = useCallback((markCancelled = true) => {
     if (longPressTimer.current) {
@@ -147,7 +148,7 @@ export function useCanvasDrag({
         return
       }
 
-      if (!isDragging.current) {
+      if (!isDragging.current && !longPressActivated.current) {
         handleTapOrDoubleTap()
       } else {
         onDragEnd?.(true)
@@ -163,6 +164,7 @@ export function useCanvasDrag({
     if (!enabled) return
     didMove.current = false
     pointerDownStarted.current = true
+    longPressActivated.current = false
     if (isLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
     setCardTouched()
@@ -180,6 +182,7 @@ export function useCanvasDrag({
       activateDrag(e.nativeEvent)
     } else {
       longPressTimer.current = setTimeout(() => {
+        longPressActivated.current = true
         activateDrag(e.nativeEvent)
       }, LONG_PRESS_MS)
     }
