@@ -62,7 +62,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       nodePositions: {},
       panOffset: { x: 0, y: 0 },
       zoom: 1,
-      viewMode: 'list',
+      viewMode: 'canvas',
       selectionMode: false,
       selectedIds: new Set<string>(),
       canvasHeight: null,

@@ -267,20 +267,6 @@ export function DashboardPage(): JSX.Element {
             </button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 transition-all ${viewMode === 'list' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#7A7060] border border-[#C8A84E]/20'}`}
-          >
-            ☰ Lista
-          </button>
-          <button
-            onClick={() => setViewMode('canvas')}
-            className={`h-9 flex-1 rounded-lg px-3 text-sm font-bold sm:h-10 transition-all ${viewMode === 'canvas' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#7A7060] border border-[#C8A84E]/20'}`}
-          >
-            ⊞ Canvas
-          </button>
-        </div>
       </header>
 
       {mode === 'admin' && (
