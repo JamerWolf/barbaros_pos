@@ -144,7 +144,10 @@ export const useAccountUIStore = create<AccountUIState>()(
       setPanOffset: (pos) => set({ panOffset: pos }),
       setZoom: (zoom) => set({ zoom }),
       setViewMode: (mode) => set({ viewMode: mode }),
-      setSelectionMode: (on) => set({ selectionMode: on, selectedIds: on ? new Set() : new Set() }),
+      setSelectionMode: (on) => set((state) => ({
+        selectionMode: on,
+        selectedIds: on ? state.selectedIds : new Set(),
+      })),
       toggleSelection: (accountId) => set((state) => {
         const next = new Set(state.selectedIds);
         if (next.has(accountId)) {

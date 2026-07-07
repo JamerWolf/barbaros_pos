@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccountStore } from '../store/accountStore.js'
 import { useAccountUIStore } from '../store/accountUIStore.js'
@@ -103,6 +103,22 @@ export function DashboardPage(): JSX.Element {
       .then((data) => setActiveShiftId(data?.id ?? null))
       .catch(() => setActiveShiftId(null))
   }, [])
+
+  // Auto-exit selection mode when no cards are selected
+  const hadSelection = useRef(false)
+  useEffect(() => {
+    if (selectionMode) {
+      if (selectedIds.size > 0) {
+        hadSelection.current = true
+      } else if (hadSelection.current) {
+        // Selection was active and is now empty → exit
+        hadSelection.current = false
+        setSelectionMode(false)
+      }
+    } else {
+      hadSelection.current = false
+    }
+  }, [selectedIds, selectionMode, setSelectionMode])
 
   // Listen for shift events from other devices
   useEffect(() => {
