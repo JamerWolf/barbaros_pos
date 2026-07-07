@@ -3,7 +3,8 @@ import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture, didPa
 import { computeSnap, type SnapBounds, type SnapGuide } from '../../utils/snapAlignment.js'
 
 const LONG_PRESS_MS = 400
-const DRAG_THRESHOLD = 3
+const DRAG_THRESHOLD_MOUSE = 3
+const DRAG_THRESHOLD_TOUCH = 10
 const DOUBLE_TAP_MS = 300
 
 interface UseCanvasDragOptions {
@@ -15,6 +16,7 @@ interface UseCanvasDragOptions {
   onDragEnd?: (didDrag: boolean) => void
   onTap?: () => void
   onDoubleTap?: () => void
+  onLongPress?: () => void
   // Snap alignment
   getSnapBounds?: () => SnapBounds | null
   getOtherSnapBounds?: () => SnapBounds[]
@@ -36,6 +38,7 @@ export function useCanvasDrag({
   onDragEnd,
   onTap,
   onDoubleTap,
+  onLongPress,
   getSnapBounds,
   getOtherSnapBounds,
   onSnapGuides,
@@ -53,6 +56,7 @@ export function useCanvasDrag({
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLockedRef = useRef(isLocked)
   isLockedRef.current = isLocked
+  const pointerTypeRef = useRef<'mouse' | 'touch' | 'pen'>('mouse')
 
   const cancelLongPress = useCallback((markCancelled = true) => {
     if (longPressTimer.current) {
@@ -91,6 +95,8 @@ export function useCanvasDrag({
     longPressFired.current = true
     setLongPressActive(true)
     activePointerId.current = e.pointerId
+    pointerTypeRef.current = (e.pointerType as 'mouse' | 'touch' | 'pen') || 'mouse'
+    onLongPress?.()
 
     const onDocMove = (ev: PointerEvent) => {
       if (ev.pointerId !== activePointerId.current) return
@@ -100,7 +106,8 @@ export function useCanvasDrag({
       if (!isDragging.current) {
         const dx = Math.abs(ev.clientX - startPos.current.x)
         const dy = Math.abs(ev.clientY - startPos.current.y)
-        if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        const threshold = pointerTypeRef.current === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH
+        if (dx > threshold || dy > threshold) {
           isDragging.current = true
         }
       }
@@ -150,7 +157,7 @@ export function useCanvasDrag({
 
     document.addEventListener('pointermove', onDocMove)
     document.addEventListener('pointerup', onDocUp)
-  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap, getSnapBounds, getOtherSnapBounds, onSnapGuides])
+  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap, onLongPress, getSnapBounds, getOtherSnapBounds, onSnapGuides])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
@@ -186,9 +193,10 @@ export function useCanvasDrag({
       cancelLongPress()
       return
     }
+    const threshold = e.pointerType === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH
     const dx = Math.abs(e.clientX - startPos.current.x)
     const dy = Math.abs(e.clientY - startPos.current.y)
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+    if (dx > threshold || dy > threshold) {
       didMove.current = true
       if (e.pointerType === 'mouse') {
         activateDrag(e.nativeEvent)

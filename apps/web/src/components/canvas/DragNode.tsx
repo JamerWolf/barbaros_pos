@@ -60,6 +60,14 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         onClick?.()
       }
     },
+    onLongPress: () => {
+      if (!selectionMode) {
+        const state = useAccountUIStore.getState()
+        state.saveSelectionSnapshot()
+        state.setSelectionMode(true)
+        state.toggleSelection(accountId)
+      }
+    },
     // Snap alignment: cards snap to cards
     getSnapBounds: () => {
       const state = useAccountUIStore.getState()
