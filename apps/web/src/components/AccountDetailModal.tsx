@@ -244,7 +244,6 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
         {/* Right: account detail */}
         <div className="flex w-[400px] flex-col overflow-y-auto p-4">
           <header className="mb-4 flex items-center gap-2">
-            <button onClick={onClose} className="h-10 rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
             <input
               type="text"
               value={account.name || ''}
