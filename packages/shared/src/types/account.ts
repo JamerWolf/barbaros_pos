@@ -26,6 +26,7 @@ export interface IAccount {
   total?: number;
   pendingAmount?: number;
   payments?: any[];
+  shift?: { id: string; openedAt: string; closedAt?: string | null; status: string };
   createdAt: Date;
   updatedAt: Date;
 }

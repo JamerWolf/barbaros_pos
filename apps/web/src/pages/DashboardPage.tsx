@@ -30,7 +30,7 @@ export function DashboardPage(): JSX.Element {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
   const { toast, showToast } = useToast()
-  const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
+  const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number; shift?: { id: string; openedAt: string; closedAt?: string | null; status: string } })[]>([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
@@ -683,7 +683,10 @@ export function DashboardPage(): JSX.Element {
                     }}
                     className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
                   >
-                    <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
+                    <div>
+                      <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
+                      <p className="text-xs text-[#7A7060]">Turno: {new Date(acc.shift?.openedAt || '').toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' })}</p>
+                    </div>
                     <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
                   </button>
                 ))}
