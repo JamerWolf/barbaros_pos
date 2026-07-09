@@ -570,22 +570,9 @@ export function DashboardPage(): JSX.Element {
                     </button>
                   </>
                 )}
-                <button
-                  onClick={() => {
-                    setCardsLocked(!cardsLocked);
-                    if (!cardsLocked) {
-                      setSelectionMode(false);
-                    }
-                  }}
-                  className={`h-10 rounded-lg px-3 font-bold text-sm ${
-                    cardsLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
-                  }`}
-                  title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
-                >
-                  {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
-                </button>
               </div>
             </div>
+            <div className="relative flex flex-1 flex-col">
             <CanvasContainer shapes={<ShapeLayer />} modal={selectedAccountId ? (
               <AccountDetailModal accountId={selectedAccountId} onClose={() => setSelectedAccountId(null)} />
             ) : undefined} onCreateAccount={createAccount} onToggleSelection={() => {
@@ -620,6 +607,21 @@ export function DashboardPage(): JSX.Element {
                 </DragNode>
               ))}
             </CanvasContainer>
+            <button
+              onClick={() => {
+                setCardsLocked(!cardsLocked);
+                if (!cardsLocked) {
+                  setSelectionMode(false);
+                }
+              }}
+              className={`absolute bottom-3 left-3 z-10 h-9 rounded-lg px-3 text-xs font-bold backdrop-blur ${
+                cardsLocked ? 'bg-[#C8A84E]/90 text-[#0A0A0A]' : 'bg-[#141414]/90 text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
+              }`}
+              title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
+            >
+              {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
+            </button>
+            </div>
           </>
         )}
       </section>
