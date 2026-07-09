@@ -32,6 +32,13 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
     return () => { if (readyTimer.current) clearTimeout(readyTimer.current); };
   }, []);
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   useEffect(() => {
     fetchProducts(true);
     fetchCategories();
@@ -54,11 +61,11 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
 
   if (!account) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-gray-900 p-4 text-white">
-        <p className="text-gray-400">Cuenta no encontrada.</p>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0A0A0A] p-4 text-[#E8E0D0]">
+        <p className="text-[#7A7060]">Cuenta no encontrada.</p>
         <button
           onClick={onClose}
-          className="h-12 rounded-lg bg-blue-600 px-6 font-bold text-white active:bg-blue-700"
+          className="h-12 rounded-lg bg-[#141414] border border-[#C8A84E]/30 px-6 font-bold text-[#C8A84E] active:bg-[#1E1E1E]"
         >
           Volver
         </button>
@@ -177,129 +184,127 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-gray-900 text-white"
+      className="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-[#E8E0D0] lg:flex-row"
       style={{ height: '100dvh' }}
     >
-      {/* Ghost touch shield — absorbs all pointer events for 300ms after open */}
+      {/* Ghost touch shield */}
       {!ready && (
         <div className="absolute inset-0 z-[9999]" onPointerDown={(e) => e.preventDefault()} />
       )}
-      <header className="flex items-center gap-2 p-4">
-        <button
-          onClick={onClose}
-          className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600"
-        >
-          ← Volver
-        </button>
-        <input
-          type="text"
-          value={account.name || ''}
-          placeholder={`Cuenta #${account.number} #${account.id.slice(-4)}`}
-          onChange={(e) => {
-            const newName = e.target.value;
-            updateAccount({ ...account, name: newName });
-          }}
-          onBlur={async () => {
-            await fetch(`${API_URL}/accounts/${account.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: account.name }),
-            });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          className="w-0 min-w-0 flex-1 rounded-lg bg-gray-700 px-3 py-2 text-xl font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {/* Total & Pending */}
-        <div className="mb-4 rounded-xl bg-gray-800 p-4">
-          <p className="text-sm text-gray-400">Estado: {account.status}</p>
-          <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
-          {pendingAmount > 0 && (
-            <p className="mt-2 text-lg text-yellow-400">
-              Pendiente: {formatCOP(pendingAmount)}
-            </p>
+      {/* Mobile: single column */}
+      <div className="flex flex-1 flex-col lg:hidden">
+        <header className="flex items-center gap-2 p-4">
+          <button onClick={onClose} className="h-10 rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
+          <input
+            type="text"
+            value={account.name || ''}
+            placeholder={`Cuenta #${account.number} #${account.id.slice(-4)}`}
+            onChange={(e) => { updateAccount({ ...account, name: e.target.value }); }}
+            onBlur={async () => { await fetch(`${API_URL}/accounts/${account.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: account.name }) }); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
+          />
+        </header>
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="mb-4 rounded-xl bg-[#141414] p-4">
+            <p className="text-sm text-[#7A7060]">Estado: {account.status}</p>
+            <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
+            {pendingAmount > 0 && <p className="mt-2 text-lg text-[#E85050]">Pendiente: {formatCOP(pendingAmount)}</p>}
+          </div>
+          {account.status === 'OPEN' && (
+            <button onClick={() => setShowPaymentModal(true)} className="mb-3 h-12 w-full rounded-lg bg-[#C8A84E] px-4 font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80">Pagar</button>
           )}
+          {!confirmClose ? (
+            <button onClick={() => canClose && setConfirmClose(true)} disabled={!canClose} className={`mb-4 h-12 w-full rounded-lg px-4 font-bold text-[#E8E0D0] ${canClose ? 'bg-[#5C1A1A] active:bg-[#5C1A1A]/80' : 'bg-[#1E1E1E] cursor-not-allowed opacity-50'}`}>
+              {canClose ? 'Cerrar Cuenta' : `Pendiente: ${formatCOP(pendingAmount)}`}
+            </button>
+          ) : (
+            <div className="mb-4 flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 p-4">
+              <p className="text-[#E8E0D0]">Seguro que queres cerrar la cuenta?</p>
+              <div className="flex gap-2">
+                <button onClick={closeAccount} className="h-12 flex-1 rounded-lg bg-[#5C1A1A] font-bold text-[#E8E0D0] active:bg-[#5C1A1A]/80">Si, cerrar</button>
+                <button onClick={() => setConfirmClose(false)} className="h-12 flex-1 rounded-lg bg-[#141414] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">Cancelar</button>
+              </div>
+            </div>
+          )}
+          <section className="mb-4">
+            <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
+            <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} />
+          </section>
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
+            <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
+          </section>
+        </div>
+      </div>
+
+      {/* Desktop (lg+): two columns */}
+      <div className="hidden lg:flex lg:flex-1 lg:flex-row lg:overflow-hidden">
+        {/* Left: products */}
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto border-r border-[#C8A84E]/20 p-4">
+          <h2 className="text-lg font-bold">Agregar productos</h2>
+          <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
         </div>
 
-        {/* Payment button */}
-        {account.status === 'OPEN' && (
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="mb-3 h-12 w-full rounded-lg bg-green-600 px-4 font-bold text-white active:bg-green-700"
-          >
-            Pagar
-          </button>
-        )}
+        {/* Right: account detail */}
+        <div className="flex w-[400px] flex-col overflow-y-auto p-4">
+          <header className="mb-4 flex items-center gap-2">
+            <button onClick={onClose} className="h-10 rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
+            <input
+              type="text"
+              value={account.name || ''}
+              placeholder={`Cuenta #${account.number} #${account.id.slice(-4)}`}
+              onChange={(e) => { updateAccount({ ...account, name: e.target.value }); }}
+              onBlur={async () => { await fetch(`${API_URL}/accounts/${account.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: account.name }) }); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
+            />
+          </header>
 
-        {/* Close button */}
-        {!confirmClose ? (
-          <button
-            onClick={() => canClose && setConfirmClose(true)}
-            disabled={!canClose}
-            className={`mb-4 h-12 w-full rounded-lg px-4 font-bold text-white ${
-              canClose
-                ? 'bg-red-600 active:bg-red-700'
-                : 'bg-gray-600 cursor-not-allowed opacity-50'
-            }`}
-          >
-            {canClose ? 'Cerrar Cuenta' : `Pendiente: ${formatCOP(pendingAmount)}`}
-          </button>
-        ) : (
-          <div className="mb-4 flex flex-col gap-2 rounded-xl bg-red-900/30 p-4">
-            <p className="text-white">Seguro que queres cerrar la cuenta?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={closeAccount}
-                className="h-12 flex-1 rounded-lg bg-red-600 font-bold text-white active:bg-red-700"
-              >
-                Si, cerrar
-              </button>
-              <button
-                onClick={() => setConfirmClose(false)}
-                className="h-12 flex-1 rounded-lg bg-gray-700 font-bold text-white active:bg-gray-600"
-              >
-                Cancelar
-              </button>
-            </div>
+          <div className="mb-4 rounded-xl bg-[#141414] p-4">
+            <p className="text-sm text-[#7A7060]">Estado: {account.status}</p>
+            <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
+            {pendingAmount > 0 && <p className="mt-2 text-lg text-[#E85050]">Pendiente: {formatCOP(pendingAmount)}</p>}
           </div>
-        )}
 
-        {/* Payment Modal */}
-        {showPaymentModal && (
-          <PaymentModal
-            accountId={account.id}
-            accountTotal={Number(account.total ?? 0)}
-            pendingAmount={pendingAmount}
-            payments={account.payments}
-            accountDiscountType={account.discountType}
-            accountDiscountValue={Number(account.discountValue ?? 0)}
-            onClose={() => setShowPaymentModal(false)}
-            onSuccess={() => {
-              fetch(`${API_URL}/accounts/${account.id}`)
-                .then((res) => res.json())
-                .then((data) => updateAccount(data));
-            }}
-          />
-        )}
+          {account.status === 'OPEN' && (
+            <button onClick={() => setShowPaymentModal(true)} className="mb-3 h-12 w-full rounded-lg bg-[#C8A84E] px-4 font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80">Pagar</button>
+          )}
 
-        <section className="mb-4">
-          <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-          <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} />
-        </section>
+          {!confirmClose ? (
+            <button onClick={() => canClose && setConfirmClose(true)} disabled={!canClose} className={`mb-4 h-12 w-full rounded-lg px-4 font-bold text-[#E8E0D0] ${canClose ? 'bg-[#5C1A1A] active:bg-[#5C1A1A]/80' : 'bg-[#1E1E1E] cursor-not-allowed opacity-50'}`}>
+              {canClose ? 'Cerrar Cuenta' : `Pendiente: ${formatCOP(pendingAmount)}`}
+            </button>
+          ) : (
+            <div className="mb-4 flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 p-4">
+              <p className="text-[#E8E0D0]">Seguro que queres cerrar la cuenta?</p>
+              <div className="flex gap-2">
+                <button onClick={closeAccount} className="h-12 flex-1 rounded-lg bg-[#5C1A1A] font-bold text-[#E8E0D0] active:bg-[#5C1A1A]/80">Si, cerrar</button>
+                <button onClick={() => setConfirmClose(false)} className="h-12 flex-1 rounded-lg bg-[#141414] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">Cancelar</button>
+              </div>
+            </div>
+          )}
 
-        <section>
-          <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
-          <ProductGrid
-            products={products}
-            categories={categories}
-            onAddProduct={handleAddProduct}
-          />
-        </section>
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
+            <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} />
+          </section>
+        </div>
       </div>
+
+      {showPaymentModal && (
+        <PaymentModal
+          accountId={account.id}
+          accountTotal={Number(account.total ?? 0)}
+          pendingAmount={pendingAmount}
+          payments={account.payments}
+          accountDiscountType={account.discountType}
+          accountDiscountValue={Number(account.discountValue ?? 0)}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={() => { fetch(`${API_URL}/accounts/${account.id}`).then((res) => res.json()).then((data) => updateAccount(data)); }}
+        />
+      )}
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
