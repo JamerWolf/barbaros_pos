@@ -348,6 +348,12 @@ export function DashboardPage(): JSX.Element {
                 >
                   {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
                 </button>
+                <button
+                  onClick={() => { setShowAddOldAccount(true); setShowCuentaMenu(false) }}
+                  className="w-full rounded-md px-3 py-2 text-left text-xs font-bold text-[#E8E0D0] hover:bg-[#1E1E1E]"
+                >
+                  + Agregar cuenta de otro turno
+                </button>
               </div>
             )}
           </div>
@@ -490,12 +496,6 @@ export function DashboardPage(): JSX.Element {
                     ✕ Cancelar
                   </button>
                 )}
-                <button
-                  onClick={() => setShowAddOldAccount(true)}
-                  className="h-10 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 font-bold text-sm text-[#C8A84E] active:bg-[#C8A84E]/20"
-                >
-                  + Agregar cuenta de otro turno
-                </button>
                 {/* Shape tools — admin only */}
                 {mode === 'admin' && (
                   <>
