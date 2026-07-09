@@ -256,13 +256,13 @@ export function AccountDetailPage(): JSX.Element {
 
       {/* Desktop (lg+): two columns — products left, account right */}
       <div className="hidden lg:flex lg:flex-1 lg:flex-row">
-        {/* Left: products */}
-        <div className={`flex flex-1 flex-col gap-4 border-r border-[#C8A84E]/20 p-4`}>
-          <h2 className="text-lg font-bold">Agregar productos</h2>
-          {!readonly && (
+        {/* Left: products (hidden in readonly) */}
+        {!readonly && (
+          <div className={`flex flex-1 flex-col gap-4 border-r border-[#C8A84E]/20 p-4`}>
+            <h2 className="text-lg font-bold">Agregar productos</h2>
             <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Right: account detail */}
         <div className="flex w-[420px] flex-col gap-4 p-4">
