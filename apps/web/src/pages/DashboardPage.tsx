@@ -367,7 +367,7 @@ export function DashboardPage(): JSX.Element {
             }`}
             title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
           >
-            {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
+            <img src="/candadoAbierto.png" alt="Tarjetas" className={`h-5 w-5 ${cardsLocked ? '' : 'opacity-60'}`} />
           </button>
           {/* lg+: mode selector next to + Cuenta */}
           <div className="hidden md:flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
