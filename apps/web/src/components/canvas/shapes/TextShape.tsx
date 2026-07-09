@@ -53,6 +53,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
     onDoubleTap: () => {
       if (!isLocked) onStartEdit?.();
     },
+    onDragEnd: () => useAccountUIStore.getState().setActiveGuides([]),
   });
 
   useEffect(() => {
@@ -248,7 +249,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
               width: handleSize,
               height: handleSize,
               backgroundColor: '#fff',
-              border: '1px solid #374151',
+              border: '1px solid #C8A84E/30',
               borderRadius: 1,
               zIndex: 20,
             };
@@ -283,7 +284,7 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
           >
             <div className="h-4 w-px bg-white/40" />
             <div
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/40 bg-gray-800 text-xs text-white"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-[#C8A84E]/30 bg-[#141414] text-xs text-[#E8E0D0]"
               style={{ cursor: 'grab' }}
             >
               ↻

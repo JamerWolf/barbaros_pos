@@ -4,6 +4,7 @@ import { formatCOP } from '../utils/format.js';
 import { DateRangePicker } from '../components/DateRangePicker.js';
 import { useShiftSockets } from '../hooks/useShiftSockets.js';
 import API_URL from '../utils/apiUrl.js';
+import { tw } from '../utils/colors.js';
 import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
 
 /** Convert YYYY-MM-DD to ISO string with local timezone offset */
@@ -128,90 +129,107 @@ export function ReportsPage(): JSX.Element {
     });
   };
 
+  // Aggregated summary across all visible shifts (must be before any early return)
+  const summary = useMemo(() => {
+    let totalSales = 0;
+    let totalPaid = 0;
+    let accountsCount = 0;
+    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
+    for (const s of shifts) {
+      totalSales += s.totalSales;
+      totalPaid += s.totalPaid;
+      accountsCount += s.accountsCount;
+      for (const [method, amount] of Object.entries(s.paymentsByMethod)) {
+        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount;
+      }
+    }
+    return { totalSales, totalPaid, pendingAmount: totalSales - totalPaid, accountsCount, paymentsByMethod };
+  }, [shifts]);
+
   // Detail view
   if (selectedShift) {
     return (
-      <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
+      <div className={`flex min-h-screen flex-col gap-4 ${tw.bg} p-4 ${tw.text}`}>
         <header className="flex items-center gap-2">
           <button
             onClick={() => setSelectedShift(null)}
-            className="h-12 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600"
+            className={`h-12 rounded-lg ${tw.bgCard} px-3 font-bold ${tw.text} active:bg-[#1E1E1E]`}
           >
             ← Volver
           </button>
           <h1 className="flex-1 text-xl font-bold">Detalle del Turno</h1>
           <button
             onClick={() => handleExport(selectedShift.id)}
-            className="h-12 rounded-lg bg-blue-600 px-3 font-bold text-sm text-white active:bg-blue-700"
+            className={`h-12 rounded-lg ${tw.primaryBg} px-3 font-bold text-sm text-[#0A0A0A] active:bg-[#C8A84E]/80`}
           >
             📊 Excel
           </button>
         </header>
 
         {/* Summary */}
-        <div className="rounded-xl bg-gray-800 p-4">
-          <div className="flex justify-between text-sm text-gray-400">
+        <div className={`rounded-xl ${tw.bgCard} p-4`}>
+          <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Estado:</span>
-            <span className={`font-bold ${selectedShift.status === 'OPEN' ? 'text-green-400' : 'text-gray-300'}`}>
+            <span className={`font-bold ${selectedShift.status === 'OPEN' ? 'text-[#7CCD7C]' : tw.text}`}>
               {selectedShift.status === 'OPEN' ? 'Abierto' : 'Cerrado'}
             </span>
           </div>
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Desde:</span>
-            <span className="text-white">{formatDate(selectedShift.openedAt)}</span>
+            <span className={tw.text}>{formatDate(selectedShift.openedAt)}</span>
           </div>
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Hasta:</span>
-            <span className="text-white">{selectedShift.closedAt ? formatDate(selectedShift.closedAt) : '—'}</span>
+            <span className={tw.text}>{selectedShift.closedAt ? formatDate(selectedShift.closedAt) : '—'}</span>
           </div>
-          <div className="mt-3 flex justify-between text-sm text-gray-400">
+          <div className={`mt-3 flex justify-between text-sm ${tw.textMuted}`}>
             <span>Cuentas:</span>
-            <span className="font-bold text-white">{selectedShift.accountsCount}</span>
+            <span className={`font-bold ${tw.text}`}>{selectedShift.accountsCount}</span>
           </div>
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Total Ventas:</span>
-            <span className="font-bold text-green-400">{formatCOP(selectedShift.totalSales)}</span>
+            <span className="font-bold text-[#7CCD7C]">{formatCOP(selectedShift.totalSales)}</span>
           </div>
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Total Pagado:</span>
-            <span className="font-bold text-green-400">{formatCOP(selectedShift.totalPaid)}</span>
+            <span className="font-bold text-[#7CCD7C]">{formatCOP(selectedShift.totalPaid)}</span>
           </div>
           {selectedShift.pendingAmount > 0 && (
-            <div className="flex justify-between text-sm text-gray-400">
+            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
               <span>Pendiente:</span>
-              <span className="font-bold text-yellow-400">{formatCOP(selectedShift.pendingAmount)}</span>
+              <span className="font-bold text-[#E85050]">{formatCOP(selectedShift.pendingAmount)}</span>
             </div>
           )}
         </div>
 
         {/* Payment breakdown */}
-        <div className="rounded-xl bg-gray-800 p-4">
+        <div className={`rounded-xl ${tw.bgCard} p-4`}>
           <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
           {Object.entries(selectedShift.paymentsByMethod).map(([method, total]) => (
-            <div key={method} className="flex justify-between text-sm text-gray-400">
+            <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
               <span>{method === 'CASH' ? 'Efectivo' : method === 'TRANSFER' ? 'Transferencia' : 'Tarjeta'}</span>
-              <span className="font-bold text-white">{formatCOP(total)}</span>
+              <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
             </div>
           ))}
         </div>
 
         {/* Accounts list */}
-        <div className="rounded-xl bg-gray-800 p-4">
+        <div className={`rounded-xl ${tw.bgCard} p-4`}>
           <h2 className="mb-3 text-lg font-bold">Cuentas</h2>
           {selectedShift.accounts.length > 0 && (
             <div className="relative mb-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${tw.textMuted}`}>🔍</span>
               <input
                 type="text"
                 placeholder="Buscar cuenta..."
                 value={accountSearch}
                 onChange={(e) => setAccountSearch(e.target.value)}
-                className="h-10 w-full rounded-lg bg-gray-700 py-2 pl-9 pr-3 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className={`h-10 w-full rounded-lg ${tw.bgCard} py-2 pl-9 pr-3 text-sm ${tw.text} outline-none focus:ring-2 focus:ring-[#C8A84E]`}
               />
             </div>
           )}
           {selectedShift.accounts.length === 0 ? (
-            <p className="text-gray-500">Sin cuentas</p>
+            <p className={tw.textMuted}>Sin cuentas</p>
           ) : (
             <div className="flex flex-col gap-2">
               {selectedShift.accounts
@@ -223,22 +241,22 @@ export function ReportsPage(): JSX.Element {
                     (account.name || '').toLowerCase().includes(q)
                   );
                 })
-                .map((account) => (
+                .map((account, i) => (
                 <button
                   key={account.id}
                   onClick={() => navigate(`/accounts/${account.id}?readonly=1&shiftId=${selectedShift.id}`)}
-                  className="flex items-center justify-between rounded-lg bg-gray-700 px-3 py-2 text-left active:bg-gray-600"
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-left active:bg-[#1E1E1E] ${i % 2 === 0 ? 'bg-[#141414]' : 'bg-[#1E1E1E]'}`}
                 >
                   <div>
-                    <p className="font-bold text-white">#{account.number} {account.name}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className={`font-bold ${tw.text}`}>#{account.number} {account.name}</p>
+                    <p className={`text-xs ${tw.textMuted}`}>
                       {account.status === 'OPEN' ? '🟢 Abierta' : '✅ Cerrada'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-white">{formatCOP(account.total)}</p>
+                    <p className={`font-bold ${tw.text}`}>{formatCOP(account.total)}</p>
                     {account.pendingAmount > 0 && (
-                      <p className="text-xs text-yellow-400">Pendiente: {formatCOP(account.pendingAmount)}</p>
+                      <p className="text-xs text-[#E85050]">Pendiente: {formatCOP(account.pendingAmount)}</p>
                     )}
                   </div>
                 </button>
@@ -248,7 +266,7 @@ export function ReportsPage(): JSX.Element {
                 const q = accountSearch.toLowerCase();
                 return String(account.number).includes(q) || (account.name || '').toLowerCase().includes(q);
               }).length === 0 && (
-                <p className="text-center text-sm text-gray-500">No se encontraron cuentas.</p>
+                <p className={`text-center text-sm ${tw.textMuted}`}>No se encontraron cuentas.</p>
               )}
             </div>
           )}
@@ -259,11 +277,11 @@ export function ReportsPage(): JSX.Element {
 
   // List view
   return (
-    <div className="flex min-h-screen flex-col gap-4 bg-gray-900 p-4 text-white">
+    <div className={`flex min-h-screen flex-col gap-4 ${tw.bg} p-4 ${tw.text}`}>
       <header className="flex items-center gap-2">
         <button
           onClick={() => navigate('/')}
-          className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-white active:bg-gray-600"
+          className={`h-10 rounded-lg ${tw.bgCard} px-3 font-bold ${tw.text} active:bg-[#1E1E1E]`}
         >
           ← Volver
         </button>
@@ -279,30 +297,69 @@ export function ReportsPage(): JSX.Element {
         }}
       />
 
+      {/* Aggregated summary */}
+      {shifts.length > 0 && (
+        <>
+          <div className={`rounded-xl ${tw.bgCard} p-4`}>
+            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+              <span>Turnos:</span>
+              <span className={`font-bold ${tw.text}`}>{shifts.length}</span>
+            </div>
+            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+              <span>Cuentas:</span>
+              <span className={`font-bold ${tw.text}`}>{summary.accountsCount}</span>
+            </div>
+            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+              <span>Total Ventas:</span>
+              <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalSales)}</span>
+            </div>
+            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+              <span>Total Pagado:</span>
+              <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalPaid)}</span>
+            </div>
+            {summary.pendingAmount > 0 && (
+              <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                <span>Pendiente:</span>
+                <span className="font-bold text-[#E85050]">{formatCOP(summary.pendingAmount)}</span>
+              </div>
+            )}
+          </div>
+          <div className={`rounded-xl ${tw.bgCard} p-4`}>
+            <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
+            {Object.entries(summary.paymentsByMethod).map(([method, total]) => (
+              <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
+                <span>{method === 'CASH' ? 'Efectivo' : method === 'TRANSFER' ? 'Transferencia' : 'Tarjeta'}</span>
+                <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {loading ? (
-        <p className="text-gray-400">Cargando turnos...</p>
+        <p className={tw.textMuted}>Cargando turnos...</p>
       ) : shifts.length === 0 ? (
-        <p className="text-gray-400">Sin turnos</p>
+        <p className={tw.textMuted}>Sin turnos</p>
       ) : (
         <div className="flex flex-col gap-3">
           {shifts.map((shift) => (
             <button
               key={shift.id}
               onClick={() => handleSelectShift(shift.id)}
-              className="flex items-center justify-between rounded-xl bg-gray-800 p-4 text-left active:bg-gray-700"
+              className={`flex items-center justify-between rounded-xl ${tw.bgCard} p-4 text-left active:bg-[#1E1E1E]`}
             >
               <div>
-                <p className="font-bold text-white">
+                <p className={`font-bold ${tw.text}`}>
                   {formatDate(shift.openedAt)}
                 </p>
-                <p className="text-sm text-gray-400">
+                <p className={`text-sm ${tw.textMuted}`}>
                   {shift.accountsCount} cuentas · {shift.status === 'OPEN' ? '🟢 Abierto' : '✅ Cerrado'}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-green-400">{formatCOP(shift.totalSales)}</p>
+                <p className="font-bold text-[#7CCD7C]">{formatCOP(shift.totalSales)}</p>
                 {shift.totalPaid < shift.totalSales && (
-                  <p className="text-xs text-yellow-400">Pagado: {formatCOP(shift.totalPaid)}</p>
+                  <p className="text-xs text-[#E85050]">Pagado: {formatCOP(shift.totalPaid)}</p>
                 )}
               </div>
             </button>

@@ -3,6 +3,7 @@ import { useProductStore } from '../../store/productStore.js';
 import { CategoryTabs } from '../CategoryTabs.js';
 import { formatCOP } from '../../utils/format.js';
 import { productPhotoUrl } from '../../utils/productPhoto.js';
+import { tw } from '../../utils/colors.js';
 
 interface AdminProductsPageProps {
   onClose: () => void;
@@ -123,46 +124,63 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex">
-      <div className="w-80 shrink-0 overflow-y-auto bg-gray-800 p-4 text-white">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Productos</h2>
-          <button onClick={onClose} className="text-gray-400 active:text-white">
-            ✕
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-[#E8E0D0]" style={{ height: '100dvh' }}>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <button onClick={onClose} className={`h-10 rounded-lg ${tw.bgHover} px-3 font-bold ${tw.text} active:bg-[#1E1E1E]`}>
+            ← Volver
           </button>
+          <h2 className="text-lg font-bold">Productos</h2>
         </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
 
         <div className="mb-3 flex gap-2">
           <button
             onClick={openNewProduct}
-            className="h-10 flex-1 rounded-lg bg-green-600 font-bold text-sm text-white active:bg-green-700"
+            className="h-10 flex-1 rounded-lg bg-[#C8A84E] font-bold text-sm text-[#E8E0D0] active:bg-[#C8A84E]/80"
           >
             + Producto
           </button>
           <button
             onClick={() => setShowCategoryInput(!showCategoryInput)}
-            className="h-10 flex-1 rounded-lg bg-blue-600 font-bold text-sm text-white active:bg-blue-700"
+            className="h-10 flex-1 rounded-lg bg-[#141414] font-bold text-sm text-[#E8E0D0] active:bg-[#1E1E1E]"
           >
             + Categoría
           </button>
         </div>
 
         {showCategoryInput && (
-          <div className="mb-3 flex gap-2">
-            <input
-              type="text"
-              placeholder="Nombre categoría"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              className="h-10 flex-1 rounded-lg bg-gray-700 px-3 text-sm text-white outline-none"
-            />
-            <button
-              onClick={handleAddCategory}
-              className="h-10 rounded-lg bg-green-600 px-3 font-bold text-sm text-white active:bg-green-700"
-            >
-              OK
-            </button>
+          <div className="mb-3 flex flex-col gap-2">
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className={`rounded ${tw.bgHover} px-2 py-0.5 text-xs ${tw.textMuted} hover:text-[#E85050]`}
+                  >
+                    {cat.name} ✕
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Nombre categoría"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                className="h-10 flex-1 rounded-lg bg-[#1E1E1E] px-3 text-sm text-[#E8E0D0] outline-none"
+              />
+              <button
+                onClick={handleAddCategory}
+                className="h-10 rounded-lg bg-[#C8A84E] px-3 font-bold text-sm text-[#E8E0D0] active:bg-[#C8A84E]/80"
+              >
+                OK
+              </button>
+            </div>
           </div>
         )}
 
@@ -171,7 +189,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
           placeholder="Buscar..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mb-3 h-10 w-full rounded-lg bg-gray-700 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
+          className="mb-3 h-10 w-full rounded-lg bg-[#1E1E1E] px-3 text-sm text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
         />
 
         <CategoryTabs
@@ -180,29 +198,15 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
           onSelect={setSelectedCategory}
         />
 
-        {categories.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleDeleteCategory(cat.id)}
-                className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-400 hover:text-red-400"
-              >
-                {cat.name} ✕
-              </button>
-            ))}
-          </div>
-        )}
-
         <div className="mt-4 flex flex-col gap-2">
-          {loading && <p className="text-gray-500">Cargando...</p>}
+          {loading && <p className={tw.textMuted}>Cargando...</p>}
           {!loading && filtered.length === 0 && (
-            <p className="text-gray-500">No hay productos</p>
+            <p className={tw.textMuted}>No hay productos</p>
           )}
           {filtered.map((product) => (
             <div
               key={product.id}
-              className="flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-2"
+              className="flex items-center gap-2 rounded-lg bg-[#1E1E1E] px-3 py-2"
             >
               {product.photoUrl ? (
                 <img
@@ -211,29 +215,29 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                   className="h-10 w-10 shrink-0 rounded-lg object-cover"
                 />
               ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-600 text-lg">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tw.bgHover} text-lg`}>
                   📦
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="truncate font-bold text-white">{product.name}</p>
-                <p className="text-xs text-gray-400">
+                <p className="truncate font-bold text-[#E8E0D0]">{product.name}</p>
+                <p className="text-xs text-[#7A7060]">
                   {formatCOP(Number(product.price))}
                   {product.category && ` · ${product.category.name}`}
                   {!product.active && (
-                    <span className="ml-1 text-red-400">Inactivo</span>
+                    <span className={`ml-1 ${tw.error}`}>Inactivo</span>
                   )}
                 </p>
               </div>
               <button
                 onClick={() => openEditProduct(product)}
-                className="h-8 rounded bg-gray-600 px-2 text-xs font-bold text-white active:bg-gray-500"
+                className={`h-8 rounded ${tw.bgHover} px-2 text-xs font-bold ${tw.text} active:bg-[#1E1E1E]`}
               >
                 ✏️
               </button>
               <button
                 onClick={() => handleDeleteProduct(product.id)}
-                className="h-8 rounded bg-red-600/30 px-2 text-xs font-bold text-red-300 active:bg-red-600/50"
+                className={`h-8 rounded ${tw.errorBg} px-2 text-xs font-bold ${tw.error} active:bg-[#5C1A1A]/80`}
               >
                 🗑️
               </button>
@@ -242,12 +246,10 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
         </div>
       </div>
 
-      <div className="flex-1 bg-black/50" onClick={onClose} />
-
       {showProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-gray-800 p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">
+          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6">
+            <h3 className="mb-4 text-lg font-bold text-[#E8E0D0]">
               {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
             </h3>
             <div className="flex flex-col gap-3">
@@ -256,7 +258,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                 placeholder="Nombre"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="h-12 rounded-lg bg-gray-700 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
               />
               <input
                 type="number"
@@ -264,12 +266,12 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                 placeholder="Precio"
                 value={formPrice}
                 onChange={(e) => setFormPrice(e.target.value)}
-                className="h-12 rounded-lg bg-gray-700 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
               />
               <select
                 value={formCategoryId}
                 onChange={(e) => setFormCategoryId(e.target.value)}
-                className="h-12 rounded-lg bg-gray-700 px-4 text-white outline-none"
+                className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none"
               >
                 <option value="">Sin categoría</option>
                 {categories.map((cat) => (
@@ -278,7 +280,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 text-sm text-gray-300">
+              <label className={`flex items-center gap-2 text-sm ${tw.text}`}>
                 <input
                   type="checkbox"
                   checked={formActive}
@@ -298,7 +300,7 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
                   />
                   <button
                     onClick={() => photoInputRef.current?.click()}
-                    className="h-10 rounded-lg bg-gray-600 px-3 text-sm font-bold text-white active:bg-gray-500"
+                    className={`h-10 rounded-lg ${tw.bgHover} px-3 text-sm font-bold ${tw.text} active:bg-[#1E1E1E]`}
                   >
                     📷 Cambiar foto
                   </button>
@@ -315,18 +317,18 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowProductModal(false)}
-                className="h-12 flex-1 rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+                className={`h-12 flex-1 rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveProduct}
-                className="h-12 flex-1 rounded-xl bg-blue-600 font-bold text-white active:bg-blue-700"
+                className="h-12 flex-1 rounded-xl bg-[#141414] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]"
               >
                 Guardar
               </button>
             </div>
-          </div>
+           </div>
         </div>
       )}
     </div>

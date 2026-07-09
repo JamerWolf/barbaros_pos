@@ -166,36 +166,36 @@ export function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-gray-800 p-6">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[#141414] p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Registrar Pago</h2>
+          <h2 className="text-xl font-bold text-[#E8E0D0]">Registrar Pago</h2>
           <button
             onClick={onClose}
-            className="h-10 w-10 rounded-lg bg-gray-700 text-white active:bg-gray-600"
+            className="h-10 w-10 rounded-lg bg-[#1E1E1E] text-[#E8E0D0] active:bg-[#141414]"
           >
             X
           </button>
         </div>
 
         {/* Summary */}
-        <div className="mb-4 rounded-xl bg-gray-900 p-4">
-          <div className="flex justify-between text-sm text-gray-400">
+        <div className="mb-4 rounded-xl bg-[#0A0A0A] p-4">
+          <div className="flex justify-between text-sm text-[#7A7060]">
             <span>Total cuenta:</span>
-            <span className="font-bold text-white">{formatCOP(accountTotal)}</span>
+            <span className="font-bold text-[#E8E0D0]">{formatCOP(accountTotal)}</span>
           </div>
           {appliedDiscount && (
-            <div className="flex justify-between text-sm text-gray-400">
+            <div className="flex justify-between text-sm text-[#7A7060]">
               <span>Descuento:</span>
-              <span className="font-bold text-green-400">
+              <span className="font-bold text-[#7CCD7C]">
                 {appliedDiscount.type === DiscountType.FIXED
                   ? `-${formatCOP(appliedDiscount.value)}`
                   : `-${appliedDiscount.value}%`}
               </span>
             </div>
           )}
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className="flex justify-between text-sm text-[#7A7060]">
             <span>Pendiente:</span>
-            <span className="font-bold text-yellow-400">{formatCOP(pendingAmount)}</span>
+            <span className="font-bold text-[#E85050]">{formatCOP(pendingAmount)}</span>
           </div>
         </div>
 
@@ -204,22 +204,22 @@ export function PaymentModal({
           <button
             type="button"
             onClick={() => setDiscountOpen(!discountOpen)}
-            className="h-12 w-full rounded-lg bg-gray-700 px-4 text-left font-bold text-white active:bg-gray-600"
+            className="h-12 w-full rounded-lg bg-[#1E1E1E] px-4 text-left font-bold text-[#E8E0D0] active:bg-[#141414]"
           >
             {discountOpen ? 'Ocultar Descuento' : 'Aplicar Descuento'}
           </button>
 
           {discountOpen && (
-            <div className="mt-3 rounded-xl bg-gray-900 p-4">
+            <div className="mt-3 rounded-xl bg-[#0A0A0A] p-4">
               {/* Type selector */}
               <div className="mb-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setDiscountType(DiscountType.FIXED)}
-                  className={`h-12 flex-1 rounded-lg font-bold text-white ${
+                  className={`h-12 flex-1 rounded-lg font-bold text-[#E8E0D0] ${
                     discountType === DiscountType.FIXED
-                      ? 'bg-blue-600'
-                      : 'bg-gray-700 active:bg-gray-600'
+                      ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                      : 'bg-[#141414] active:bg-[#1E1E1E]'
                   }`}
                 >
                   Fijo ($)
@@ -227,10 +227,10 @@ export function PaymentModal({
                 <button
                   type="button"
                   onClick={() => setDiscountType(DiscountType.PERCENT)}
-                  className={`h-12 flex-1 rounded-lg font-bold text-white ${
+                  className={`h-12 flex-1 rounded-lg font-bold text-[#E8E0D0] ${
                     discountType === DiscountType.PERCENT
-                      ? 'bg-blue-600'
-                      : 'bg-gray-700 active:bg-gray-600'
+                      ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                      : 'bg-[#141414] active:bg-[#1E1E1E]'
                   }`}
                 >
                   Porcentaje (%)
@@ -239,7 +239,7 @@ export function PaymentModal({
 
               {/* Value input */}
               <div className="mb-3">
-                <label className="mb-1 block text-sm text-gray-400">
+                <label className="mb-1 block text-sm text-[#7A7060]">
                   {discountType === DiscountType.FIXED ? 'Monto (COP)' : 'Porcentaje'}
                 </label>
                 <input
@@ -249,31 +249,31 @@ export function PaymentModal({
                   max={discountType === DiscountType.PERCENT ? 100 : undefined}
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  className="h-12 w-full rounded-lg bg-gray-700 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-12 w-full rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
                   placeholder={discountType === DiscountType.FIXED ? '$' : '%'}
                 />
                 {discountType === DiscountType.PERCENT && (
-                  <p className="mt-1 text-xs text-gray-500">Maximo: 100%</p>
+                  <p className="mt-1 text-xs text-[#7A7060]">Maximo: 100%</p>
                 )}
               </div>
 
               {/* Live preview */}
               {isDiscountValid && (
-                <div className="mb-3 rounded-lg bg-gray-800 p-3">
+                <div className="mb-3 rounded-lg bg-[#141414] p-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Total con descuento:</span>
-                    <span className="font-bold text-green-400">{formatCOP(previewTotal)}</span>
+                    <span className="text-[#7A7060]">Total con descuento:</span>
+                    <span className="font-bold text-[#7CCD7C]">{formatCOP(previewTotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Pendiente:</span>
-                    <span className="font-bold text-yellow-400">{formatCOP(previewPending)}</span>
+                    <span className="text-[#7A7060]">Pendiente:</span>
+                    <span className="font-bold text-[#E85050]">{formatCOP(previewPending)}</span>
                   </div>
                 </div>
               )}
 
               {/* Discount error */}
               {discountError && (
-                <div className="mb-3 rounded-lg bg-red-900/30 p-3 text-sm text-red-400">
+                <div className="mb-3 rounded-lg bg-[#5C1A1A]/30 p-3 text-sm text-[#E85050]">
                   {discountError}
                 </div>
               )}
@@ -283,7 +283,7 @@ export function PaymentModal({
                 type="button"
                 onClick={handleApplyDiscount}
                 disabled={!isDiscountValid || discountLoading}
-                className="h-12 w-full rounded-lg bg-purple-600 font-bold text-white active:bg-purple-700 disabled:opacity-50"
+                className="h-12 w-full rounded-lg bg-[#C8A84E] font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 disabled:opacity-50"
               >
                 {discountLoading
                   ? 'Aplicando...'
@@ -297,26 +297,26 @@ export function PaymentModal({
 
         {/* Existing payments */}
         {payments.length > 0 && (
-          <div className="mb-4 rounded-xl bg-gray-900 p-4">
-            <p className="mb-2 text-xs text-gray-400">Pagos registrados:</p>
+          <div className="mb-4 rounded-xl bg-[#0A0A0A] p-4">
+            <p className="mb-2 text-xs text-[#7A7060]">Pagos registrados:</p>
             {payments.map((p, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="text-gray-300">
+                  <span className="text-[#7A7060]">
                     {p.method === PaymentMethod.CASH ? 'Efectivo' : p.method === PaymentMethod.TRANSFER ? 'Transferencia' : 'Tarjeta'}
                   </span>
                   {p.createdAt && (
-                    <span className="ml-2 text-xs text-gray-500">
+                    <span className="ml-2 text-xs text-[#7A7060]">
                       {new Date(p.createdAt).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
-                <span className="text-green-400">{formatCOP(p.amount)}</span>
+                <span className="text-[#7CCD7C]">{formatCOP(p.amount)}</span>
               </div>
             ))}
-            <div className="mt-2 flex justify-between border-t border-gray-700 pt-2 text-sm font-bold">
-              <span className="text-gray-300">Total pagado:</span>
-              <span className="text-green-400">{formatCOP(payments.reduce((sum, p) => sum + p.amount, 0))}</span>
+            <div className="mt-2 flex justify-between border-t border-[#C8A84E]/20 pt-2 text-sm font-bold">
+              <span className="text-[#7A7060]">Total pagado:</span>
+              <span className="text-[#7CCD7C]">{formatCOP(payments.reduce((sum, p) => sum + p.amount, 0))}</span>
             </div>
           </div>
         )}
@@ -329,10 +329,10 @@ export function PaymentModal({
                 key={m}
                 type="button"
                 onClick={() => setMethod(m)}
-                className={`h-12 flex-1 rounded-lg font-bold text-white ${
+                className={`h-12 flex-1 rounded-lg font-bold text-[#E8E0D0] ${
                   method === m
-                    ? 'bg-blue-600'
-                    : 'bg-gray-700 active:bg-gray-600'
+                    ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                    : 'bg-[#141414] active:bg-[#1E1E1E]'
                 }`}
               >
                 {m === PaymentMethod.CASH ? 'Efectivo' : m === PaymentMethod.TRANSFER ? 'Transferencia' : 'Tarjeta'}
@@ -342,7 +342,7 @@ export function PaymentModal({
 
           {/* Amount input */}
           <div>
-            <label className="mb-1 block text-sm text-gray-400">Monto</label>
+            <label className="mb-1 block text-sm text-[#7A7060]">Monto</label>
             <input
               type="number"
               step="0.01"
@@ -350,10 +350,10 @@ export function PaymentModal({
               max={pendingAmount}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="h-12 w-full rounded-lg bg-gray-700 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-12 w-full rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
               placeholder="0"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[#7A7060]">
               Maximo: {formatCOP(pendingAmount)}
             </p>
           </div>
@@ -361,19 +361,19 @@ export function PaymentModal({
           {/* Proof upload (only for transfers) */}
           {method === PaymentMethod.TRANSFER && (
             <div>
-              <label className="mb-1 block text-sm text-gray-400">Comprobante (opcional)</label>
+              <label className="mb-1 block text-sm text-[#7A7060]">Comprobante (opcional)</label>
               <input
                 type="file"
                 accept=".jpg,.jpeg,.png,.webp"
                 onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                className="h-12 w-full rounded-lg bg-gray-700 px-4 text-white file:mr-4 file:h-12 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:font-bold file:text-white"
+                className="h-12 w-full rounded-lg bg-[#1E1E1E] px-4 text-[#7A7060] file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-[#C8A84E] file:px-4 file:font-bold file:text-[#0A0A0A] file:active:bg-[#C8A84E]/80"
               />
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="rounded-lg bg-red-900/30 p-3 text-sm text-red-400">
+            <div className="rounded-lg bg-[#5C1A1A]/30 p-3 text-sm text-[#E85050]">
               {error}
             </div>
           )}
@@ -382,7 +382,7 @@ export function PaymentModal({
           <button
             type="submit"
             disabled={loading}
-            className="h-12 rounded-lg bg-green-600 font-bold text-white active:bg-green-700 disabled:opacity-50"
+            className="h-12 rounded-lg bg-[#C8A84E] font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 disabled:opacity-50"
           >
             {loading ? 'Procesando...' : 'Pagar'}
           </button>

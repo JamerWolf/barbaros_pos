@@ -3,6 +3,7 @@ import { useAccountUIStore } from '../../store/accountUIStore.js'
 import { saveAccountPosition } from '../../services/accountApi.js'
 import { getSaveGeneration } from './CanvasContainer.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
+import { computeGroupBounds, type SnapBounds } from '../../utils/snapAlignment.js'
 
 interface DragNodeProps {
   accountId: string
@@ -18,7 +19,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const isSelected = selectedIds.has(accountId)
   const updatePosition = useAccountUIStore((s) => s.updatePosition)
   const movePositions = useAccountUIStore((s) => s.movePositions)
-  const canvasLocked = useAccountUIStore((s) => s.canvasLocked)
+  const cardsLocked = useAccountUIStore((s) => s.cardsLocked)
   const zoom = useAccountUIStore((s) => s.zoom)
   const dragSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastDragPos = useRef({ x: 0, y: 0 })
@@ -26,7 +27,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const { onPointerDown, onPointerMove, onPointerUp } = useCanvasDrag({
     elementRef: nodeRef,
     zoom,
-    isLocked: canvasLocked,
+    isLocked: cardsLocked,
     onDragMove: (pos) => {
       if (isSelected && selectedIds.size > 1) {
         const delta = { x: pos.x - lastDragPos.current.x, y: pos.y - lastDragPos.current.y }
@@ -59,6 +60,48 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         onClick?.()
       }
     },
+    onLongPress: () => {
+      if (!selectionMode) {
+        const state = useAccountUIStore.getState()
+        state.saveSelectionSnapshot()
+        state.setSelectionMode(true)
+        state.toggleSelection(accountId)
+      }
+    },
+    // Snap alignment: cards snap to cards
+    getSnapBounds: () => {
+      const state = useAccountUIStore.getState()
+      const { w, h } = state.getCardDimensions(accountId)
+      if (isSelected && selectedIds.size > 1) {
+        // Group selection: compute group bounding box
+        const groupItems = Array.from(selectedIds).map((id) => {
+          const pos = state.nodePositions[id] ?? { x: 0, y: 0 }
+          const dim = state.getCardDimensions(id)
+          return { x: pos.x, y: pos.y, width: dim.w, height: dim.h }
+        })
+        const group = computeGroupBounds(groupItems)
+        return { left: group.left, top: group.top, width: group.width, height: group.height }
+      }
+      return { left: position.x, top: position.y, width: w, height: h }
+    },
+    getOtherSnapBounds: () => {
+      const state = useAccountUIStore.getState()
+      const bounds: SnapBounds[] = []
+      for (const [id, pos] of Object.entries(state.nodePositions)) {
+        // Skip dragged card(s)
+        if (isSelected && selectedIds.size > 1) {
+          if (selectedIds.has(id)) continue
+        } else {
+          if (id === accountId) continue
+        }
+        const dim = state.getCardDimensions(id)
+        bounds.push({ left: pos.x, top: pos.y, width: dim.w, height: dim.h })
+      }
+      return bounds
+    },
+    onSnapGuides: (guides) => {
+      useAccountUIStore.getState().setActiveGuides(guides)
+    },
   })
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -81,7 +124,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       }}
       className={`pointer-events-auto select-none ${
         selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
-      } ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-800 rounded-xl' : ''}`}
+      } ${isSelected ? 'ring-2 ring-[#C8A84E] ring-offset-2 ring-offset-[#0A0A0A] rounded-xl' : ''}`}
     >
       {children}
     </div>

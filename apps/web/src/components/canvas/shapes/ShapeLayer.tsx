@@ -4,10 +4,11 @@ import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { RectangleShape } from './RectangleShape.jsx';
 import { LineShape } from './LineShape.jsx';
 import { TextShape } from './TextShape.jsx';
+import { computeSnap, type SnapBounds } from '../../../utils/snapAlignment.js';
 
 export function ShapeLayer(): JSX.Element {
   const { shapes, activeTool, drawingColor, selectedShapeId, editingShapeId, loadShapes, addShape, updateShape, deleteShape, setActiveTool, setSelectedShapeId, setEditingShapeId } = useShapeStore();
-  const { zoom, panOffset, canvasLocked } = useAccountUIStore();
+  const { zoom, panOffset, shapesLocked } = useAccountUIStore();
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -33,7 +34,7 @@ export function ShapeLayer(): JSX.Element {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!layerRef.current || canvasLocked) return;
+      if (!layerRef.current || shapesLocked) return;
 
       // When a tool is active, start drawing
       if (activeTool) {
@@ -49,7 +50,7 @@ export function ShapeLayer(): JSX.Element {
       // When no tool is active, let the event propagate for panning
       // Shape clicks are handled by each shape's own onSelect
     },
-    [activeTool, screenToCanvas, canvasLocked]
+    [activeTool, screenToCanvas, shapesLocked]
   );
 
   const handlePointerMove = useCallback(
@@ -126,16 +127,38 @@ export function ShapeLayer(): JSX.Element {
   }, [activeTool, drawStart, drawCurrent, drawingColor, addShape]);
 
   const handleShapeMove = useCallback((id: string, x: number, y: number) => {
-    const shape = useShapeStore.getState().shapes.find((s) => s.id === id);
+    const currentShapes = useShapeStore.getState().shapes;
+    const shape = currentShapes.find((s) => s.id === id);
     if (!shape) return;
+
+    // Compute snap against other shapes
+    const getShapeBounds = (s: typeof shape): SnapBounds => ({
+      left: s.x,
+      top: s.y,
+      width: s.width,
+      height: s.height,
+    });
+
+    const draggedBounds = getShapeBounds({ ...shape, x, y });
+    const otherBounds = currentShapes
+      .filter((s) => s.id !== id)
+      .map(getShapeBounds);
+
+    const snapResult = computeSnap(draggedBounds, otherBounds);
+    const snappedX = x + snapResult.dx;
+    const snappedY = y + snapResult.dy;
+
+    // Update guides
+    useAccountUIStore.getState().setActiveGuides(snapResult.guides);
+
     if (shape.type === 'RECTANGLE' || shape.type === 'TEXT') {
-      updateShape(id, { x, y });
+      updateShape(id, { x: snappedX, y: snappedY });
     } else if (shape.type === 'LINE' && shape.points) {
-      const dx = x - shape.x;
-      const dy = y - shape.y;
+      const ddx = snappedX - shape.x;
+      const ddy = snappedY - shape.y;
       updateShape(id, {
-        x, y,
-        points: shape.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+        x: snappedX, y: snappedY,
+        points: shape.points.map((p) => ({ x: p.x + ddx, y: p.y + ddy })),
       });
     }
   }, [updateShape]);
@@ -219,7 +242,7 @@ export function ShapeLayer(): JSX.Element {
                 key={shape.id}
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
-                isLocked={canvasLocked}
+                isLocked={shapesLocked}
                 interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
@@ -233,7 +256,7 @@ export function ShapeLayer(): JSX.Element {
                 key={shape.id}
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
-                isLocked={canvasLocked}
+                isLocked={shapesLocked}
                 interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}
                 onMove={(dx, dy) => handleShapeMove(shape.id, dx, dy)}
@@ -247,7 +270,7 @@ export function ShapeLayer(): JSX.Element {
                 key={shape.id}
                 shape={shape}
                 isSelected={selectedShapeId === shape.id}
-                isLocked={canvasLocked}
+                isLocked={shapesLocked}
                 isEditing={editingShapeId === shape.id}
                 interactive={isInteractive}
                 onSelect={() => setSelectedShapeId(shape.id)}

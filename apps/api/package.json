@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file=../../.env src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch --env-file=./.env.develop src/index.ts",
+    "start:dev": "APP_ENV=develop tsx --env-file=./.env.develop src/index.ts",
+    "start:prod": "APP_ENV=production tsx --env-file=./.env.production src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "node ../../scripts/migrate.js migrate dev",
+    "prisma:deploy": "node ../../scripts/migrate.js migrate deploy",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

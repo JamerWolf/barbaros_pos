@@ -18,7 +18,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
 
   return (
     <div
-      className="absolute z-50 flex items-center gap-1 rounded-lg border border-gray-600 bg-gray-800 px-2 py-1 shadow-lg"
+      className="absolute z-50 flex items-center gap-1 rounded-lg border border-[#C8A84E]/20 bg-[#141414] px-2 py-1 shadow-lg"
       style={{
         bottom: '100%',
         left: '50%',
@@ -32,7 +32,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <select
         value={shape.fontFamily ?? 'Arial'}
         onChange={(e) => set({ fontFamily: e.target.value })}
-        className="h-7 rounded border border-gray-600 bg-gray-700 px-1 text-xs text-white"
+        className="h-7 rounded border border-[#C8A84E]/20 bg-[#1E1E1E] px-1 text-xs text-[#E8E0D0]"
       >
         {FONTS.map((f) => (
           <option key={f} value={f}>{f}</option>
@@ -43,20 +43,20 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <select
         value={shape.fontSize ?? 16}
         onChange={(e) => set({ fontSize: Number(e.target.value) })}
-        className="h-7 w-12 rounded border border-gray-600 bg-gray-700 px-1 text-xs text-white"
+        className="h-7 w-12 rounded border border-[#C8A84E]/20 bg-[#1E1E1E] px-1 text-xs text-[#E8E0D0]"
       >
         {SIZES.map((s) => (
           <option key={s} value={s}>{s}</option>
         ))}
       </select>
 
-      <div className="mx-1 h-5 w-px bg-gray-600" />
+      <div className="mx-1 h-5 w-px bg-[#C8A84E]/20" />
 
       {/* Bold */}
       <button
         onClick={() => set({ bold: !shape.bold })}
         className={`h-7 w-7 rounded text-xs font-bold ${
-          shape.bold ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.bold ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
       >
         N
@@ -66,7 +66,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <button
         onClick={() => set({ italic: !shape.italic })}
         className={`h-7 w-7 rounded text-xs italic ${
-          shape.italic ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.italic ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
       >
         K
@@ -76,7 +76,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <button
         onClick={() => set({ underline: !shape.underline })}
         className={`h-7 w-7 rounded text-xs underline ${
-          shape.underline ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.underline ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
       >
         S
@@ -86,19 +86,19 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <button
         onClick={() => set({ strikethrough: !shape.strikethrough })}
         className={`h-7 w-7 rounded text-xs line-through ${
-          shape.strikethrough ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.strikethrough ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
       >
         S
       </button>
 
-      <div className="mx-1 h-5 w-px bg-gray-600" />
+      <div className="mx-1 h-5 w-px bg-[#C8A84E]/20" />
 
       {/* Align left */}
       <button
         onClick={() => set({ textAlign: 'left' })}
         className={`h-7 w-7 rounded text-xs ${
-          shape.textAlign === 'left' || !shape.textAlign ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.textAlign === 'left' || !shape.textAlign ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
         title="Alinear izquierda"
       >
@@ -109,7 +109,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <button
         onClick={() => set({ textAlign: 'center' })}
         className={`h-7 w-7 rounded text-xs ${
-          shape.textAlign === 'center' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.textAlign === 'center' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
         title="Centrar"
       >
@@ -120,7 +120,7 @@ export function TextToolbar({ shape, zoom }: TextToolbarProps): JSX.Element {
       <button
         onClick={() => set({ textAlign: 'right' })}
         className={`h-7 w-7 rounded text-xs ${
-          shape.textAlign === 'right' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
+          shape.textAlign === 'right' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060] hover:bg-[#1E1E1E]'
         }`}
         title="Alinear derecha"
       >

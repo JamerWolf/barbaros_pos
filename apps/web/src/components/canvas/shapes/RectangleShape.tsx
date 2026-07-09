@@ -35,6 +35,7 @@ export function RectangleShape({ shape, isSelected, isLocked, interactive = true
     isLocked: !!isLocked,
     onDragMove: (pos) => onMove?.(pos.x, pos.y),
     onTap: () => onSelect?.(),
+    onDragEnd: () => useAccountUIStore.getState().setActiveGuides([]),
   });
 
   const startResizeDrag = useCallback((e: PointerEvent, handle: Handle) => {
@@ -131,7 +132,7 @@ export function RectangleShape({ shape, isSelected, isLocked, interactive = true
               width: 8,
               height: 8,
               backgroundColor: '#fff',
-              border: '1px solid #374151',
+              border: '1px solid #C8A84E/30',
               borderRadius: 1,
               zIndex: 20,
             };

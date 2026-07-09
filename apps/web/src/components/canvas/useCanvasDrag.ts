@@ -1,8 +1,10 @@
 import { useRef, useCallback } from 'react'
 import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture, didPanOccur } from './CanvasContainer.js'
+import { computeSnap, type SnapBounds, type SnapGuide } from '../../utils/snapAlignment.js'
 
 const LONG_PRESS_MS = 400
-const DRAG_THRESHOLD = 3
+const DRAG_THRESHOLD_MOUSE = 3
+const DRAG_THRESHOLD_TOUCH = 10
 const DOUBLE_TAP_MS = 300
 
 interface UseCanvasDragOptions {
@@ -14,6 +16,11 @@ interface UseCanvasDragOptions {
   onDragEnd?: (didDrag: boolean) => void
   onTap?: () => void
   onDoubleTap?: () => void
+  onLongPress?: () => void
+  // Snap alignment
+  getSnapBounds?: () => SnapBounds | null
+  getOtherSnapBounds?: () => SnapBounds[]
+  onSnapGuides?: (guides: SnapGuide[]) => void
 }
 
 interface UseCanvasDragReturn {
@@ -31,6 +38,10 @@ export function useCanvasDrag({
   onDragEnd,
   onTap,
   onDoubleTap,
+  onLongPress,
+  getSnapBounds,
+  getOtherSnapBounds,
+  onSnapGuides,
 }: UseCanvasDragOptions): UseCanvasDragReturn {
   const activePointerId = useRef<number | null>(null)
   const startPos = useRef({ x: 0, y: 0 })
@@ -45,6 +56,8 @@ export function useCanvasDrag({
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLockedRef = useRef(isLocked)
   isLockedRef.current = isLocked
+  const pointerTypeRef = useRef<'mouse' | 'touch' | 'pen'>('mouse')
+  const longPressActivated = useRef(false) // true only when long press timer fires (not mouse)
 
   const cancelLongPress = useCallback((markCancelled = true) => {
     if (longPressTimer.current) {
@@ -79,10 +92,12 @@ export function useCanvasDrag({
     lastTapTime.current = now
   }, [onTap, onDoubleTap])
 
-  const activateDrag = useCallback((e: PointerEvent) => {
+  const activateDrag = useCallback((e: PointerEvent, skipLongPress = false) => {
     longPressFired.current = true
     setLongPressActive(true)
     activePointerId.current = e.pointerId
+    pointerTypeRef.current = (e.pointerType as 'mouse' | 'touch' | 'pen') || 'mouse'
+    if (!skipLongPress) onLongPress?.()
 
     const onDocMove = (ev: PointerEvent) => {
       if (ev.pointerId !== activePointerId.current) return
@@ -92,7 +107,8 @@ export function useCanvasDrag({
       if (!isDragging.current) {
         const dx = Math.abs(ev.clientX - startPos.current.x)
         const dy = Math.abs(ev.clientY - startPos.current.y)
-        if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        const threshold = pointerTypeRef.current === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH
+        if (dx > threshold || dy > threshold) {
           isDragging.current = true
         }
       }
@@ -100,8 +116,22 @@ export function useCanvasDrag({
 
       const parentRect = elementRef.current?.parentElement?.getBoundingClientRect()
       if (!parentRect) return
-      const newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
-      const newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+      let newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
+      let newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+
+      // Snap alignment
+      if (getSnapBounds && getOtherSnapBounds && onSnapGuides) {
+        const draggedBounds = getSnapBounds()
+        if (draggedBounds) {
+          const snappedBounds = { ...draggedBounds, left: newX, top: newY }
+          const others = getOtherSnapBounds()
+          const snapResult = computeSnap(snappedBounds, others)
+          newX += snapResult.dx
+          newY += snapResult.dy
+          onSnapGuides(snapResult.guides)
+        }
+      }
+
       onDragMove({ x: newX, y: newY })
     }
 
@@ -111,13 +141,14 @@ export function useCanvasDrag({
       document.removeEventListener('pointerup', onDocUp)
       activePointerId.current = null
       setLongPressActive(false)
+      onSnapGuides?.([])
 
       if (pinchThisGesture()) {
         isDragging.current = false
         return
       }
 
-      if (!isDragging.current) {
+      if (!isDragging.current && !longPressActivated.current) {
         handleTapOrDoubleTap()
       } else {
         onDragEnd?.(true)
@@ -127,12 +158,15 @@ export function useCanvasDrag({
 
     document.addEventListener('pointermove', onDocMove)
     document.addEventListener('pointerup', onDocUp)
-  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap])
+  }, [elementRef, zoom, onDragMove, onDragEnd, handleTapOrDoubleTap, onLongPress, getSnapBounds, getOtherSnapBounds, onSnapGuides])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
     didMove.current = false
     pointerDownStarted.current = true
+    longPressFired.current = false
+    longPressActivated.current = false
+    longPressCancelled.current = false
     if (isLocked || isPinching()) return
     if (e.button !== 0 && e.button !== undefined) return
     setCardTouched()
@@ -147,9 +181,10 @@ export function useCanvasDrag({
     startPos.current = { x: e.clientX, y: e.clientY }
 
     if (e.pointerType === 'mouse') {
-      activateDrag(e.nativeEvent)
+      // Mouse: don't activate drag/longpress on pointer down — handle on pointer up
     } else {
       longPressTimer.current = setTimeout(() => {
+        longPressActivated.current = true
         activateDrag(e.nativeEvent)
       }, LONG_PRESS_MS)
     }
@@ -163,13 +198,14 @@ export function useCanvasDrag({
       cancelLongPress()
       return
     }
+    const threshold = e.pointerType === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH
     const dx = Math.abs(e.clientX - startPos.current.x)
     const dy = Math.abs(e.clientY - startPos.current.y)
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+    if (dx > threshold || dy > threshold) {
       didMove.current = true
-      if (e.pointerType === 'mouse') {
-        activateDrag(e.nativeEvent)
-      } else {
+    if (e.pointerType === 'mouse') {
+      activateDrag(e.nativeEvent, true)
+    } else {
         cancelLongPress()
       }
     }
@@ -178,13 +214,18 @@ export function useCanvasDrag({
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
     pointerDownStarted.current = false
-    if (!longPressFired.current) {
+    if (longPressFired.current) {
+      // Long press activated but drag may not have completed (e.g. canvas panning intercepted)
+      // Ensure longPressActive is cleared
+      setLongPressActive(false)
+      onSnapGuides?.([])
+    } else {
       cancelLongPress(false)
       if (!didMove.current && !longPressCancelled.current && !didPanOccur()) {
         handleTapOrDoubleTap()
       }
     }
-  }, [enabled, cancelLongPress, handleTapOrDoubleTap])
+  }, [enabled, cancelLongPress, handleTapOrDoubleTap, onSnapGuides])
 
   return { onPointerDown, onPointerMove, onPointerUp }
 }

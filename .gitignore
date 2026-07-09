@@ -37,3 +37,9 @@ apps/web/dist/
 
 # User uploads
 apps/api/uploads/*
+
+# Design / scratch files (not part of the app)
+apps/web/public/logo*.svg
+apps/web/public/logo*.png
+*.op
+pos-mobile-design.op
