@@ -1,20 +1,38 @@
 services:
-  postgres:
+  postgres-dev:
     image: postgres:16-alpine
-    container_name: barbaros-pos-db
+    container_name: barbaros-pos-db-dev
     environment:
       POSTGRES_USER: barbaros
       POSTGRES_PASSWORD: barbaros
-      POSTGRES_DB: barbaros_pos
+      POSTGRES_DB: barbaros_pos_dev
     ports:
       - '5432:5432'
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U barbaros -d barbaros_pos']
+      test: ['CMD-SHELL', 'pg_isready -U barbaros -d barbaros_pos_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-prod:
+    image: postgres:16-alpine
+    container_name: barbaros-pos-db-prod
+    environment:
+      POSTGRES_USER: barbaros
+      POSTGRES_PASSWORD: barbaros
+      POSTGRES_DB: barbaros_pos_prod
+    ports:
+      - '5433:5432'
+    volumes:
+      - pg_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U barbaros -d barbaros_pos_prod']
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
-  pg_data:
+  pg_data_dev:
+  pg_data_prod:
