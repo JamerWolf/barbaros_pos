@@ -253,7 +253,7 @@ export function DashboardPage(): JSX.Element {
     <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] px-[5px] text-[#E8E0D0]">
       {/* Header */}
       <header data-toolbar className="flex flex-wrap items-center gap-2">
-        <img src="/logo.png" alt="Bárbaro's Logo" className={`h-[60px] w-auto object-contain ${mode === 'admin' ? 'cursor-pointer' : ''}`} onClick={() => mode === 'admin' && setShowAdminSidebar(true)} />
+        <img src="/logo.png" alt="Bárbaro's Logo" className={`h-[60px] w-auto object-contain mt-[5px] ${mode === 'admin' ? 'cursor-pointer' : ''}`} onClick={() => mode === 'admin' && setShowAdminSidebar(true)} />
         {/* sm/md: mode selector next to logo */}
         <div className="ml-auto flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20 md:hidden">
           <button
