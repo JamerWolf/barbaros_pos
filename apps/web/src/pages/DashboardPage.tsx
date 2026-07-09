@@ -287,7 +287,7 @@ export function DashboardPage(): JSX.Element {
             ) : (
               <button
                 onClick={() => setShowSearch(true)}
-                className="h-11 rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-4 active:bg-[#1E1E1E]"
+                className="h-11 w-11 rounded-lg bg-[#141414] border border-[#C8A84E]/20 flex items-center justify-center active:bg-[#1E1E1E]"
               >
                 <img src="/iconoLupa.png" alt="Buscar" className="h-5 w-5" />
               </button>
