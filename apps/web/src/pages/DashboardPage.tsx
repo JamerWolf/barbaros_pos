@@ -273,7 +273,7 @@ export function DashboardPage(): JSX.Element {
           <div className="relative">
             {showSearch ? (
               <>
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8A84E]">🔍</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2"><img src="/iconoLupa.png" alt="Buscar" className="h-5 w-5" /></span>
                 <input
                   autoFocus
                   type="text"
@@ -287,9 +287,9 @@ export function DashboardPage(): JSX.Element {
             ) : (
               <button
                 onClick={() => setShowSearch(true)}
-                className="h-11 rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-4 text-sm font-bold text-[#7A7060] active:bg-[#1E1E1E]"
+                className="h-11 rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-4 active:bg-[#1E1E1E]"
               >
-                🔍
+                <img src="/iconoLupa.png" alt="Buscar" className="h-5 w-5" />
               </button>
             )}
           </div>
