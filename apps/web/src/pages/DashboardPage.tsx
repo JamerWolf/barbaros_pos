@@ -17,18 +17,12 @@ import { saveAccountCardSize, saveAccountPosition } from '../services/accountApi
 import API_URL from '../utils/apiUrl.js'
 import type { IAccount } from '@barbaros/shared'
 
-const ADMIN_PIN = '1234'
-
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
   const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, cardsLocked, setCardsLocked, shapesLocked, setShapesLocked, _hasHydrated } = useAccountUIStore()
   const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
-  const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
-  const [showPinModal, setShowPinModal] = useState(false)
-  const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState<string | null>(null)
   const { toast, showToast } = useToast()
   const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
@@ -37,6 +31,7 @@ export function DashboardPage(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [confirmCloseShift, setConfirmCloseShift] = useState(false)
+  const [showAdminSidebar, setShowAdminSidebar] = useState(false)
 
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
@@ -197,25 +192,6 @@ export function DashboardPage(): JSX.Element {
     }
   }
 
-  const handleModeChange = (selected: 'personal' | 'admin') => {
-    if (selected === 'admin') {
-      setShowPinModal(true)
-    } else {
-      setMode('personal')
-    }
-  }
-
-  const submitPin = () => {
-    if (pin === ADMIN_PIN) {
-      setMode('admin')
-      setShowPinModal(false)
-      setPin('')
-      setPinError(null)
-    } else {
-      setPinError('PIN incorrecto')
-    }
-  }
-
   const openShift = async () => {
     try {
       const res = await fetch(`${API_URL}/shifts/open`, { method: 'POST' })
@@ -251,22 +227,7 @@ export function DashboardPage(): JSX.Element {
     <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] px-[5px] text-[#E8E0D0]">
       {/* Header */}
       <header data-toolbar className="flex flex-wrap items-center gap-2">
-        <img src="/logo.png" alt="Bárbaro's Logo" className="h-[60px] w-auto object-contain" />
-        {/* sm/md: mode selector next to logo */}
-        <div className="ml-auto flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20 md:hidden">
-          <button
-            onClick={() => handleModeChange('personal')}
-            className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-          >
-            Personal
-          </button>
-          <button
-            onClick={() => handleModeChange('admin')}
-            className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-          >
-            Admin
-          </button>
-        </div>
+        <img src="/logo.png" alt="Bárbaro's Logo" className="h-[60px] w-auto cursor-pointer object-contain" onClick={() => setShowAdminSidebar(true)} />
         <div className="flex flex-1 items-center justify-end gap-2">
           <div className="relative">
             {showSearch ? (
@@ -321,79 +282,71 @@ export function DashboardPage(): JSX.Element {
           >
             + Cuenta
           </button>
-          {/* lg+: mode selector next to + Cuenta */}
-          <div className="hidden md:flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
-            <button
-              onClick={() => handleModeChange('personal')}
-              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-            >
-              Personal
-            </button>
-            <button
-              onClick={() => handleModeChange('admin')}
-              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-            >
-              Admin
-            </button>
-          </div>
         </div>
       </header>
 
-      {mode === 'admin' && (
-        <div className="flex flex-col gap-3 rounded-xl bg-[#141414] p-3 border border-[#C8A84E]/20 sm:p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-[#C8A84E] tracking-wide" style={{ fontFamily: 'serif' }}>Control de Turno</h2>
-            <div className="flex gap-2">
+      {/* Admin Sidebar */}
+      {showAdminSidebar && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowAdminSidebar(false)} />
+          <div className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[#0A0A0A] p-4 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#C8A84E] tracking-wide" style={{ fontFamily: 'serif' }}>Control de Turno</h2>
+              <button onClick={() => setShowAdminSidebar(false)} className="h-8 w-8 rounded-lg bg-[#141414] text-[#E8E0D0] active:bg-[#1E1E1E]">✕</button>
+            </div>
+            <div className="flex flex-col gap-2">
               <button
-                onClick={() => setShowAdminProducts(true)}
-                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
+                onClick={() => { setShowAdminProducts(true); setShowAdminSidebar(false) }}
+                className="h-12 w-full rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20"
               >
                 ☰ Productos
               </button>
               <button
-                onClick={() => navigate('/reports')}
-                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
+                onClick={() => { navigate('/reports'); setShowAdminSidebar(false) }}
+                className="h-12 w-full rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20"
               >
                 📊 Reportes
               </button>
             </div>
+            <div className="mt-4 border-t border-[#C8A84E]/20 pt-4">
+              {activeShiftId ? (
+                !confirmCloseShift ? (
+                  <button
+                    onClick={() => setConfirmCloseShift(true)}
+                    className="h-12 w-full rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 px-4 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
+                  >
+                    Cerrar Turno
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 border border-[#E85050]/20 p-4">
+                    <p className="text-sm text-[#E8E0D0]">Seguro que queres cerrar el turno?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { closeShift(); setConfirmCloseShift(false) }}
+                        className="h-12 flex-1 rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
+                      >
+                        Si, cerrar
+                      </button>
+                      <button
+                        onClick={() => setConfirmCloseShift(false)}
+                        className="h-12 flex-1 rounded-lg bg-[#1E1E1E] border border-[#C8A84E]/20 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <button
+                  onClick={openShift}
+                  className="h-12 w-full rounded-lg bg-[#2D5A27] border border-[#7CCD7C]/30 px-4 font-bold text-[#7CCD7C] active:bg-[#2D5A27]/80"
+                >
+                  Abrir Turno
+                </button>
+              )}
+            </div>
           </div>
-          {activeShiftId ? (
-            !confirmCloseShift ? (
-              <button
-                onClick={() => setConfirmCloseShift(true)}
-                className="h-12 w-full rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 px-4 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
-              >
-                Cerrar Turno
-              </button>
-            ) : (
-              <div className="flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 border border-[#E85050]/20 p-4">
-                <p className="text-sm text-[#E8E0D0]">Seguro que queres cerrar el turno?</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { closeShift(); setConfirmCloseShift(false) }}
-                    className="h-12 flex-1 rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
-                  >
-                    Si, cerrar
-                  </button>
-                  <button
-                    onClick={() => setConfirmCloseShift(false)}
-                    className="h-12 flex-1 rounded-lg bg-[#1E1E1E] border border-[#C8A84E]/20 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )
-          ) : (
-            <button
-              onClick={openShift}
-              className="h-12 w-full rounded-lg bg-[#2D5A27] border border-[#7CCD7C]/30 px-4 font-bold text-[#7CCD7C] active:bg-[#2D5A27]/80"
-            >
-              Abrir Turno
-            </button>
-          )}
-        </div>
+        </>
       )}
 
       <section className="flex flex-1 flex-col">
@@ -475,10 +428,8 @@ export function DashboardPage(): JSX.Element {
                 >
                   + Agregar cuenta de otro turno
                 </button>
-                {/* Shape tools — admin only */}
-                {mode === 'admin' && (
-                  <>
-                    <div className={`flex rounded-lg bg-[#141414] border border-[#C8A84E]/20 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
+                {/* Shape tools */}
+                <div className={`flex rounded-lg bg-[#141414] border border-[#C8A84E]/20 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
                       <button
                         onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
                         disabled={shapesLocked}
@@ -547,8 +498,6 @@ export function DashboardPage(): JSX.Element {
                     >
                       {shapesLocked ? '🔒 Figuras' : '🔓 Figuras'}
                     </button>
-                  </>
-                )}
                 <button
                   onClick={() => {
                     setCardsLocked(!cardsLocked);
@@ -602,41 +551,6 @@ export function DashboardPage(): JSX.Element {
           </>
         )}
       </section>
-
-      {showPinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6 shadow-2xl">
-            <h2 className="mb-4 text-xl font-bold text-[#E8E0D0]">Acceso Admin</h2>
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="PIN"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              className="mb-4 h-14 w-full rounded-xl bg-[#1E1E1E] px-4 text-center text-2xl tracking-widest text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
-            />
-            {pinError && <p className="mb-4 text-center text-sm text-[#E85050]">{pinError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowPinModal(false)
-                  setPin('')
-                  setPinError(null)
-                }}
-                className="h-12 flex-1 rounded-xl bg-[#1E1E1E] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={submitPin}
-                className="h-12 flex-1 rounded-xl bg-[#C8A84E] font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80"
-              >
-                Ingresar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAdminProducts && (
         <AdminProductsPage onClose={() => setShowAdminProducts(false)} />
