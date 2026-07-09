@@ -241,11 +241,11 @@ export function ReportsPage(): JSX.Element {
                     (account.name || '').toLowerCase().includes(q)
                   );
                 })
-                .map((account) => (
+                .map((account, i) => (
                 <button
                   key={account.id}
                   onClick={() => navigate(`/accounts/${account.id}?readonly=1&shiftId=${selectedShift.id}`)}
-                  className={`flex items-center justify-between rounded-lg ${tw.bgCard} px-3 py-2 text-left active:bg-[#1E1E1E]`}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-left active:bg-[#1E1E1E] ${i % 2 === 0 ? 'bg-[#141414]' : 'bg-[#1E1E1E]'}`}
                 >
                   <div>
                     <p className={`font-bold ${tw.text}`}>#{account.number} {account.name}</p>
