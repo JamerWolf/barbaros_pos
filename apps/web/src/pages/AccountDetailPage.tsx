@@ -171,7 +171,7 @@ export function AccountDetailPage(): JSX.Element {
   const canClose = pendingAmount === 0;
 
   return (
-    <div className={`flex min-h-dvh flex-col gap-4 ${tw.bg} p-4 ${tw.text} lg:flex-row lg:gap-0 lg:p-0`}>
+    <div className={`flex min-h-dvh flex-col gap-4 ${tw.bg} p-4 ${tw.text} overflow-y-auto lg:flex-row lg:gap-0 lg:p-0 lg:overflow-hidden`}>
       {/* Mobile/Medium: single column — same as before */}
       <div className="flex flex-1 flex-col gap-4 p-4 lg:hidden">
         <header className="flex items-center gap-2">
