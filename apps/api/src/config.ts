@@ -47,13 +47,17 @@ function loadEnvFile(): { env: AppEnv; file: string } {
     );
   }
 
-  // Load the per-env file. `override: true` so an existing process env var
-  // (e.g. set by the operator at launch) wins over the file. This lets
-  // production deploys inject secrets without editing the file.
-  loadEnv({ path: targetFile, override: false });
+  // Load the per-env file with `override: true` — the per-env file is
+  // the source of truth for which DB/port/host to use in each environment.
+  // We force-override so a stale DATABASE_URL in the operator's shell
+  // (e.g. from a previous session) cannot redirect the API to the wrong
+  // database. Secrets should be injected at the container/host level
+  // (e.g. k8s secrets, docker --env-file), not by pre-seeding the shell.
+  loadEnv({ path: targetFile, override: true });
 
-  // Also load a local untracked .env last (lower priority than the per-env file)
-  // so devs can override the per-env defaults without touching the committed file.
+  // Then load a local untracked .env (lower priority than the per-env file)
+  // so devs can override individual values without touching the committed
+  // per-env file. override: false so the per-env file wins.
   const localFile = resolve(envDir, '.env');
   if (existsSync(localFile)) {
     loadEnv({ path: localFile, override: false });

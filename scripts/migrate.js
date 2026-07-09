@@ -46,15 +46,42 @@ if (!env || !VALID_ENVS.has(env)) {
 }
 
 // ---- 2. Load the right .env file (same loader as the API) ----------------
-const envDir = resolve(process.cwd(), 'apps/api');
+// Walk up from the current working directory to find apps/api/.env.<env>.
+// This works whether the script is invoked from the repo root, from apps/api,
+// or from anywhere else inside the repo.
+function findRepoRoot() {
+  let dir = process.cwd();
+  while (true) {
+    if (existsSync(resolve(dir, 'apps/api/package.json'))) return dir;
+    const parent = resolve(dir, '..');
+    if (parent === dir) {
+      throw new Error(
+        '[migrate] Could not locate repo root (no apps/api/package.json found walking up from ' +
+          process.cwd() +
+          ')'
+      );
+    }
+    dir = parent;
+  }
+}
+
+const repoRoot = findRepoRoot();
+const envDir = resolve(repoRoot, 'apps/api');
 const envFile = resolve(envDir, `.env.${env}`);
 if (!existsSync(envFile)) {
   console.error(`[migrate] Expected env file not found: ${envFile}`);
   process.exit(2);
 }
-loadEnv({ path: envFile, override: false });
+// The per-env file is the SOURCE OF TRUTH for which database/port/etc.
+// to use in each environment. We force-override so a stale DATABASE_URL
+// in the operator's shell (e.g. from an old .env that was sourced) cannot
+// redirect migrations to the wrong database. Secrets should be injected
+// at the container/host level, not by pre-seeding the shell.
+loadEnv({ path: envFile, override: true });
 const localEnv = resolve(envDir, '.env');
 if (existsSync(localEnv)) {
+  // The local .env is a per-developer override (lower priority than the
+  // per-env file). Load without override so the per-env file wins.
   loadEnv({ path: localEnv, override: false });
 }
 
@@ -135,7 +162,7 @@ if (env === 'production') {
 }
 
 // ---- 4. Run the real prisma command --------------------------------------
-const prismaBin = resolve(process.cwd(), 'node_modules/.bin/prisma');
+const prismaBin = resolve(repoRoot, 'node_modules/.bin/prisma');
 if (!existsSync(prismaBin)) {
   console.error(
     `[migrate] Prisma CLI not found at ${prismaBin}. ` +
@@ -144,10 +171,16 @@ if (!existsSync(prismaBin)) {
   process.exit(2);
 }
 
-console.log(`[migrate] running: prisma ${argv.join(' ')}`);
-const result = spawnSync(prismaBin, argv, {
+const schemaPath = resolve(repoRoot, 'apps/api/prisma/schema.prisma');
+console.log(`[migrate] running: prisma ${argv.join(' ')} (schema=${schemaPath})`);
+const result = spawnSync(prismaBin, [...argv, '--schema', schemaPath], {
   stdio: 'inherit',
   env: { ...process.env, DATABASE_URL: databaseUrl },
+  cwd: resolve(repoRoot, 'apps/api'),
+  shell: process.platform === 'win32',
 });
+
+if (result.stdout) process.stdout.write(result.stdout);
+if (result.stderr) process.stderr.write(result.stderr);
 
 process.exit(result.status ?? 1);
