@@ -252,20 +252,6 @@ export function DashboardPage(): JSX.Element {
       {/* Header */}
       <header data-toolbar className="flex flex-wrap items-center gap-2">
         <img src="/logo.png" alt="Bárbaro's Logo" className="h-[60px] w-auto object-contain" />
-        <div className="ml-auto flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
-          <button
-            onClick={() => handleModeChange('personal')}
-            className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-          >
-            Personal
-          </button>
-          <button
-            onClick={() => handleModeChange('admin')}
-            className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
-          >
-            Admin
-          </button>
-        </div>
         <div className="flex flex-1 items-center justify-end gap-2">
           <div className="relative">
             {showSearch ? (
@@ -320,6 +306,20 @@ export function DashboardPage(): JSX.Element {
           >
             + Cuenta
           </button>
+          <div className="flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
+            <button
+              onClick={() => handleModeChange('personal')}
+              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
+            >
+              Personal
+            </button>
+            <button
+              onClick={() => handleModeChange('admin')}
+              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
+            >
+              Admin
+            </button>
+          </div>
         </div>
       </header>
 
