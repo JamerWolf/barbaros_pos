@@ -72,9 +72,10 @@ export function ProductGrid({ products, categories, onAddProduct }: ProductGridP
             setFormCategoryId('');
             setShowProductModal(true);
           }}
-          className="h-12 shrink-0 rounded-lg bg-[#C8A84E] px-4 font-bold text-sm text-[#0A0A0A] active:bg-[#C8A84E]/80"
+          className="h-12 shrink-0 rounded-lg bg-[#C8A84E] px-3 font-bold text-sm text-[#0A0A0A] active:bg-[#C8A84E]/80 sm:px-4"
         >
-          + Producto
+          <span className="sm:hidden">+</span>
+          <span className="hidden sm:inline">+ Producto</span>
         </button>
       </div>
 

@@ -139,6 +139,12 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Lock Mode**: Cuando `canvasLocked` está activo, bloquear TODO (drag, shapes, selection, tools).
 - **Card Sizes**: S/M/L solo aplica a cuentas nuevas; existentes conservan su tamaño al crearse.
 
+### Color System
+- Todos los colores deben seguir la skill `color-system` (`.agent/skills/color-system/SKILL.md`).
+- **Paleta centralizada**: Colores en `utils/colors.ts`, nunca hardcodear hex en componentes.
+- **Botones**: Usar estándar de la skill (primary/secondary/danger/success).
+- **Fondos**: `#0A0A0A` (page), `#141414` (cards), `#1E1E1E` (hover/inputs).
+
 ---
 
 ## Estado actual

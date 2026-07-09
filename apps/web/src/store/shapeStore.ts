@@ -29,7 +29,7 @@ export const useShapeStore = create<ShapeState>()(
     (set, get) => ({
       shapes: [],
       activeTool: null,
-      drawingColor: '#3b82f6',
+      drawingColor: '#C8A84E',
       isLoading: false,
       selectedShapeId: null,
       editingShapeId: null,

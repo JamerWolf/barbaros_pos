@@ -92,12 +92,12 @@ export function useCanvasDrag({
     lastTapTime.current = now
   }, [onTap, onDoubleTap])
 
-  const activateDrag = useCallback((e: PointerEvent) => {
+  const activateDrag = useCallback((e: PointerEvent, skipLongPress = false) => {
     longPressFired.current = true
     setLongPressActive(true)
     activePointerId.current = e.pointerId
     pointerTypeRef.current = (e.pointerType as 'mouse' | 'touch' | 'pen') || 'mouse'
-    onLongPress?.()
+    if (!skipLongPress) onLongPress?.()
 
     const onDocMove = (ev: PointerEvent) => {
       if (ev.pointerId !== activePointerId.current) return
@@ -181,7 +181,7 @@ export function useCanvasDrag({
     startPos.current = { x: e.clientX, y: e.clientY }
 
     if (e.pointerType === 'mouse') {
-      activateDrag(e.nativeEvent)
+      // Mouse: don't activate drag/longpress on pointer down — handle on pointer up
     } else {
       longPressTimer.current = setTimeout(() => {
         longPressActivated.current = true
@@ -203,9 +203,9 @@ export function useCanvasDrag({
     const dy = Math.abs(e.clientY - startPos.current.y)
     if (dx > threshold || dy > threshold) {
       didMove.current = true
-      if (e.pointerType === 'mouse') {
-        activateDrag(e.nativeEvent)
-      } else {
+    if (e.pointerType === 'mouse') {
+      activateDrag(e.nativeEvent, true)
+    } else {
         cancelLongPress()
       }
     }

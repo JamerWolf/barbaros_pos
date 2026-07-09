@@ -24,7 +24,7 @@ export function GuideLines(): JSX.Element | null {
               y1={0}
               x2={screenX}
               y2="100%"
-              stroke="#22d3ee"
+              stroke="#C8A84E"
               strokeWidth={1}
               strokeDasharray="4 4"
               opacity={0.8}
@@ -41,7 +41,7 @@ export function GuideLines(): JSX.Element | null {
               y1={screenY}
               x2="100%"
               y2={screenY}
-              stroke="#22d3ee"
+              stroke="#C8A84E"
               strokeWidth={1}
               strokeDasharray="4 4"
               opacity={0.8}

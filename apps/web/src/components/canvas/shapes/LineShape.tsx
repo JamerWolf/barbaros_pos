@@ -174,7 +174,7 @@ export function LineShape({ shape, isSelected, isLocked, interactive = true, onS
               width: handleRadius * 2,
               height: handleRadius * 2,
               backgroundColor: '#fff',
-              border: '1px solid #374151',
+              border: '1px solid #C8A84E/30',
               borderRadius: '50%',
               cursor: i === 0 ? 'nw-resize' : 'se-resize',
               zIndex: 20,
