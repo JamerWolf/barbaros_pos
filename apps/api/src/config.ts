@@ -12,8 +12,12 @@
  * rather than silently defaulting to a DB we did not intend to use.
  */
 import { config as loadEnv } from 'dotenv';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export type AppEnv = 'develop' | 'production';
 
