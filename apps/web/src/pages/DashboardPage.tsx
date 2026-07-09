@@ -303,7 +303,7 @@ export function DashboardPage(): JSX.Element {
               </button>
               <button
                 onClick={() => setShowCuentaMenu(!showCuentaMenu)}
-                className="h-11 rounded-r-lg border-l border-[#C8A84E]/50 bg-[#C8A84E]/90 px-1.5 text-xs text-[#0A0A0A] active:bg-[#C8A84E]"
+                className="h-11 rounded-r-lg border-l border-[#C8A84E]/50 bg-[#C8A84E]/90 px-2 text-sm text-[#0A0A0A] active:bg-[#C8A84E] md:px-1.5 md:text-xs"
               >
                 ▾
               </button>
