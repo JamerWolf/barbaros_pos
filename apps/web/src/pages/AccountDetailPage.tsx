@@ -259,6 +259,12 @@ export function AccountDetailPage(): JSX.Element {
         {/* Left: products (hidden in readonly) */}
         {!readonly && (
           <div className={`flex flex-1 flex-col gap-4 border-r border-[#C8A84E]/20 p-4`}>
+            <button
+              onClick={() => navigate('/')}
+              className={`h-10 w-full rounded-lg ${tw.bgCard} px-3 font-bold ${tw.text} active:bg-[#1E1E1E]`}
+            >
+              ← Volver
+            </button>
             <h2 className="text-lg font-bold">Agregar productos</h2>
             <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
           </div>
