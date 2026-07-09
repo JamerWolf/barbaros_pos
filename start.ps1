@@ -1,13 +1,19 @@
-# start.ps1 - Levanta DB (Docker), API y Web
+# start.ps1 - Levanta DB de desarrollo, API y Web
 # Uso:
-#   .\start.ps1          Solo local
+#   .\start.ps1          Solo local (desarrollo)
 #   .\start.ps1 -Tunnel  Con Cloudflare Tunnel (acceso desde internet)
+#
+# Este script es SOLO para el ambiente de desarrollo (APP_ENV=develop).
+# Para producción, ver start-prod.ps1 (TBD).
 
 param(
     [switch]$Tunnel
 )
 
-Write-Host "=== Barbaros POS - Start ===" -ForegroundColor Cyan
+# Forzar APP_ENV=develop sin importar lo que tenga el shell del operador.
+# Esto es la primera línea de defensa contra fuga a producción.
+$env:APP_ENV = "develop"
+Write-Host "=== Barbaros POS - Start (develop) ===" -ForegroundColor Cyan
 
 # 0. Verificar que Docker este corriendo, si no, levantarlo
 Write-Host ""
@@ -43,21 +49,24 @@ if (-not $dockerRunning) {
     Write-Host "  Docker listo!" -ForegroundColor Green
 }
 
-# 1. Levantar PostgreSQL
+# 1. Levantar PostgreSQL de desarrollo
+# Solo levantamos postgres-dev. postgres-prod NO se toca desde este script.
 Write-Host ""
-Write-Host "[1/4] Levantando PostgreSQL..." -ForegroundColor Yellow
-docker compose up -d
+Write-Host "[1/4] Levantando PostgreSQL de desarrollo..." -ForegroundColor Yellow
+docker compose up -d postgres-dev
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error al levantar Docker" -ForegroundColor Red
     exit 1
 }
 
 # 2. Esperar a que la DB este lista
+Write-Host ""
 Write-Host "[2/4] Esperando a que PostgreSQL este listo..." -ForegroundColor Yellow
 $maxRetries = 20
 $retries = 0
 while ($retries -lt $maxRetries) {
-    $check = docker exec barbaros-pos-db pg_isready -U barbaros -d barbaros_pos 2>&1
+    # Usamos el container dev y la DB dev (barbaros_pos_dev), no los nombres viejos.
+    $check = docker exec barbaros-pos-db-dev pg_isready -U barbaros -d barbaros_pos_dev 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  PostgreSQL listo!" -ForegroundColor Green
         break
@@ -71,27 +80,31 @@ if ($retries -eq $maxRetries) {
     exit 1
 }
 
-# 3. Ejecutar migraciones
+# 3. Ejecutar migraciones via el wrapper seguro (lee APP_ENV=develop del shell)
+# NO seteamos DATABASE_URL aca: el wrapper (scripts/migrate.js) carga .env.develop.
+# Esto es importante: si alguien setea DATABASE_URL en su shell apuntando a prod,
+# el wrapper igual va a usar .env.develop (override: false + carga primero el per-env).
+Write-Host ""
 Write-Host "[3/4] Ejecutando migraciones..." -ForegroundColor Yellow
-$env:DATABASE_URL = "postgresql://barbaros:barbaros@localhost:5432/barbaros_pos"
-npm run db:migrate
+npm run prisma:migrate
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error en migraciones" -ForegroundColor Red
     exit 1
 }
 
 # 4. Levantar API y Web en ventanas separadas
+Write-Host ""
 Write-Host "[4/4] Levantando API y Web..." -ForegroundColor Yellow
 
 $startPath = $PSScriptRoot
-Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Set-Location '$startPath'; Write-Host 'API Server' -ForegroundColor Cyan; npm run dev:api")
+Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Set-Location '$startPath'; `$env:APP_ENV='develop'; Write-Host 'API Server (develop)' -ForegroundColor Cyan; npm run dev:api")
 Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Set-Location '$startPath'; Write-Host 'Web Frontend' -ForegroundColor Cyan; npm run dev:web")
 
 Write-Host ""
 Write-Host "=== Todo listo! ===" -ForegroundColor Green
 Write-Host "  API: http://localhost:3000"
 Write-Host "  Web: http://localhost:5173"
-Write-Host "  DB:  localhost:5432"
+Write-Host "  DB:  localhost:5432 (barbaros_pos_dev)"
 
 if ($Tunnel) {
     Write-Host ""
