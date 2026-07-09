@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { tw } from '../utils/colors.js';
 
 interface DateRangePickerProps {
   from: string;
@@ -123,7 +124,7 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
     <>
       <button
         onClick={handleOpen}
-        className="h-12 w-full rounded-lg bg-gray-800 px-4 text-left text-sm text-white active:bg-gray-700"
+        className="h-12 w-full rounded-lg bg-[#141414] px-4 text-left text-sm text-[#E8E0D0] active:bg-[#1E1E1E]"
       >
         📅{' '}
         {from && to
@@ -133,29 +134,29 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-gray-800 p-5 shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-5 shadow-2xl">
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
-              <button onClick={prevMonth} className="h-10 w-10 rounded-lg bg-gray-700 text-lg font-bold text-white active:bg-gray-600">
+              <button onClick={prevMonth} className={`h-10 w-10 rounded-lg ${tw.bgHover} text-lg font-bold ${tw.text} active:bg-[#1E1E1E]`}>
                 ‹
               </button>
-              <span className="font-bold text-white">
+              <span className="font-bold text-[#E8E0D0]">
                 {MONTH_NAMES[viewMonth]} {viewYear}
               </span>
-              <button onClick={nextMonth} className="h-10 w-10 rounded-lg bg-gray-700 text-lg font-bold text-white active:bg-gray-600">
+              <button onClick={nextMonth} className={`h-10 w-10 rounded-lg ${tw.bgHover} text-lg font-bold ${tw.text} active:bg-[#1E1E1E]`}>
                 ›
               </button>
             </div>
 
             {/* Status */}
-            <p className="mb-3 text-center text-sm text-gray-400">
+            <p className={`mb-3 text-center text-sm ${tw.textMuted}`}>
               {pickStart ? 'Seleccioná la fecha inicial' : 'Seleccioná la fecha final'}
             </p>
 
             {/* Day names */}
             <div className="mb-1 grid grid-cols-7 gap-1">
               {DAY_NAMES.map((d) => (
-                <div key={d} className="py-1 text-center text-xs font-bold text-gray-500">
+                <div key={d} className={`py-1 text-center text-xs font-bold ${tw.textMuted}`}>
                   {d}
                 </div>
               ))}
@@ -177,12 +178,12 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
                     onClick={() => handleDayClick(day)}
                     className={`h-10 rounded-lg text-sm font-bold ${
                       isSelected
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-[#C8A84E] text-[#E8E0D0]'
                         : inRange
-                          ? 'bg-blue-600/20 text-blue-300'
+                          ? 'bg-[#C8A84E]/20 text-[#E8E0D0]'
                           : today
-                            ? 'bg-gray-700 text-white'
-                            : 'text-gray-300 active:bg-gray-700'
+                            ? 'bg-[#1E1E1E] text-[#E8E0D0]'
+                            : 'text-[#7A7060] active:bg-[#1E1E1E]'
                     }`}
                   >
                     {day}
@@ -204,7 +205,7 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
                   setViewMonth(now.getMonth());
                   setPickStart(true);
                 }}
-                className="flex-1 rounded-lg bg-gray-700 py-2 text-xs font-bold text-gray-300 active:bg-gray-600"
+                className={`flex-1 rounded-lg ${tw.bgHover} py-2 text-xs font-bold ${tw.textMuted} active:bg-[#1E1E1E]`}
               >
                 Este mes
               </button>
@@ -220,7 +221,7 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
                   setViewMonth(lastMonth.getMonth());
                   setPickStart(true);
                 }}
-                className="flex-1 rounded-lg bg-gray-700 py-2 text-xs font-bold text-gray-300 active:bg-gray-600"
+                className={`flex-1 rounded-lg ${tw.bgHover} py-2 text-xs font-bold ${tw.textMuted} active:bg-[#1E1E1E]`}
               >
                 Mes anterior
               </button>
@@ -230,19 +231,19 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps): J
             <div className="mt-4 flex gap-3">
               <button
                 onClick={handleClear}
-                className="h-12 flex-1 rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+                className={`h-12 flex-1 rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
               >
                 Limpiar
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="h-12 flex-1 rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+                className={`h-12 flex-1 rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirm}
-                className="h-12 flex-1 rounded-xl bg-blue-600 font-bold text-white active:bg-blue-700"
+                className="h-12 flex-1 rounded-xl bg-[#C8A84E] font-bold text-[#E8E0D0] active:bg-[#C8A84E]/80"
               >
                 Aplicar
               </button>

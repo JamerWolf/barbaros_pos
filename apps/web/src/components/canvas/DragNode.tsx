@@ -124,7 +124,7 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       }}
       className={`pointer-events-auto select-none ${
         selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
-      } ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-800 rounded-xl' : ''}`}
+      } ${isSelected ? 'ring-2 ring-[#C8A84E] ring-offset-2 ring-offset-[#0A0A0A] rounded-xl' : ''}`}
     >
       {children}
     </div>

@@ -33,6 +33,7 @@ export function DashboardPage(): JSX.Element {
   const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number })[]>([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
+  const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [confirmCloseShift, setConfirmCloseShift] = useState(false)
@@ -247,21 +248,74 @@ export function DashboardPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] p-2 text-[#E8E0D0] sm:gap-4 sm:p-4">
+    <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] text-[#E8E0D0]">
       {/* Header */}
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-wider text-[#C8A84E]" style={{ fontFamily: 'serif' }}>BÁRBARO'S</h1>
+      <header data-toolbar className="flex flex-wrap items-center gap-2">
+        <img src="/logo.png" alt="Bárbaro's Logo" className="h-[60px] w-auto object-contain" />
+        <div className="flex flex-1 items-center justify-end gap-2">
+          <div className="relative">
+            {showSearch ? (
+              <>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8A84E]">🔍</span>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Buscar..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => { if (!searchQuery) setShowSearch(false) }}
+                  className="h-11 w-48 rounded-lg bg-[#141414] border border-[#C8A84E]/20 py-2 pl-10 pr-4 text-sm text-[#E8E0D0] placeholder-[#7A7060] outline-none focus:ring-1 focus:ring-[#C8A84E]/50"
+                />
+              </>
+            ) : (
+              <button
+                onClick={() => setShowSearch(true)}
+                className="h-11 rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-4 text-sm font-bold text-[#7A7060] active:bg-[#1E1E1E]"
+              >
+                🔍
+              </button>
+            )}
+          </div>
+          <div className="flex items-center rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-1">
+            {([
+              ['sm', 'S'],
+              ['md', 'M'],
+              ['lg', 'L'],
+            ] as const).map(([size, label]) => (
+              <button
+                key={size}
+                onClick={() => {
+                  setCardSize(size)
+                  if (selectionMode && selectedIds.size > 0) {
+                    for (const id of selectedIds) {
+                      saveAccountCardSize(id, size)
+                    }
+                  }
+                }}
+                className={`h-11 rounded-md px-3 text-sm font-bold ${
+                  cardSize === size ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={createAccount}
+            className="h-11 rounded-lg bg-[#C8A84E] px-4 text-sm font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 whitespace-nowrap"
+          >
+            + Cuenta
+          </button>
           <div className="flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
             <button
               onClick={() => handleModeChange('personal')}
-              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'personal' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
             >
               Personal
             </button>
             <button
               onClick={() => handleModeChange('admin')}
-              className={`h-9 rounded-md px-3 text-sm font-bold sm:h-10 sm:px-4 transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
+              className={`h-9 rounded-md px-3 text-sm font-bold transition-all ${mode === 'admin' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'}`}
             >
               Admin
             </button>
@@ -326,58 +380,12 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      {/* Toolbar */}
-      <div data-toolbar className="sticky top-0 z-20 flex flex-col gap-2 bg-[#0A0A0A] py-1 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8A84E]">🔍</span>
-          <input
-            type="text"
-            placeholder="Buscar cuenta..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-11 w-full rounded-lg bg-[#141414] border border-[#C8A84E]/20 py-2 pl-10 pr-4 text-sm text-[#E8E0D0] placeholder-[#7A7060] outline-none focus:ring-1 focus:ring-[#C8A84E]/50 sm:h-12"
-          />
-        </div>
-        <div className="flex gap-2">
-          <div className="flex h-11 items-center rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-1 sm:h-12">
-            {([
-              ['sm', 'S'],
-              ['md', 'M'],
-              ['lg', 'L'],
-            ] as const).map(([size, label]) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setCardSize(size)
-                  if (selectionMode && selectedIds.size > 0) {
-                    for (const id of selectedIds) {
-                      saveAccountCardSize(id, size)
-                    }
-                  }
-                }}
-                className={`h-8 rounded-md px-2 text-xs font-bold ${
-                  cardSize === size ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={createAccount}
-            className="h-11 flex-1 rounded-lg bg-[#C8A84E] px-3 text-sm font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 sm:h-12 sm:flex-none sm:px-4"
-          >
-            + Cuenta
-          </button>
-        </div>
-      </div>
-
       <section className="flex flex-1 flex-col">
         {!_hasHydrated ? (
-          <p className="text-center text-gray-500">Cargando...</p>
+          <p className="text-center text-[#7A7060]">Cargando...</p>
         ) : viewMode === 'list' ? (
           filteredAllOpenAccounts.length === 0 ? (
-            <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+            <p className="text-center text-[#7A7060]">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {filteredAllOpenAccounts.map((acc) => (
@@ -394,13 +402,13 @@ export function DashboardPage(): JSX.Element {
             </div>
           )
         ) : filteredOpenAccounts.length === 0 ? (
-          <p className="text-center text-gray-500">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+          <p className="text-center text-[#7A7060]">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
         ) : (
           <>
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 {selectionMode && (
-                  <span className="text-sm text-blue-400">
+                  <span className="text-sm text-[#C8A84E]">
                     {selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -424,7 +432,7 @@ export function DashboardPage(): JSX.Element {
                         }
                       }
                     }}
-                    className="h-10 rounded-lg bg-gray-700 px-3 font-bold text-sm text-white active:bg-gray-600"
+                    className="h-10 rounded-lg bg-[#1E1E1E] px-3 font-bold text-sm text-[#E8E0D0] active:bg-[#1E1E1E]/80"
                   >
                     ✕ Cancelar
                   </button>
@@ -581,17 +589,17 @@ export function DashboardPage(): JSX.Element {
 
       {showPinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-gray-800 p-6 shadow-2xl">
-            <h2 className="mb-4 text-xl font-bold text-white">Acceso Admin</h2>
+          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6 shadow-2xl">
+            <h2 className="mb-4 text-xl font-bold text-[#E8E0D0]">Acceso Admin</h2>
             <input
               type="password"
               inputMode="numeric"
               placeholder="PIN"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              className="mb-4 h-14 w-full rounded-xl bg-gray-700 px-4 text-center text-2xl tracking-widest text-white outline-none focus:ring-2 focus:ring-purple-500"
+              className="mb-4 h-14 w-full rounded-xl bg-[#1E1E1E] px-4 text-center text-2xl tracking-widest text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
             />
-            {pinError && <p className="mb-4 text-center text-sm text-red-400">{pinError}</p>}
+            {pinError && <p className="mb-4 text-center text-sm text-[#E85050]">{pinError}</p>}
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -599,13 +607,13 @@ export function DashboardPage(): JSX.Element {
                   setPin('')
                   setPinError(null)
                 }}
-                className="h-12 flex-1 rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+                className="h-12 flex-1 rounded-xl bg-[#1E1E1E] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
               >
                 Cancelar
               </button>
               <button
                 onClick={submitPin}
-                className="h-12 flex-1 rounded-xl bg-purple-600 font-bold text-white active:bg-purple-700"
+                className="h-12 flex-1 rounded-xl bg-[#C8A84E] font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80"
               >
                 Ingresar
               </button>
@@ -620,8 +628,8 @@ export function DashboardPage(): JSX.Element {
 
       {showAddOldAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-gray-800 p-6 shadow-2xl">
-            <h2 className="mb-4 text-xl font-bold text-white">Agregar cuenta de otro turno</h2>
+          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6 shadow-2xl">
+            <h2 className="mb-4 text-xl font-bold text-[#E8E0D0]">Agregar cuenta de otro turno</h2>
             <div className="max-h-80 overflow-y-auto">
               {allOpenAccounts
                 .filter((acc) => !openAccounts.some((o) => o.id === acc.id))
@@ -636,19 +644,19 @@ export function DashboardPage(): JSX.Element {
                       fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(() => {})
                       setShowAddOldAccount(false)
                     }}
-                    className="mb-2 flex w-full items-center justify-between rounded-xl bg-gray-700 p-3 text-left text-white active:bg-gray-600"
+                    className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
                   >
                     <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
-                    <span className="text-sm text-gray-400">{formatCOP(acc.total)}</span>
+                    <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
                   </button>
                 ))}
               {allOpenAccounts.filter((acc) => !openAccounts.some((o) => o.id === acc.id)).length === 0 && (
-                <p className="text-center text-gray-500">No hay cuentas de otros turnos.</p>
+                <p className="text-center text-[#7A7060]">No hay cuentas de otros turnos.</p>
               )}
             </div>
             <button
               onClick={() => setShowAddOldAccount(false)}
-              className="mt-4 h-12 w-full rounded-xl bg-gray-600 font-bold text-white active:bg-gray-500"
+              className="mt-4 h-12 w-full rounded-xl bg-[#1E1E1E] font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
             >
               Cerrar
             </button>
