@@ -685,7 +685,7 @@ export function DashboardPage(): JSX.Element {
                   >
                     <div>
                       <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
-                      <p className="text-xs text-[#7A7060]">Turno: {new Date(acc.shift?.openedAt || '').toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' })}</p>
+                      <p className="text-xs text-[#7A7060]">Turno: {acc.shift?.openedAt ? new Date(acc.shift.openedAt).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' }) : ''}</p>
                     </div>
                     <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
                   </button>
