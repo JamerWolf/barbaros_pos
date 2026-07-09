@@ -247,20 +247,10 @@ export function AccountDetailPage(): JSX.Element {
         </section>
 
         {!readonly && (
-          <>
-            <div className="sticky bottom-0 z-10 bg-[#0A0A0A] pb-2 pt-2">
-              <button
-                onClick={() => navigate('/')}
-                className={`h-10 w-full rounded-lg ${tw.bgCard} px-3 font-bold ${tw.text} active:bg-[#1E1E1E]`}
-              >
-                ← Volver
-              </button>
-            </div>
-            <section>
-              <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
-              <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
-            </section>
-          </>
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
+            <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
+          </section>
         )}
       </div>
 
