@@ -32,13 +32,6 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
     return () => { if (readyTimer.current) clearTimeout(readyTimer.current); };
   }, []);
 
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
   useEffect(() => {
     fetchProducts(true);
     fetchCategories();
@@ -206,7 +199,7 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
             className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
           />
         </header>
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ overscrollBehavior: 'contain' }}>
           <div className="mb-4 rounded-xl bg-[#141414] p-4">
             <p className="text-sm text-[#7A7060]">Estado: {account.status}</p>
             <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
