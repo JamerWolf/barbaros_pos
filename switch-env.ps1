@@ -188,12 +188,12 @@ function Start-Env($envName) {
     Write-Host "  PostgreSQL listo!" -ForegroundColor Green
 
     # 6. Migraciones via wrapper seguro
+    # En develop: prisma:migrate (wrapper -> migrate dev, genera nueva migracion si hay cambios)
+    # En production: prisma:deploy (wrapper -> migrate deploy, solo aplica migraciones existentes)
     # El wrapper (scripts/migrate.js) lee .env.<env> y bloquea comandos peligrosos en prod.
-    # El script `prisma:migrate` esta en apps/api/package.json, asi que lo
-    # invocamos con --prefix para que npm encuentre el script correcto
-    # sin importar desde donde corramos switch-env.ps1.
     Write-Section "[4/4] Corriendo migraciones..."
-    $migOut = & cmd /c "npm run --prefix apps/api prisma:migrate 2>&1"
+    $npmScript = if ($config.appEnv -eq 'production') { 'prisma:deploy' } else { 'prisma:migrate' }
+    $migOut = & cmd /c "npm run --prefix apps/api $npmScript 2>&1"
     foreach ($line in $migOut) { Write-Host "  $line" }
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  Migraciones fallaron (exit $LASTEXITCODE). Abortando." -ForegroundColor Red
