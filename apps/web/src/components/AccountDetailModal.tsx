@@ -188,7 +188,6 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
       {/* Mobile: single column — scrollable */}
       <div className="flex flex-col overflow-y-auto lg:hidden" style={{ height: '100dvh', overscrollBehavior: 'contain' }}>
         <header className="flex shrink-0 items-center gap-2 p-4">
-          <button onClick={onClose} className="h-10 rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
           <input
             type="text"
             value={account.name || ''}
@@ -196,7 +195,7 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
             onChange={(e) => { updateAccount({ ...account, name: e.target.value }); }}
             onBlur={async () => { await fetch(`${API_URL}/accounts/${account.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: account.name }) }); }}
             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-            className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
+            className="w-full rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
           />
         </header>
         <div className="px-4 pb-4">
@@ -225,6 +224,9 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
             <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
             <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} />
           </section>
+          <div className="sticky bottom-0 z-10 bg-[#0A0A0A] pb-2 pt-2">
+            <button onClick={onClose} className="h-10 w-full rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
+          </div>
           <section>
             <h2 className="mb-2 text-lg font-bold">Agregar productos</h2>
             <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
