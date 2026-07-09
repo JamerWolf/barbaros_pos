@@ -404,63 +404,6 @@ export function DashboardPage(): JSX.Element {
         </>
       )}
 
-      {mode === 'admin' && (
-        <div className="flex flex-col gap-3 rounded-xl bg-[#141414] p-3 border border-[#C8A84E]/20 sm:p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-[#C8A84E] tracking-wide" style={{ fontFamily: 'serif' }}>Control de Turno</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdminProducts(true)}
-                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
-              >
-                ☰ Productos
-              </button>
-              <button
-                onClick={() => navigate('/reports')}
-                className="h-10 flex-1 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20 sm:flex-none"
-              >
-                📊 Reportes
-              </button>
-            </div>
-          </div>
-          {activeShiftId ? (
-            !confirmCloseShift ? (
-              <button
-                onClick={() => setConfirmCloseShift(true)}
-                className="h-12 w-full rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 px-4 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
-              >
-                Cerrar Turno
-              </button>
-            ) : (
-              <div className="flex flex-col gap-2 rounded-xl bg-[#5C1A1A]/30 border border-[#E85050]/20 p-4">
-                <p className="text-sm text-[#E8E0D0]">Seguro que queres cerrar el turno?</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { closeShift(); setConfirmCloseShift(false) }}
-                    className="h-12 flex-1 rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
-                  >
-                    Si, cerrar
-                  </button>
-                  <button
-                    onClick={() => setConfirmCloseShift(false)}
-                    className="h-12 flex-1 rounded-lg bg-[#1E1E1E] border border-[#C8A84E]/20 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]/80"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )
-          ) : (
-            <button
-              onClick={openShift}
-              className="h-12 w-full rounded-lg bg-[#2D5A27] border border-[#7CCD7C]/30 px-4 font-bold text-[#7CCD7C] active:bg-[#2D5A27]/80"
-            >
-              Abrir Turno
-            </button>
-          )}
-        </div>
-      )}
-
       <section className="flex flex-1 flex-col">
         {!_hasHydrated ? (
           <p className="text-center text-[#7A7060]">Cargando...</p>
