@@ -248,7 +248,7 @@ export function DashboardPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] text-[#E8E0D0]">
+    <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] px-[5px] text-[#E8E0D0]">
       {/* Header */}
       <header data-toolbar className="flex flex-wrap items-center gap-2">
         <img src="/logo.png" alt="Bárbaro's Logo" className="h-[60px] w-auto object-contain" />
