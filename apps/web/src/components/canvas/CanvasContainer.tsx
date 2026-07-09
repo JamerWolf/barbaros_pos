@@ -44,7 +44,7 @@ export function pinchThisGesture() { return _pinchThisGesture }
 
 export function CanvasContainer({ children, shapes, modal, onCreateAccount, onToggleSelection, onCardSizeChange }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode, cardsLocked, setCardsLocked, setSelectionMode } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
@@ -404,15 +404,15 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
           onPointerDown={onResizeDown}
           data-resize-handle
           style={{ touchAction: 'none' }}
-          className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-500"
+          className="flex h-5 shrink-0 cursor-row-resize items-center justify-center rounded-t-xl bg-[#141414] hover:bg-[#1E1E1E] active:bg-[#C8A84E]/30"
         >
-          <div className="h-1 w-8 rounded-full bg-gray-500" />
+          <div className="h-1 w-8 rounded-full bg-[#7A7060]" />
         </div>
       )}
       {/* Canvas */}
       <div
         ref={containerRef}
-        className={`relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-gray-800 ${zoneMode ? 'cursor-crosshair' : ''}`}
+        className={`relative min-h-0 flex-1 touch-none overflow-hidden rounded-b-xl bg-[#0A0A0A] ${zoneMode ? 'cursor-crosshair' : ''}`}
         onPointerDown={zoneMode ? onZonePointerDown : undefined}
         onPointerMove={zoneMode ? onZonePointerMove : undefined}
         onPointerUp={zoneMode ? onZonePointerUp : undefined}
@@ -440,7 +440,7 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
         {/* Fit zone overlay — shows the saved zone */}
         {zoneScreen && !zoneMode && (
           <div
-            className="pointer-events-none absolute border-2 border-dashed border-blue-400/60 bg-blue-400/10"
+            className="pointer-events-none absolute border-2 border-dashed border-[#C8A84E]/60 bg-[#C8A84E]/10"
             style={{
               left: zoneScreen.left,
               top: zoneScreen.top,
@@ -476,26 +476,26 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
           <div className="relative flex">
             <button
               onClick={onCreateAccount}
-              className="h-9 rounded-l-lg bg-green-600/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-green-500"
+              className="h-9 rounded-l-lg bg-[#C8A84E]/90 px-3 text-xs font-bold text-[#0A0A0A] backdrop-blur active:bg-[#C8A84E]"
             >
               + Cuenta
             </button>
             <button
               onClick={() => setShowFullscreenMenu(!showFullscreenMenu)}
-              className="h-9 rounded-r-lg border-l border-green-500 bg-green-600/90 px-1.5 text-xs text-white backdrop-blur active:bg-green-500"
+              className="h-9 rounded-r-lg border-l border-[#C8A84E]/50 bg-[#C8A84E]/90 px-1.5 text-xs text-[#0A0A0A] backdrop-blur active:bg-[#C8A84E]"
             >
               ▾
             </button>
             {showFullscreenMenu && (
-              <div className="absolute bottom-10 left-0 z-30 w-44 rounded-lg border border-gray-600 bg-gray-800 p-2 shadow-xl">
-                <div className="mb-1 text-[10px] font-bold text-gray-400">Tamaño de tarjeta</div>
+              <div className="absolute bottom-10 left-0 z-30 w-44 rounded-lg border border-[#C8A84E]/20 bg-[#141414] p-2 shadow-xl">
+                <div className="mb-1 text-[10px] font-bold text-[#7A7060]">Tamaño de tarjeta</div>
                 <div className="mb-2 flex gap-1">
                   {(['sm', 'md', 'lg'] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => onCardSizeChange?.(s) ?? setCardSize(s)}
                       className={`flex-1 rounded-md py-1.5 text-xs font-bold ${
-                        cardSize === s ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
+                        cardSize === s ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#1E1E1E] text-[#7A7060]'
                       }`}
                     >
                       {s.toUpperCase()}
@@ -505,7 +505,7 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
                 <button
                   onClick={() => { onToggleSelection?.(); setShowFullscreenMenu(false) }}
                   className={`w-full rounded-md px-3 py-2 text-left text-xs font-bold ${
-                    selectionMode ? 'bg-yellow-600 text-white' : 'text-white hover:bg-gray-700'
+                    selectionMode ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#E8E0D0] hover:bg-[#1E1E1E]'
                   }`}
                 >
                   {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
@@ -515,8 +515,20 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
           </div>
         )}
         <button
+          onClick={() => {
+            setCardsLocked(!cardsLocked);
+            if (!cardsLocked) setSelectionMode(false);
+          }}
+          className={`h-9 rounded-lg px-3 text-xs font-bold backdrop-blur ${
+            cardsLocked ? 'bg-[#C8A84E]/90 text-[#0A0A0A]' : 'bg-[#141414]/90 text-[#E8E0D0] active:bg-[#1E1E1E]'
+          }`}
+          title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
+        >
+          {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
+        </button>
+        <button
           onClick={toggleFullscreen}
-          className="h-9 rounded-lg bg-gray-700/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+          className="h-9 rounded-lg bg-[#141414]/90 px-2 text-xs font-bold text-[#E8E0D0] backdrop-blur active:bg-[#1E1E1E]"
           title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
         >
           {isFullscreen ? '⊡' : '⛶'}
@@ -524,7 +536,7 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
         {fitZone && (
           <button
             onClick={() => setFitZone(null)}
-            className="h-9 rounded-lg bg-blue-600/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-blue-500"
+            className="h-9 rounded-lg bg-[#C8A84E]/90 px-2 text-xs font-bold text-[#0A0A0A] backdrop-blur active:bg-[#C8A84E]"
             title="Resetear zona"
           >
             ↺
@@ -532,28 +544,28 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
         )}
         <button
           onClick={() => setShowZoneMenu(!showZoneMenu)}
-          className="h-9 rounded-lg bg-gray-700/90 px-2 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+          className="h-9 rounded-lg bg-[#141414]/90 px-2 text-xs font-bold text-[#E8E0D0] backdrop-blur active:bg-[#1E1E1E]"
           title="Configurar zona"
         >
           ⚙
         </button>
         <button
           onClick={fit}
-          className="h-9 rounded-lg bg-gray-700/90 px-3 text-xs font-bold text-white backdrop-blur active:bg-gray-600"
+          className="h-9 rounded-lg bg-[#141414]/90 px-3 text-xs font-bold text-[#E8E0D0] backdrop-blur active:bg-[#1E1E1E]"
         >
           ⊞ Ajustar
         </button>
       </div>
       {/* Zone config menu */}
       {showZoneMenu && (
-        <div className="absolute bottom-14 right-3 z-30 w-48 rounded-lg border border-gray-600 bg-gray-800 p-2 shadow-xl">
-          <div className="mb-2 text-xs font-bold text-gray-400">Zona de ajuste</div>
+        <div className="absolute bottom-14 right-3 z-30 w-48 rounded-lg border border-[#C8A84E]/20 bg-[#141414] p-2 shadow-xl">
+          <div className="mb-2 text-xs font-bold text-[#7A7060]">Zona de ajuste</div>
           <button
             onClick={() => {
               setShowZoneMenu(false)
               setZoneMode(true)
             }}
-            className="mb-1 w-full rounded-md px-3 py-2 text-left text-xs text-white hover:bg-gray-700 active:bg-gray-600"
+            className="mb-1 w-full rounded-md px-3 py-2 text-left text-xs text-[#E8E0D0] hover:bg-[#1E1E1E] active:bg-[#C8A84E]/30"
           >
             📐 Seleccionar zona
           </button>
@@ -563,13 +575,13 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
                 setFitZone(null)
                 setShowZoneMenu(false)
               }}
-              className="w-full rounded-md px-3 py-2 text-left text-xs text-white hover:bg-gray-700 active:bg-gray-600"
+              className="w-full rounded-md px-3 py-2 text-left text-xs text-[#E8E0D0] hover:bg-[#1E1E1E] active:bg-[#C8A84E]/30"
             >
               ↺ Resetear zona
             </button>
           )}
           {fitZone && (
-            <div className="mt-2 border-t border-gray-600 pt-2 text-[10px] text-gray-500">
+            <div className="mt-2 border-t border-[#C8A84E]/20 pt-2 text-[10px] text-[#7A7060]">
               Zona activa: {Math.round(fitZone.width)}×{Math.round(fitZone.height)}
             </div>
           )}
