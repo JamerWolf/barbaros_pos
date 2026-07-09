@@ -38,6 +38,7 @@ export function DashboardPage(): JSX.Element {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [confirmCloseShift, setConfirmCloseShift] = useState(false)
   const [showAdminSidebar, setShowAdminSidebar] = useState(false)
+  const [showCuentaMenu, setShowCuentaMenu] = useState(false)
 
   // Scroll to bottom when switching to canvas mode
   useEffect(() => {
@@ -292,36 +293,64 @@ export function DashboardPage(): JSX.Element {
               </button>
             )}
           </div>
-          <div className="flex items-center rounded-lg bg-[#141414] border border-[#C8A84E]/20 px-1">
-            {([
-              ['sm', 'S'],
-              ['md', 'M'],
-              ['lg', 'L'],
-            ] as const).map(([size, label]) => (
+          <div className="relative">
+            <div className="flex">
               <button
-                key={size}
-                onClick={() => {
-                  setCardSize(size)
-                  if (selectionMode && selectedIds.size > 0) {
-                    for (const id of selectedIds) {
-                      saveAccountCardSize(id, size)
-                    }
-                  }
-                }}
-                className={`h-11 rounded-md px-3 text-sm font-bold ${
-                  cardSize === size ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
-                }`}
+                onClick={createAccount}
+                className="h-11 rounded-l-lg bg-[#C8A84E] px-4 text-sm font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 whitespace-nowrap"
               >
-                {label}
+                + Cuenta
               </button>
-            ))}
+              <button
+                onClick={() => setShowCuentaMenu(!showCuentaMenu)}
+                className="h-11 rounded-r-lg border-l border-[#C8A84E]/50 bg-[#C8A84E]/90 px-1.5 text-xs text-[#0A0A0A] active:bg-[#C8A84E]"
+              >
+                ▾
+              </button>
+            </div>
+            {showCuentaMenu && (
+              <div className="absolute right-0 top-10 z-30 w-44 rounded-lg border border-[#C8A84E]/20 bg-[#141414] p-2 shadow-xl">
+                <div className="mb-1 text-[10px] font-bold text-[#7A7060]">Tamaño de tarjeta</div>
+                <div className="mb-2 flex gap-1">
+                  {(['sm', 'md', 'lg'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setCardSize(s)
+                        if (selectionMode && selectedIds.size > 0) {
+                          for (const id of selectedIds) {
+                            saveAccountCardSize(id, s)
+                          }
+                        }
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold ${
+                        cardSize === s ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#1E1E1E] text-[#7A7060]'
+                      }`}
+                    >
+                      {s.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    if (selectionMode) {
+                      clearSelection()
+                      setSelectionMode(false)
+                    } else {
+                      saveSelectionSnapshot()
+                      setSelectionMode(true)
+                    }
+                    setShowCuentaMenu(false)
+                  }}
+                  className={`w-full rounded-md px-3 py-2 text-left text-xs font-bold ${
+                    selectionMode ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#E8E0D0] hover:bg-[#1E1E1E]'
+                  }`}
+                >
+                  {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
+                </button>
+              </div>
+            )}
           </div>
-          <button
-            onClick={createAccount}
-            className="h-11 rounded-lg bg-[#C8A84E] px-4 text-sm font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80 whitespace-nowrap"
-          >
-            + Cuenta
-          </button>
           {/* lg+: mode selector next to + Cuenta */}
           <div className="hidden md:flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
             <button
@@ -461,22 +490,6 @@ export function DashboardPage(): JSX.Element {
                     ✕ Cancelar
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    if (selectionMode) {
-                      clearSelection()
-                      setSelectionMode(false)
-                    } else {
-                      saveSelectionSnapshot()
-                      setSelectionMode(true)
-                    }
-                  }}
-                  className={`h-10 rounded-lg px-3 font-bold text-sm ${
-                    selectionMode ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
-                  }`}
-                >
-                  {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
-                </button>
                 <button
                   onClick={() => setShowAddOldAccount(true)}
                   className="h-10 rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 font-bold text-sm text-[#C8A84E] active:bg-[#C8A84E]/20"
