@@ -185,9 +185,9 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
         <div className="absolute inset-0 z-[9999]" onPointerDown={(e) => e.preventDefault()} />
       )}
 
-      {/* Mobile: single column */}
-      <div className="flex flex-1 flex-col lg:hidden">
-        <header className="flex items-center gap-2 p-4">
+      {/* Mobile: single column — scrollable */}
+      <div className="flex flex-col overflow-y-auto lg:hidden" style={{ height: '100dvh', overscrollBehavior: 'contain' }}>
+        <header className="flex shrink-0 items-center gap-2 p-4">
           <button onClick={onClose} className="h-10 rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
           <input
             type="text"
@@ -199,7 +199,7 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
             className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
           />
         </header>
-        <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ overscrollBehavior: 'contain' }}>
+        <div className="px-4 pb-4">
           <div className="mb-4 rounded-xl bg-[#141414] p-4">
             <p className="text-sm text-[#7A7060]">Estado: {account.status}</p>
             <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
