@@ -80,7 +80,7 @@ function Wait-DbReady($container, $db) {
 function Start-AppWindows($apiPort, $webPort, $appEnv) {
     Start-Process powershell -ArgumentList @(
         "-NoExit", "-Command",
-        "Set-Location '$REPO_ROOT'; `$env:APP_ENV='$appEnv'; `$env:PORT='$apiPort'; Write-Host 'API Server ($appEnv, port $apiPort)' -ForegroundColor Cyan; npm run dev:api"
+        "Set-Location '$REPO_ROOT/apps/api'; `$env:APP_ENV='$appEnv'; `$env:PORT='$apiPort'; Write-Host 'API Server ($appEnv, port $apiPort)' -ForegroundColor Cyan; npm run dev"
     )
     Start-Process powershell -ArgumentList @(
         "-NoExit", "-Command",
@@ -170,9 +170,17 @@ function Start-Env($envName) {
     Kill-PortIfBusy $config.webPort "Web anterior"
 
     # 4. Levantar DB
+    # PowerShell's native invocation of docker.exe treats any stderr
+    # output (e.g. "Container X Running") as a non-terminating error,
+    # which breaks our control flow. Routing through cmd.exe with
+    # explicit stdout-only redirection gives us clean output and a
+    # reliable exit code. We use a here-string and let cmd do the
+    # parsing to avoid PowerShell's variable interpolation.
     Write-Section "[2/4] Levantando $($config.dbContainer)..."
-    docker compose up -d $config.composeService 2>&1 | ForEach-Object { Write-Host "  $_" }
-    if ($LASTEXITCODE -ne 0) { throw "Error al levantar Docker." }
+    $serviceName = $config.composeService
+    $out = & cmd /c "docker compose up -d $serviceName 2>&1"
+    foreach ($line in $out) { Write-Host "  $line" }
+    if ($LASTEXITCODE -ne 0) { throw "Error al levantar Docker (exit $LASTEXITCODE)." }
 
     # 5. Esperar DB
     Write-Section "[3/4] Esperando DB..."
@@ -181,10 +189,14 @@ function Start-Env($envName) {
 
     # 6. Migraciones via wrapper seguro
     # El wrapper (scripts/migrate.js) lee .env.<env> y bloquea comandos peligrosos en prod.
+    # El script `prisma:migrate` esta en apps/api/package.json, asi que lo
+    # invocamos con --prefix para que npm encuentre el script correcto
+    # sin importar desde donde corramos switch-env.ps1.
     Write-Section "[4/4] Corriendo migraciones..."
-    npm run prisma:migrate
+    $migOut = & cmd /c "npm run --prefix apps/api prisma:migrate 2>&1"
+    foreach ($line in $migOut) { Write-Host "  $line" }
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Migraciones fallaron. Abortando." -ForegroundColor Red
+        Write-Host "  Migraciones fallaron (exit $LASTEXITCODE). Abortando." -ForegroundColor Red
         exit 1
     }
 
