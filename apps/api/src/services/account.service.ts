@@ -18,6 +18,25 @@ export class AccountService {
   static async closeShift() {
     const active = await this.getActiveShift();
     if (!active) throw new Error('No active shift to close');
+
+    // Delete open accounts with $0 total before closing the shift
+    const zeroAccounts = await prisma.account.findMany({
+      where: { shiftId: active.id, status: 'OPEN' },
+      include: { orderItems: true, payments: true },
+    });
+
+    for (const acc of zeroAccounts) {
+      const total = acc.orderItems.reduce((sum: number, item: any) => {
+        const qty = item.quantity;
+        const price = Number(item.unitPrice);
+        const itemDiscount = item.discountType === 'FIXED' ? Number(item.discountValue) : item.discountType === 'PERCENT' ? (price * qty * Number(item.discountValue)) / 100 : 0;
+        return sum + (price * qty - itemDiscount);
+      }, 0);
+      if (total === 0) {
+        await prisma.account.delete({ where: { id: acc.id } });
+      }
+    }
+
     return prisma.shift.update({
       where: { id: active.id },
       data: { status: 'CLOSED' }
