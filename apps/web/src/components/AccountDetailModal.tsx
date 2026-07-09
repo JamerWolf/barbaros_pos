@@ -236,7 +236,7 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
       <div className="hidden lg:flex lg:flex-1 lg:flex-row lg:overflow-hidden">
         {/* Left: products */}
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto border-r border-[#C8A84E]/20 p-4">
-          <button onClick={onClose} className="h-10 self-start rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
+          <button onClick={onClose} className="h-12 self-start rounded-lg bg-[#141414] px-3 font-bold text-[#E8E0D0] active:bg-[#1E1E1E]">← Volver</button>
           <h2 className="text-lg font-bold">Agregar productos</h2>
           <ProductGrid products={products} categories={categories} onAddProduct={handleAddProduct} />
         </div>
