@@ -87,7 +87,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all open accounts from ALL shifts (for list mode)
   fastify.get('/all-open', async (request, reply) => {
     const accounts = await prisma.account.findMany({
-      where: { status: 'OPEN', shift: { status: 'OPEN' } },
+      where: { status: 'OPEN' },
       include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true, shift: true }
     });
 
