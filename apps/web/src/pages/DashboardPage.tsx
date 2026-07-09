@@ -357,6 +357,18 @@ export function DashboardPage(): JSX.Element {
               </div>
             )}
           </div>
+          <button
+            onClick={() => {
+              setCardsLocked(!cardsLocked);
+              if (!cardsLocked) setSelectionMode(false);
+            }}
+            className={`h-11 rounded-lg px-3 text-sm font-bold ${
+              cardsLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
+            }`}
+            title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
+          >
+            {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
+          </button>
           {/* lg+: mode selector next to + Cuenta */}
           <div className="hidden md:flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
             <button

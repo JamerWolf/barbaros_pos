@@ -44,7 +44,7 @@ export function pinchThisGesture() { return _pinchThisGesture }
 
 export function CanvasContainer({ children, shapes, modal, onCreateAccount, onToggleSelection, onCardSizeChange }: CanvasContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode, cardsLocked, setCardsLocked, setSelectionMode } = useAccountUIStore()
+  const { panOffset, setPanOffset, zoom, setZoom, fitToContent, nodePositions, canvasHeight, setCanvasHeight, _hasHydrated, fitZone, setFitZone, cardSize, setCardSize, selectionMode } = useAccountUIStore()
   const { activeTool, shapes: shapeData } = useShapeStore()
   const isPanning = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
@@ -514,18 +514,6 @@ export function CanvasContainer({ children, shapes, modal, onCreateAccount, onTo
             )}
           </div>
         )}
-        <button
-          onClick={() => {
-            setCardsLocked(!cardsLocked);
-            if (!cardsLocked) setSelectionMode(false);
-          }}
-          className={`h-9 rounded-lg px-3 text-xs font-bold backdrop-blur ${
-            cardsLocked ? 'bg-[#C8A84E]/90 text-[#0A0A0A]' : 'bg-[#141414]/90 text-[#E8E0D0] active:bg-[#1E1E1E]'
-          }`}
-          title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
-        >
-          {cardsLocked ? '🔒 Tarjetas' : '🔓 Tarjetas'}
-        </button>
         <button
           onClick={toggleFullscreen}
           className="h-9 rounded-lg bg-[#141414]/90 px-2 text-xs font-bold text-[#E8E0D0] backdrop-blur active:bg-[#1E1E1E]"
