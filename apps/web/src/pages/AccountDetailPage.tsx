@@ -171,9 +171,9 @@ export function AccountDetailPage(): JSX.Element {
   const canClose = pendingAmount === 0;
 
   return (
-    <div className={`flex min-h-dvh flex-col gap-4 ${tw.bg} p-4 ${tw.text} overflow-y-auto lg:flex-row lg:gap-0 lg:p-0 lg:overflow-hidden`}>
-      {/* Mobile/Medium: single column — same as before */}
-      <div className="flex flex-1 flex-col gap-4 p-4 lg:hidden">
+    <div className={`flex flex-col ${tw.bg} ${tw.text} lg:min-h-dvh lg:flex-row lg:gap-0 lg:p-0`}>
+      {/* Mobile/Medium: single column — scrollable */}
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 min-h-dvh lg:hidden">
         <header className="flex items-center gap-2">
           <button
             onClick={() => readonly ? navigate(shiftId ? `/reports?shiftId=${shiftId}` : '/reports') : navigate('/')}
