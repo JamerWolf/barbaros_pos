@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
 import { setCardTouched } from './CanvasContainer.js';
 
-type HandleId = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
+export type HandleId = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
 
 interface UseCanvasResizeProps {
   elementRef: React.RefObject<HTMLDivElement>;
@@ -21,6 +21,33 @@ interface DragState {
   origY: number;
   origW: number;
   origH: number;
+}
+
+/**
+ * Get CSS style for a resize handle based on its position.
+ * Corner handles are 8x8 squares, side handles are thin bars.
+ */
+export function getHandleStyle(handle: HandleId): React.CSSProperties {
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    backgroundColor: '#fff',
+    border: '1px solid rgba(200, 168, 78, 0.3)',
+    borderRadius: 1,
+    zIndex: 20,
+  };
+
+  switch (handle) {
+    // Corner handles: 8x8 squares
+    case 'nw': return { ...base, width: 8, height: 8, top: -4, left: -4, cursor: 'nw-resize' };
+    case 'ne': return { ...base, width: 8, height: 8, top: -4, right: -4, cursor: 'ne-resize' };
+    case 'sw': return { ...base, width: 8, height: 8, bottom: -4, left: -4, cursor: 'sw-resize' };
+    case 'se': return { ...base, width: 8, height: 8, bottom: -4, right: -4, cursor: 'se-resize' };
+    // Side handles: thin bars
+    case 'n':  return { ...base, width: 16, height: 4, top: -2, left: '50%', transform: 'translateX(-50%)', cursor: 'n-resize' };
+    case 's':  return { ...base, width: 16, height: 4, bottom: -2, left: '50%', transform: 'translateX(-50%)', cursor: 's-resize' };
+    case 'w':  return { ...base, width: 4, height: 16, top: '50%', left: -2, transform: 'translateY(-50%)', cursor: 'w-resize' };
+    case 'e':  return { ...base, width: 4, height: 16, top: '50%', right: -2, transform: 'translateY(-50%)', cursor: 'e-resize' };
+  }
 }
 
 export function useCanvasResize({
