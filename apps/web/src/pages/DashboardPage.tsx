@@ -13,7 +13,7 @@ import { Toast } from '../components/Toast.js'
 import { useToast } from '../hooks/useToast.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
-import { saveAccountCardSize, saveAccountPosition } from '../services/accountApi.js'
+import { saveAccountCardSize, saveAccountCardDimensions, saveAccountPosition } from '../services/accountApi.js'
 import API_URL from '../utils/apiUrl.js'
 import type { IAccount } from '@barbaros/shared'
 
@@ -22,7 +22,7 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, cardsLocked, setCardsLocked, shapesLocked, setShapesLocked, _hasHydrated } = useAccountUIStore()
+  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, getCardDimensions, resetCardDimensions, cardsLocked, setCardsLocked, shapesLocked, setShapesLocked, _hasHydrated } = useAccountUIStore()
   const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
   const [mode, setMode] = useState<'personal' | 'admin'>('personal')
   const [showAdminProducts, setShowAdminProducts] = useState(false)
@@ -320,6 +320,7 @@ export function DashboardPage(): JSX.Element {
                         if (selectionMode && selectedIds.size > 0) {
                           for (const id of selectedIds) {
                             saveAccountCardSize(id, s)
+                            resetCardDimensions(id)
                           }
                         }
                       }}
@@ -600,24 +601,30 @@ export function DashboardPage(): JSX.Element {
               if (selectionMode && selectedIds.size > 0) {
                 for (const id of selectedIds) {
                   saveAccountCardSize(id, size)
+                  resetCardDimensions(id)
                 }
               }
             }}>
-              {filteredOpenAccounts.map((acc) => (
-                <DragNode
-                  key={acc.id}
-                  accountId={acc.id}
-                  onClick={() => setSelectedAccountId(acc.id)}
-                >
-                  <AccountCard
-                    name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
-                    total={acc.total ?? 0}
-                    pendingAmount={acc.pendingAmount ?? 0}
-                    status={acc.status.toLowerCase() as 'open' | 'closed'}
-                    size={getCardSize(acc.id)}
-                  />
-                </DragNode>
-              ))}
+              {filteredOpenAccounts.map((acc) => {
+                const dims = getCardDimensions(acc.id)
+                return (
+                  <DragNode
+                    key={acc.id}
+                    accountId={acc.id}
+                    onClick={() => setSelectedAccountId(acc.id)}
+                  >
+                    <AccountCard
+                      name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
+                      total={acc.total ?? 0}
+                      pendingAmount={acc.pendingAmount ?? 0}
+                      status={acc.status.toLowerCase() as 'open' | 'closed'}
+                      size={getCardSize(acc.id)}
+                      width={dims.w}
+                      height={dims.h}
+                    />
+                  </DragNode>
+                )
+              })}
             </CanvasContainer>
             </div>
           </>

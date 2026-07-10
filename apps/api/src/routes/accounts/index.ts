@@ -197,6 +197,37 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  fastify.patch('/:id/card-dimensions', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { cardWidth, cardHeight } = request.body as { cardWidth?: number; cardHeight?: number };
+
+    if (cardWidth !== undefined && cardWidth <= 0) {
+      return reply.code(400).send({ error: 'cardWidth must be greater than 0' });
+    }
+    if (cardHeight !== undefined && cardHeight <= 0) {
+      return reply.code(400).send({ error: 'cardHeight must be greater than 0' });
+    }
+
+    try {
+      const data: any = {};
+      if (cardWidth !== undefined) data.cardWidth = cardWidth;
+      if (cardHeight !== undefined) data.cardHeight = cardHeight;
+
+      const updated = await prisma.account.update({
+        where: { id },
+        data,
+      });
+      emitSocketEvent(fastify, 'account:card-dimensions', {
+        id: updated.id,
+        cardWidth: updated.cardWidth,
+        cardHeight: updated.cardHeight,
+      });
+      return reply.code(200).send(updated);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
   fastify.patch('/:id/card-size', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { cardSize } = request.body as { cardSize?: string };
@@ -204,7 +235,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const updated = await prisma.account.update({
         where: { id },
-        data: { cardSize: cardSize ?? null },
+        data: { cardSize: cardSize ?? null, cardWidth: null, cardHeight: null },
       });
       emitSocketEvent(fastify, 'account:card-size', { id: updated.id, cardSize: updated.cardSize });
       return reply.code(200).send(updated);

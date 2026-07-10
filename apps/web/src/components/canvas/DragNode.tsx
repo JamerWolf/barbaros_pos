@@ -1,8 +1,9 @@
 import { useRef, type ReactNode } from 'react'
 import { useAccountUIStore } from '../../store/accountUIStore.js'
-import { saveAccountPosition } from '../../services/accountApi.js'
+import { saveAccountPosition, saveAccountCardDimensions } from '../../services/accountApi.js'
 import { getSaveGeneration } from './CanvasContainer.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
+import { useCanvasResize } from './useCanvasResize.js'
 import { computeGroupBounds, type SnapBounds } from '../../utils/snapAlignment.js'
 
 interface DragNodeProps {
@@ -21,8 +22,36 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
   const movePositions = useAccountUIStore((s) => s.movePositions)
   const cardsLocked = useAccountUIStore((s) => s.cardsLocked)
   const zoom = useAccountUIStore((s) => s.zoom)
+  const cardDimensions = useAccountUIStore((s) => s.cardDimensions[accountId])
+  const setCardDimensions = useAccountUIStore((s) => s.setCardDimensions)
+  const getCardDimensions = useAccountUIStore((s) => s.getCardDimensions)
   const dragSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dimSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastDragPos = useRef({ x: 0, y: 0 })
+
+  const dims = getCardDimensions(accountId)
+
+  const { resizeHandleProps } = useCanvasResize({
+    elementRef: nodeRef,
+    zoom,
+    onResize: ({ width, height }) => {
+      setCardDimensions(accountId, width, height)
+    },
+    onPositionChange: (pos) => {
+      updatePosition(accountId, pos)
+    },
+    onResizeEnd: () => {
+      if (dimSaveTimer.current) clearTimeout(dimSaveTimer.current)
+      const gen = getSaveGeneration()
+      dimSaveTimer.current = setTimeout(() => {
+        if (getSaveGeneration() !== gen) return
+        const currentDims = useAccountUIStore.getState().cardDimensions[accountId]
+        if (currentDims) {
+          saveAccountCardDimensions(accountId, currentDims.w, currentDims.h)
+        }
+      }, 300)
+    },
+  })
 
   const { onPointerDown, onPointerMove, onPointerUp } = useCanvasDrag({
     elementRef: nodeRef,
@@ -120,6 +149,8 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
         position: 'absolute',
         left: position.x,
         top: position.y,
+        width: cardDimensions ? cardDimensions.w : dims.w,
+        height: cardDimensions ? cardDimensions.h : dims.h,
         touchAction: 'none',
       }}
       className={`pointer-events-auto select-none ${
@@ -127,6 +158,33 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       } ${isSelected ? 'ring-2 ring-[#C8A84E] ring-offset-2 ring-offset-[#0A0A0A] rounded-xl' : ''}`}
     >
       {children}
+      {isSelected && selectionMode && !cardsLocked && (
+        <>
+          {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
+            const style: React.CSSProperties = {
+              position: 'absolute',
+              width: 8,
+              height: 8,
+              backgroundColor: '#fff',
+              border: '1px solid rgba(200, 168, 78, 0.3)',
+              borderRadius: 1,
+              zIndex: 20,
+            };
+            if (pos === 'nw') { style.top = -4; style.left = -4; style.cursor = 'nw-resize'; }
+            if (pos === 'ne') { style.top = -4; style.right = -4; style.cursor = 'ne-resize'; }
+            if (pos === 'sw') { style.bottom = -4; style.left = -4; style.cursor = 'sw-resize'; }
+            if (pos === 'se') { style.bottom = -4; style.right = -4; style.cursor = 'se-resize'; }
+            return (
+              <div
+                key={pos}
+                className="pointer-events-auto"
+                style={style}
+                {...resizeHandleProps(pos)}
+              />
+            );
+          })}
+        </>
+      )}
     </div>
   )
 }
