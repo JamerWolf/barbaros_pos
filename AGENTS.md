@@ -25,7 +25,7 @@ D:\barbaros_pos
 | --------------- | --------------------------------------- |
 | Backend         | Node.js + TypeScript + Fastify          |
 | Tiempo real     | Socket.io                               |
-| Base de datos   | PostgreSQL                              |
+| Base de datos   | PostgreSQL (dev: :5432, prod: :5433)    |
 | ORM             | Prisma                                  |
 | Frontend        | React + TypeScript + Vite + TailwindCSS |
 | Offline/PWA     | Workbox (Service Worker)                |
@@ -167,6 +167,16 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Cloudflare Tunnel** (script start.ps1 con opción -Tunnel, Vite proxy para API)
 - ✅ **Mobile touch fix** (TouchGuard bloquea ghost clicks después de navegar)
 - ✅ **Canvas interaction fixes** (selection mode, pinch-to-zoom, toolbar, card tap navigation)
+- ✅ **Visual standardization** (paleta centralizada en `utils/colors.ts`, todas las pantallas usan `tw` helpers)
+- ✅ **Dev/prod database separation** (Docker Compose, `.env.develop`/`.env.production`, `config.ts` env loader)
+- ✅ **switch-env.ps1** (entry point único para dev/prod con guardrails)
+- ✅ **Production guardrails** (`scripts/migrate.js` bloquea `migrate dev`, `db push --force-reset`, `db seed` en producción)
+- ✅ **CSV product import** (POST /products/import, multipart CSV + fotos, auto-create categorías, skip duplicados)
+- ✅ **Free canvas card resize** (handles de esquina nw/ne/sw/se + handles de lado n/s/e/w, dimensiones custom por tarjeta)
+- ✅ **Cross-device card sync** (WebSocket para posiciones + dimensiones, fetch inicial carga cardWidth/cardHeight)
+- ✅ **Padlock icons** (candadoAbierto.png / candadoCerrado.png para bloquear/desbloquear tarjetas)
+- ✅ **Search icon** (iconoLupa.png en dashboard)
+- ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
 
 ### Próximas features
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
@@ -194,6 +204,12 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Selection mode**: Los botones del toolbar (S/M/L, cancelar, etc.) necesitan `data-toolbar` para que CanvasContainer no los trate como taps de fondo
 - **Pinch-to-zoom**: Usar `_pinchThisGesture` flag que solo se limpia cuando `touches.length === 0` — sobrevive el gap entre touchend y pointerup
 - **Long press vs pinch**: El timer de long press (400ms) puede dispararse después de iniciar pinch si ambas manos tocan en <400ms
+- **Dev/prod DB**: `switch-env.ps1 develop` usa `barbaros_pos_dev` (:5432), `switch-env.ps1 production` usa `barbaros_pos_prod` (:5433). Nunca confundir ramas.
+- **CSV import**: El parser detecta separador automáticamente (`,` o `;`). El CSV debe tener encoding UTF-8. Las fotos se suben junto al CSV en el mismo request multipart.
+- **Canvas resize**: Al hacer resize, SIEMPRE guardar posición Y dimensiones en el backend. Si solo se guardan dimensiones, el otro dispositivo muestra la tarjeta en la posición vieja (norte se ve como sur).
+- **`__dirname` en ES modules**: Usar `fileURLToPath(import.meta.url)` + `path.dirname()`. `__dirname` no existe en ES modules.
+- **`dotenv` override**: Los archivos `.env.develop`/`.env.production` se cargan con `override: true` para que un `DATABASE_URL` stale del shell no pise la config correcta.
+- **Multipart limits**: `@fastify/multipart` tiene límite por defecto de 1MB. Configurar `limits.fileSize` explícitamente (5MB para fotos/CSV).
 
 ---
 
