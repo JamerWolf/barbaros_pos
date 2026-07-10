@@ -5,6 +5,7 @@ import { useShapeStore } from '../../../store/shapeStore.js';
 import { TextToolbar } from './TextToolbar.jsx';
 import { setCardTouched } from '../CanvasContainer.js';
 import { useCanvasDrag } from '../useCanvasDrag.js';
+import { screenToCanvas, calculateDragOffset } from '../../../utils/canvas/drag.js';
 
 interface TextShapeProps {
   shape: IShape;
@@ -83,12 +84,8 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
     let startAngle = 0;
 
     if (parentRect) {
-      const mouseX = (e.clientX - parentRect.left) / zoom;
-      const mouseY = (e.clientY - parentRect.top) / zoom;
-      offset = {
-        x: mouseX - shape.x,
-        y: mouseY - shape.y,
-      };
+      const canvasCoords = screenToCanvas(e.clientX, e.clientY, parentRect, zoom);
+      offset = calculateDragOffset(canvasCoords, { x: shape.x, y: shape.y });
 
       if (handle === 'rotate') {
         const shapeRect = nodeRef.current?.getBoundingClientRect();
@@ -128,17 +125,16 @@ export function TextShape({ shape, isSelected, isLocked, isEditing, interactive 
           onRotate?.(origRotation + delta);
         }
       } else {
-        const mouseX = (ev.clientX - parentRect.left) / zoom;
-        const mouseY = (ev.clientY - parentRect.top) / zoom;
+        const mousePos = screenToCanvas(ev.clientX, ev.clientY, parentRect, zoom);
         let newX = origX;
         let newY = origY;
         let newW = origW;
         let newH = origH;
 
-        if (h.includes('w')) { newW = Math.max(40, origX + origW - mouseX); newX = mouseX; }
-        if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(40, mouseX - origX); }
-        if (h.includes('n')) { newH = Math.max(20, origY + origH - mouseY); newY = mouseY; }
-        if (h.includes('s')) { newH = Math.max(20, mouseY - origY); }
+        if (h.includes('w')) { newW = Math.max(40, origX + origW - mousePos.x); newX = mousePos.x; }
+        if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(40, mousePos.x - origX); }
+        if (h.includes('n')) { newH = Math.max(20, origY + origH - mousePos.y); newY = mousePos.y; }
+        if (h.includes('s')) { newH = Math.max(20, mousePos.y - origY); }
 
         onResize?.(newX, newY, newW, newH);
       }

@@ -3,6 +3,7 @@ import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { setCardTouched } from '../CanvasContainer.js';
 import { useCanvasDrag } from '../useCanvasDrag.js';
+import { screenToCanvas, calculateDragOffset } from '../../../utils/canvas/drag.js';
 
 interface RectangleShapeProps {
   shape: IShape;
@@ -43,10 +44,7 @@ export function RectangleShape({ shape, isSelected, isLocked, interactive = true
 
     const parentRect = nodeRef.current?.parentElement?.getBoundingClientRect();
     const offset = parentRect
-      ? {
-          x: (e.clientX - parentRect.left) / zoom - shape.x,
-          y: (e.clientY - parentRect.top) / zoom - shape.y,
-        }
+      ? calculateDragOffset(screenToCanvas(e.clientX, e.clientY, parentRect, zoom), { x: shape.x, y: shape.y })
       : { x: 0, y: 0 };
 
     dragRef.current = {
@@ -64,17 +62,16 @@ export function RectangleShape({ shape, isSelected, isLocked, interactive = true
       if (!parentRect) return;
 
       const { handle: h, offset: off, origX, origY, origW, origH } = dragRef.current;
-      const mouseX = (ev.clientX - parentRect.left) / zoom;
-      const mouseY = (ev.clientY - parentRect.top) / zoom;
+      const mousePos = screenToCanvas(ev.clientX, ev.clientY, parentRect, zoom);
 
       let newX = origX;
       let newY = origY;
       let newW = origW;
       let newH = origH;
-      if (h.includes('w')) { newW = Math.max(20, origX + origW - mouseX); newX = mouseX; }
-      if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(20, mouseX - origX); }
-      if (h.includes('n')) { newH = Math.max(20, origY + origH - mouseY); newY = mouseY; }
-      if (h.includes('s')) { newH = Math.max(20, mouseY - origY); }
+      if (h.includes('w')) { newW = Math.max(20, origX + origW - mousePos.x); newX = mousePos.x; }
+      if (h.includes('e') || h === 'ne' || h === 'se') { newW = Math.max(20, mousePos.x - origX); }
+      if (h.includes('n')) { newH = Math.max(20, origY + origH - mousePos.y); newY = mousePos.y; }
+      if (h.includes('s')) { newH = Math.max(20, mousePos.y - origY); }
       onResize?.(newX, newY, newW, newH);
     };
 
