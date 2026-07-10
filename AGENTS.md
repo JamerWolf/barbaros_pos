@@ -177,6 +177,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Padlock icons** (candadoAbierto.png / candadoCerrado.png para bloquear/desbloquear tarjetas)
 - ✅ **Search icon** (iconoLupa.png en dashboard)
 - ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
+- ✅ **Canvas LEGO architecture** (composable hooks: useCanvasDrag, useCanvasResize, useCanvasRotate, ResizeHandles, utils/canvas/drag.ts)
 
 ### Próximas features
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
