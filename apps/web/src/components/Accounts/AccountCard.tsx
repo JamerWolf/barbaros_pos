@@ -13,9 +13,9 @@ export interface AccountCardProps {
 }
 
 const SIZE_CLASSES: Record<CardSize, { container: string; name: string; total: string }> = {
-  sm: { container: 'w-20 h-20 p-2', name: 'text-[10px]', total: 'text-xs' },
-  md: { container: 'w-32 h-32 p-4', name: 'text-sm', total: 'text-lg' },
-  lg: { container: 'w-44 h-44 p-5', name: 'text-base', total: 'text-xl' },
+  sm: { container: 'w-20 h-20 p-2', name: 'text-xs', total: 'text-sm' },
+  md: { container: 'w-32 h-32 p-4', name: 'text-base', total: 'text-xl' },
+  lg: { container: 'w-44 h-44 p-5', name: 'text-lg', total: 'text-2xl' },
 };
 
 export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAmount = 0, status, onClick, size = 'md' }) => {
@@ -65,7 +65,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAm
     >
       <div className={`font-bold truncate text-[#C8A84E] ${s.name}`}>{name}</div>
       <div className="flex flex-col">
-        <span className="text-[9px] uppercase tracking-widest text-[#7A7060] font-mono">Pendiente</span>
+        <span className="text-[10px] uppercase tracking-widest text-[#7A7060] font-mono">Pendiente</span>
         <span className={`font-bold font-mono ${styles.amountColor} ${s.total}`}>{formatCOP(pendingAmount)}</span>
       </div>
     </div>
