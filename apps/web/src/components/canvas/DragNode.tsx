@@ -46,8 +46,12 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
       dimSaveTimer.current = setTimeout(() => {
         if (getSaveGeneration() !== gen) return
         const currentDims = useAccountUIStore.getState().cardDimensions[accountId]
+        const currentPos = useAccountUIStore.getState().nodePositions[accountId]
         if (currentDims) {
           saveAccountCardDimensions(accountId, currentDims.w, currentDims.h)
+        }
+        if (currentPos) {
+          saveAccountPosition(accountId, { posX: currentPos.x, posY: currentPos.y })
         }
       }, 300)
     },
