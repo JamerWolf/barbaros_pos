@@ -24,8 +24,10 @@ export function useAccountSockets() {
         const uiState = useAccountUIStore.getState();
         const positions = { ...uiState.nodePositions };
         const cardSizes = { ...uiState.cardSizes };
+        const cardDimensions = { ...uiState.cardDimensions };
         let positionsChanged = false;
         let sizesChanged = false;
+        let dimsChanged = false;
 
         for (const acc of accounts) {
           const hasDBPosition = acc.posX != null && acc.posY != null;
@@ -61,12 +63,19 @@ export function useAccountSockets() {
               body: JSON.stringify({ cardSize: localSize }),
             }).catch(() => {});
           }
+
+          // Merge custom card dimensions from DB
+          if (acc.cardWidth != null && acc.cardHeight != null) {
+            cardDimensions[acc.id] = { w: acc.cardWidth, h: acc.cardHeight };
+            dimsChanged = true;
+          }
         }
 
         const updates: Record<string, any> = {};
         if (positionsChanged) updates.nodePositions = positions;
         if (sizesChanged) updates.cardSizes = cardSizes;
-        if (positionsChanged || sizesChanged) {
+        if (dimsChanged) updates.cardDimensions = cardDimensions;
+        if (positionsChanged || sizesChanged || dimsChanged) {
           useAccountUIStore.setState(updates);
         }
       }
@@ -118,12 +127,32 @@ export function useAccountSockets() {
             });
           }
         } else if (event === 'account:card-size') {
-          const { id, cardSize } = data;
+          const { id, cardSize, cardWidth, cardHeight } = data;
+          const uiState = useAccountUIStore.getState();
+          const updates: Record<string, any> = {};
           if (cardSize != null && cardSize !== '') {
-            const uiState = useAccountUIStore.getState();
+            updates.cardSizes = { ...uiState.cardSizes, [id]: cardSize };
+          }
+          if (cardWidth != null && cardHeight != null) {
+            updates.cardDimensions = { ...uiState.cardDimensions, [id]: { w: cardWidth, h: cardHeight } };
+          } else if (cardWidth === null || cardHeight === null) {
+            // Preset was set — clear custom dims
+            const { [id]: _, ...rest } = uiState.cardDimensions;
+            updates.cardDimensions = rest;
+          }
+          if (Object.keys(updates).length > 0) {
+            useAccountUIStore.setState(updates);
+          }
+        } else if (event === 'account:card-dimensions') {
+          const { id, cardWidth, cardHeight } = data;
+          const uiState = useAccountUIStore.getState();
+          if (cardWidth != null && cardHeight != null) {
             useAccountUIStore.setState({
-              cardSizes: { ...uiState.cardSizes, [id]: cardSize },
+              cardDimensions: { ...uiState.cardDimensions, [id]: { w: cardWidth, h: cardHeight } },
             });
+          } else {
+            const { [id]: _, ...rest } = uiState.cardDimensions;
+            useAccountUIStore.setState({ cardDimensions: rest });
           }
         }
       } catch (err) {
