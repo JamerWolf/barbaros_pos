@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IProduct, ICategory } from '@barbaros/shared';
+import type { IProduct, ICategory, ImportResult } from '@barbaros/shared';
 
 import API_URL from '../utils/apiUrl.js';
 
@@ -16,6 +16,7 @@ interface ProductState {
   createCategory: (name: string) => Promise<ICategory>;
   updateCategory: (id: string, name: string) => Promise<ICategory>;
   deleteCategory: (id: string) => Promise<void>;
+  importProducts: (file: File, photos: File[]) => Promise<ImportResult>;
 }
 
 export const useProductStore = create<ProductState>((set) => ({
@@ -122,5 +123,17 @@ export const useProductStore = create<ProductState>((set) => ({
     const res = await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete category');
     set((state) => ({ categories: state.categories.filter((c) => c.id !== id) }));
+  },
+
+  importProducts: async (file, photos) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    photos.forEach((p) => formData.append('photos', p));
+    const res = await fetch(`${API_URL}/products/import`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Failed to import products');
+    return res.json() as Promise<ImportResult>;
   },
 }));

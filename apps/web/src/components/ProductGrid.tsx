@@ -12,7 +12,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, categories, onAddProduct }: ProductGridProps): JSX.Element {
-  const { createProduct, uploadProductPhoto } = useProductStore();
+  const { createProduct, uploadProductPhoto, createCategory } = useProductStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -23,6 +23,8 @@ export function ProductGrid({ products, categories, onAddProduct }: ProductGridP
   const [formCategoryId, setFormCategoryId] = useState('');
   const [formPhoto, setFormPhoto] = useState<File | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const filteredProducts = useMemo(() => {
     const active = products.filter((p) => p.active);
@@ -33,6 +35,15 @@ export function ProductGrid({ products, categories, onAddProduct }: ProductGridP
       return matchesSearch && matchesCategory;
     });
   }, [products, search, selectedCategory]);
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    const cat = await createCategory(name);
+    setFormCategoryId(cat.id);
+    setNewCategoryName('');
+    setShowCategoryInput(false);
+  };
 
   const handleCreateProduct = async () => {
     const price = parseFloat(formPrice);
@@ -129,18 +140,37 @@ export function ProductGrid({ products, categories, onAddProduct }: ProductGridP
                 onChange={(e) => setFormPrice(e.target.value)}
                 className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
               />
-              <select
-                  value={formCategoryId}
-                  onChange={(e) => setFormCategoryId(e.target.value)}
-                  className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none"
+              <div className="flex gap-2">
+                <select
+                    value={formCategoryId}
+                    onChange={(e) => { setFormCategoryId(e.target.value); setShowCategoryInput(false); }}
+                    className="h-12 flex-1 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none"
+                  >
+                    <option value="">Sin categoría</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                <button
+                  type="button"
+                  onClick={() => { setShowCategoryInput(!showCategoryInput); setFormCategoryId(''); }}
+                  className={`h-12 shrink-0 rounded-lg px-3 font-bold text-sm text-[#0A0A0A] active:opacity-80 ${showCategoryInput ? 'bg-[#5C1A1A] text-[#E85050]' : 'bg-[#C8A84E]'}`}
                 >
-                  <option value="">Sin categoría</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  {showCategoryInput ? '✕' : '+'}
+                </button>
+              </div>
+              {showCategoryInput && (
+                <input
+                  type="text"
+                  placeholder="Nombre de la nueva categoría"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  className="h-12 rounded-lg bg-[#1E1E1E] px-4 text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
+                />
+              )}
               <input
                 ref={photoInputRef}
                 type="file"
