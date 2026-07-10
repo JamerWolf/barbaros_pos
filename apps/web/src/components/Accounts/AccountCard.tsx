@@ -10,6 +10,8 @@ export interface AccountCardProps {
   status: 'open' | 'closed' | 'payment_pending';
   onClick?: () => void;
   size?: CardSize;
+  width?: number;
+  height?: number;
 }
 
 const SIZE_CLASSES: Record<CardSize, { container: string; name: string; total: string }> = {
@@ -18,7 +20,7 @@ const SIZE_CLASSES: Record<CardSize, { container: string; name: string; total: s
   lg: { container: 'w-44 h-44 p-5', name: 'text-lg', total: 'text-2xl' },
 };
 
-export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAmount = 0, status, onClick, size = 'md' }) => {
+export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAmount = 0, status, onClick, size = 'md', width, height }) => {
   const getStatusStyles = () => {
     if (status === 'open' && pendingAmount > 0) {
       return {
@@ -57,16 +59,38 @@ export const AccountCard: React.FC<AccountCardProps> = ({ name, total, pendingAm
 
   const s = SIZE_CLASSES[size];
   const styles = getStatusStyles();
+  const useCustom = width && height;
+  const area = useCustom ? width! * height! : 0;
+
+  let nameClass = s.name;
+  let totalClass = s.total;
+  let padding = '';
+  if (useCustom) {
+    if (area < 8000) {
+      nameClass = 'text-xs';
+      totalClass = 'text-sm';
+      padding = 'p-2';
+    } else if (area < 20000) {
+      nameClass = 'text-base';
+      totalClass = 'text-xl';
+      padding = 'p-4';
+    } else {
+      nameClass = 'text-lg';
+      totalClass = 'text-2xl';
+      padding = 'p-5';
+    }
+  }
 
   return (
-    <div 
-      className={`${s.container} ${styles.bg} border ${styles.border} rounded-xl shadow-lg flex flex-col justify-between cursor-pointer select-none transition-all active:scale-95`}
+    <div
+      className={`${useCustom ? padding : s.container} ${styles.bg} border ${styles.border} rounded-xl shadow-lg flex flex-col justify-between cursor-pointer select-none transition-all active:scale-95`}
+      style={useCustom ? { width, height } : undefined}
       onClick={onClick}
     >
-      <div className={`font-bold truncate text-[#C8A84E] ${s.name}`}>{name}</div>
+      <div className={`font-bold truncate text-[#C8A84E] ${nameClass}`}>{name}</div>
       <div className="flex flex-col">
         <span className="text-[10px] uppercase tracking-widest text-[#7A7060] font-mono">Pendiente</span>
-        <span className={`font-bold font-mono ${styles.amountColor} ${s.total}`}>{formatCOP(pendingAmount)}</span>
+        <span className={`font-bold font-mono ${styles.amountColor} ${totalClass}`}>{formatCOP(pendingAmount)}</span>
       </div>
     </div>
   );

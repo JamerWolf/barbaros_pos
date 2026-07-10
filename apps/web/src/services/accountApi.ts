@@ -21,3 +21,15 @@ export async function saveAccountCardSize(
     body: JSON.stringify({ cardSize }),
   });
 }
+
+export async function saveAccountCardDimensions(
+  accountId: string,
+  cardWidth: number,
+  cardHeight: number
+): Promise<void> {
+  await fetch(`${API_URL}/accounts/${accountId}/card-dimensions`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardWidth, cardHeight }),
+  });
+}

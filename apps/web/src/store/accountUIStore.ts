@@ -17,6 +17,7 @@ export interface AccountUIState {
   canvasHeight: number | null;
   cardSize: CardSize;
   cardSizes: Record<string, CardSize>;
+  cardDimensions: Record<string, { w: number; h: number }>;
   cardsLocked: boolean;
   shapesLocked: boolean;
   selectionSnapshot: { nodePositions: Record<string, Position>; cardSizes: Record<string, CardSize> } | null;
@@ -38,6 +39,8 @@ export interface AccountUIState {
   setCardSize: (size: CardSize) => void;
   getCardSize: (accountId: string) => CardSize;
   getCardDimensions: (accountId: string) => { w: number; h: number };
+  setCardDimensions: (accountId: string, w: number, h: number) => void;
+  resetCardDimensions: (accountId: string) => void;
   setCardsLocked: (locked: boolean) => void;
   setShapesLocked: (locked: boolean) => void;
   activeGuides: SnapGuide[];
@@ -68,6 +71,7 @@ export const useAccountUIStore = create<AccountUIState>()(
       canvasHeight: null,
       cardSize: 'md',
       cardSizes: {},
+      cardDimensions: {},
       cardsLocked: false,
       shapesLocked: true,
       activeGuides: [],
@@ -174,9 +178,19 @@ export const useAccountUIStore = create<AccountUIState>()(
       },
       getCardDimensions: (accountId) => {
         const s = _get();
+        const custom = s.cardDimensions[accountId];
+        if (custom) return custom;
         const size = s.cardSizes[accountId] ?? s.cardSize;
         return CARD_SIZES[size];
       },
+      setCardDimensions: (accountId, w, h) => set((state) => ({
+        cardDimensions: { ...state.cardDimensions, [accountId]: { w, h } }
+      })),
+      resetCardDimensions: (accountId) => set((state) => {
+        const next = { ...state.cardDimensions };
+        delete next[accountId];
+        return { cardDimensions: next };
+      }),
       setCardSize: (size: CardSize) => set((state) => {
         // If in selection mode with selected cards, change those too
         if (state.selectionMode && state.selectedIds.size > 0) {
@@ -200,10 +214,7 @@ export const useAccountUIStore = create<AccountUIState>()(
 
         // Include account cards
         for (const [id, pos] of entries) {
-          const overrideSize = state.cardSizes[id];
-          const { w, h } = overrideSize
-            ? CARD_SIZES[overrideSize]
-            : CARD_SIZES[state.cardSize];
+          const { w, h } = state.getCardDimensions(id);
           minX = Math.min(minX, pos.x);
           minY = Math.min(minY, pos.y);
           maxX = Math.max(maxX, pos.x + w);
@@ -291,6 +302,7 @@ export const useAccountUIStore = create<AccountUIState>()(
         canvasHeight: state.canvasHeight,
         cardSize: state.cardSize,
         cardSizes: state.cardSizes,
+        cardDimensions: state.cardDimensions,
         cardsLocked: state.cardsLocked,
         shapesLocked: state.shapesLocked,
         fitZone: state.fitZone,

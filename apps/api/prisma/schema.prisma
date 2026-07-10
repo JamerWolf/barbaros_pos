@@ -53,6 +53,8 @@ model Account {
   posX           Float?
   posY           Float?
   cardSize       String?
+  cardWidth      Float?
+  cardHeight     Float?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
