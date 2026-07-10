@@ -15,6 +15,47 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(200).send(products);
   });
 
+  fastify.post('/import', async (request, reply) => {
+    try {
+      const parts = request.parts();
+      let csvText: string | undefined;
+      const photos = new Map<string, Buffer>();
+
+      for await (const part of parts) {
+        if (part.type === 'file' && part.fieldname === 'file') {
+          const buffer = await part.toBuffer();
+          if (buffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ error: 'El archivo CSV debe ser menor a 5MB' });
+          }
+          csvText = buffer.toString('utf-8');
+        } else if (part.type === 'file' && part.fieldname === 'photos') {
+          const buffer = await part.toBuffer();
+          if (buffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ error: `La foto "${part.filename}" debe ser menor a 5MB` });
+          }
+          photos.set(part.filename, buffer);
+        }
+      }
+
+      fastify.log.info(`[import] CSV received: ${csvText ? 'yes' : 'no'}, photos: ${photos.size}`);
+
+      if (!csvText) {
+        return reply.code(400).send({ error: 'No CSV file provided' });
+      }
+
+      const rows = ProductService.parseCSV(csvText);
+      if (rows.length < 2) {
+        return reply.code(400).send({ error: 'CSV file is empty or has no data rows' });
+      }
+
+      const result = await ProductService.importProducts(rows, photos);
+      return reply.code(200).send(result);
+    } catch (err: any) {
+      fastify.log.error(`[import] Error: ${err.message}`);
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const product = await ProductService.getProduct(id);

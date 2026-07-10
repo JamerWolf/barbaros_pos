@@ -16,3 +16,9 @@ export interface IProduct {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface ImportResult {
+  created: number;
+  skipped: number;
+  errors: string[];
+}

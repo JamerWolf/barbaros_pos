@@ -4,6 +4,7 @@ import { CategoryTabs } from '../CategoryTabs.js';
 import { formatCOP } from '../../utils/format.js';
 import { productPhotoUrl } from '../../utils/productPhoto.js';
 import { tw } from '../../utils/colors.js';
+import { useToast } from '../../hooks/useToast.js';
 
 interface AdminProductsPageProps {
   onClose: () => void;
@@ -22,7 +23,10 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
     uploadProductPhoto,
     createCategory,
     deleteCategory,
+    importProducts,
   } = useProductStore();
+
+  const { toast, showToast } = useToast();
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -36,6 +40,13 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
   const [formCategoryId, setFormCategoryId] = useState('');
   const [formActive, setFormActive] = useState(true);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPhotos, setImportPhotos] = useState<File[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const importCsvRef = useRef<HTMLInputElement>(null);
+  const importPhotosRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -123,6 +134,28 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
     e.target.value = '';
   };
 
+  const handleImport = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    try {
+      const result = await importProducts(importFile, importPhotos);
+      const msg = `Importados: ${result.created} | Saltados: ${result.skipped} | Errores: ${result.errors.length}`;
+      if (result.errors.length > 0) {
+        showToast(`${msg}\n${result.errors.slice(0, 3).join(', ')}${result.errors.length > 3 ? '...' : ''}`, 'error');
+      } else {
+        showToast(msg, 'success');
+      }
+      await fetchProducts();
+      setShowImportModal(false);
+      setImportFile(null);
+      setImportPhotos([]);
+    } catch {
+      showToast('Error al importar productos', 'error');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-[#E8E0D0]" style={{ height: '100dvh' }}>
       <div className="flex items-center justify-between p-4">
@@ -132,6 +165,12 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
           </button>
           <h2 className="text-lg font-bold">Productos</h2>
         </div>
+        <button
+          onClick={() => setShowImportModal(true)}
+          className={`h-10 rounded-lg ${tw.bgHover} px-3 font-bold text-sm ${tw.text} active:bg-[#1E1E1E]`}
+        >
+          📄 CSV
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-4">
 
@@ -329,6 +368,90 @@ export function AdminProductsPage({ onClose }: AdminProductsPageProps): JSX.Elem
               </button>
             </div>
            </div>
+        </div>
+      )}
+
+      {toast && (
+        <div
+          className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl px-4 py-3 text-sm font-bold ${
+            toast.type === 'success' ? `${tw.successBg} ${tw.success}` : `${tw.errorBg} ${tw.error}`
+          }`}
+          style={{ whiteSpace: 'pre-line', maxWidth: '90vw', textAlign: 'center' }}
+        >
+          {toast.message}
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6">
+            <h3 className="mb-4 text-lg font-bold text-[#E8E0D0]">Importar CSV</h3>
+            <div className="flex flex-col gap-3">
+              <div>
+                <input
+                  ref={importCsvRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setImportFile(file);
+                    setImportPhotos([]);
+                  }}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => importCsvRef.current?.click()}
+                  className={`h-12 w-full rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
+                >
+                  {importFile ? importFile.name : '📄 Seleccionar CSV'}
+                </button>
+              </div>
+
+              {importFile && (
+                <div className="rounded-lg bg-[#1E1E1E] p-3 text-sm text-[#7A7060]">
+                  Archivo: {importFile.name}
+                </div>
+              )}
+
+              <div>
+                <input
+                  ref={importPhotosRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setImportPhotos(Array.from(e.target.files ?? []))}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => importPhotosRef.current?.click()}
+                  className={`h-12 w-full rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
+                >
+                  {importPhotos.length > 0
+                    ? `${importPhotos.length} fotos seleccionadas`
+                    : '📷 Fotos (opcional)'}
+                </button>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportPhotos([]);
+                }}
+                className={`h-12 flex-1 rounded-xl ${tw.bgHover} font-bold ${tw.text} active:bg-[#1E1E1E]`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!importFile || importLoading}
+                className="h-12 flex-1 rounded-xl bg-[#C8A84E] font-bold text-[#E8E0D0] active:bg-[#C8A84E]/80 disabled:opacity-50"
+              >
+                {importLoading ? 'Importando...' : 'Importar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
