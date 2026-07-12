@@ -10,6 +10,7 @@ import { Toast } from '../components/Toast.js';
 import { useToast } from '../hooks/useToast.js';
 import API_URL from '../utils/apiUrl.js';
 import { tw } from '../utils/colors.js';
+import type { Payment, PaymentMethod } from '@barbaros/shared';
 
 export function AccountDetailPage(): JSX.Element {
   const { id } = useParams();
@@ -169,6 +170,16 @@ export function AccountDetailPage(): JSX.Element {
 
   const pendingAmount = account.pendingAmount ?? account.total ?? 0;
   const canClose = pendingAmount === 0;
+  const payments = (account.payments ?? []) as Payment[];
+
+  const paymentMethodLabel = (method: PaymentMethod) => {
+    switch (method) {
+      case 'CASH': return 'Efectivo';
+      case 'TRANSFER': return 'Transferencia';
+      case 'CARD': return 'Tarjeta';
+      default: return method;
+    }
+  };
 
   return (
     <div className={`flex flex-col ${tw.bg} ${tw.text} lg:min-h-dvh lg:flex-row lg:gap-0 lg:p-0`}>
@@ -245,6 +256,30 @@ export function AccountDetailPage(): JSX.Element {
           <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
           <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
         </section>
+
+        {readonly && payments.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Historial de pagos</h2>
+            <div className={`rounded-xl ${tw.bgCard} divide-y divide-[#C8A84E]/10`}>
+              {payments.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-3">
+                  <div>
+                    <p className={`text-sm ${tw.textMuted}`}>{paymentMethodLabel(p.method)}</p>
+                    <p className="text-xs text-[#7A7060]">
+                      {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {p.proofUrl && (
+                      <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                        Ver comprobante
+                      </a>
+                    )}
+                  </div>
+                  <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {!readonly && (
           <section>
@@ -337,6 +372,30 @@ export function AccountDetailPage(): JSX.Element {
             <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
             <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
           </section>
+
+          {readonly && payments.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-lg font-bold">Historial de pagos</h2>
+              <div className={`rounded-xl ${tw.bgCard} divide-y divide-[#C8A84E]/10`}>
+                {payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3">
+                    <div>
+                      <p className={`text-sm ${tw.textMuted}`}>{paymentMethodLabel(p.method)}</p>
+                      <p className="text-xs text-[#7A7060]">
+                        {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {p.proofUrl && (
+                        <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                          Ver comprobante
+                        </a>
+                      )}
+                    </div>
+                    <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
