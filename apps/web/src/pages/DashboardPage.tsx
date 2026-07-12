@@ -50,7 +50,7 @@ export function DashboardPage(): JSX.Element {
   }, [viewMode])
 
   const openAccounts = useMemo(
-    () => Object.values(accounts).filter((acc) => acc.status === 'OPEN'),
+    () => Object.values(accounts).filter((acc) => acc.status === 'OPEN' && !acc.hidden),
     [accounts]
   )
 
@@ -353,7 +353,7 @@ export function DashboardPage(): JSX.Element {
                   onClick={() => { setShowAddOldAccount(true); setShowCuentaMenu(false) }}
                   className="w-full rounded-md px-3 py-2 text-left text-xs font-bold text-[#E8E0D0] hover:bg-[#1E1E1E]"
                 >
-                  + Agregar cuenta de otro turno
+                  + Agregar cuenta abierta
                 </button>
               </div>
             )}
@@ -673,32 +673,73 @@ export function DashboardPage(): JSX.Element {
       {showAddOldAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6 shadow-2xl">
-            <h2 className="mb-4 text-xl font-bold text-[#E8E0D0]">Agregar cuenta de otro turno</h2>
+            <h2 className="mb-4 text-xl font-bold text-[#E8E0D0]">Agregar cuenta abierta</h2>
             <div className="max-h-80 overflow-y-auto">
-              {allOpenAccounts
-                .filter((acc) => !openAccounts.some((o) => o.id === acc.id))
-                .map((acc) => (
-                  <button
-                    key={acc.id}
-                    onClick={() => {
-                      // Add the account to the store so it appears in canvas
-                      const { addAccount } = useAccountStore.getState()
-                      addAccount(acc)
-                      // Pin to backend so it persists across devices
-                      fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(() => {})
-                      setShowAddOldAccount(false)
-                    }}
-                    className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
-                  >
-                    <div>
-                      <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
-                      <p className="text-xs text-[#7A7060]">Turno: {acc.shift?.createdAt ? new Date(acc.shift.createdAt).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' }) : ''}</p>
-                    </div>
-                    <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
-                  </button>
-                ))}
-              {allOpenAccounts.filter((acc) => !openAccounts.some((o) => o.id === acc.id)).length === 0 && (
-                <p className="text-center text-[#7A7060]">No hay cuentas de otros turnos.</p>
+              {/* Hidden accounts from current shift */}
+              {(() => {
+                const hiddenAccounts = Object.values(accounts).filter(
+                  (acc) => acc.status === 'OPEN' && acc.hidden
+                )
+                if (hiddenAccounts.length === 0) return null
+                return (
+                  <>
+                    <p className="mb-2 text-xs font-bold text-[#7A7060]">Cuentas ocultas de este turno</p>
+                    {hiddenAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => {
+                          const { updateAccount } = useAccountStore.getState()
+                          fetch(`${API_URL}/accounts/${acc.id}/unhide`, { method: 'PATCH' })
+                            .then((r) => r.json())
+                            .then((data) => updateAccount(data))
+                            .catch(() => {})
+                          setShowAddOldAccount(false)
+                        }}
+                        className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
+                      >
+                        <div>
+                          <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
+                          <p className="text-xs text-[#C8A84E]">Oculta</p>
+                        </div>
+                        <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
+                      </button>
+                    ))}
+                  </>
+                )
+              })()}
+              {/* Accounts from other shifts */}
+              {(() => {
+                const otherShiftAccounts = allOpenAccounts.filter(
+                  (acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden
+                )
+                if (otherShiftAccounts.length === 0) return null
+                return (
+                  <>
+                    <p className="mb-2 mt-2 text-xs font-bold text-[#7A7060]">Cuentas de otros turnos</p>
+                    {otherShiftAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => {
+                          const { addAccount } = useAccountStore.getState()
+                          addAccount(acc)
+                          fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(() => {})
+                          setShowAddOldAccount(false)
+                        }}
+                        className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
+                      >
+                        <div>
+                          <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
+                          <p className="text-xs text-[#7A7060]">Turno: {acc.shift?.createdAt ? new Date(acc.shift.createdAt).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' }) : ''}</p>
+                        </div>
+                        <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
+                      </button>
+                    ))}
+                  </>
+                )
+              })()}
+              {Object.values(accounts).filter((a) => a.status === 'OPEN' && a.hidden).length === 0 &&
+               allOpenAccounts.filter((acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden).length === 0 && (
+                <p className="text-center text-[#7A7060]">No hay cuentas para agregar.</p>
               )}
             </div>
             <button

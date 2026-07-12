@@ -197,6 +197,34 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // Hide an account from the canvas (soft hide, recoverable later)
+  fastify.patch('/:id/hide', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const account = await prisma.account.update({
+        where: { id },
+        data: { hidden: true },
+      });
+      return reply.code(200).send(account);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // Unhide an account (restore to canvas)
+  fastify.patch('/:id/unhide', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const account = await prisma.account.update({
+        where: { id },
+        data: { hidden: false },
+      });
+      return reply.code(200).send(account);
+    } catch (err: any) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
   fastify.patch('/:id/card-dimensions', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { cardWidth, cardHeight } = request.body as { cardWidth?: number; cardHeight?: number };

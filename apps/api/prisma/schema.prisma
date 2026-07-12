@@ -48,6 +48,7 @@ model Account {
   number         Int
   name           String
   status         AccountStatus @default(OPEN)
+  hidden         Boolean       @default(false)
   discountType   DiscountType @default(NONE)
   discountValue  Decimal       @default(0) @db.Decimal(10, 2)
   posX           Float?
