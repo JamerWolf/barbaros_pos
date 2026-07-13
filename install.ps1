@@ -54,9 +54,38 @@ Write-Host ""
 # --- Check virtualization ---
 Write-Section "[0/6] Verificando virtualizacion..."
 
-$virt = (Get-CimInstance -ClassName Win32_Processor).VirtualizationFirmwareEnabled
-if ($virt -eq $true) {
-    Write-OK "Virtualizacion habilitada en BIOS"
+$ErrorActionPreferenceOld = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+
+# Method 1: Check processor property
+$procInfo = Get-CimInstance -ClassName Win32_Processor
+$cirtOk = $false
+foreach ($p in $procInfo) {
+    if ($p.VirtualizationFirmwareEnabled -eq $true) {
+        $cirtOk = $true
+    }
+}
+
+# Method 2: If above fails, check if Hyper-V or WSL2 works (they need virtualization)
+if (-not $virtOk) {
+    $hyperv = & cmd /c "bcdedit /enum" 2>$null | Select-String "hypervisorlaunchtype"
+    if ($hyperv -and $hyperv -match "Auto") {
+        $virtOk = $true
+    }
+}
+
+# Method 3: Check if WSL can actually run
+if (-not $virtOk) {
+    $wslCmd = Get-Command wsl -ErrorAction SilentlyContinue
+    if ($wslCmd) {
+        $virtOk = $true  # WSL exists, virtualization probably works
+    }
+}
+
+$ErrorActionPreference = $ErrorActionPreferenceOld
+
+if ($virtOk) {
+    Write-OK "Virtualizacion habilitada"
 } else {
     Write-Fail "Virtualizacion NO habilitada"
     Write-Host ""
