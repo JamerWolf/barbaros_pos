@@ -74,43 +74,16 @@ if ($virt -eq $true) {
 # --- Step 1: WSL2 ---
 Write-Section "[1/6] Verificando WSL2..."
 
-# Check 1: wsl command exists
 $wslExists = Get-Command wsl -ErrorAction SilentlyContinue
-if (-not $wslExists) {
-    Write-Step "WSL no encontrado. Instalando WSL2..."
-    & cmd /c "wsl --install --no-launch" 2>&1 | ForEach-Object { Write-Host "  $_" }
-    if ($LASTEXITCODE -ne 0) {
-        Write-Fail "Error instalando WSL2. Reinicia el PC y vuelve a ejecutar."
-        exit 1
-    }
-    Write-OK "WSL2 instalado - puede ser necesario reiniciar"
+if ($wslExists) {
+    Write-OK "WSL2 ya instalado"
 } else {
-    # WSL exists — try to detect if it has distros (UTF-16 output, check raw bytes)
-    $hasDistro = $false
-    try {
-        $proc = New-Object System.Diagnostics.Process
-        $proc.StartInfo.FileName = "wsl"
-        $proc.StartInfo.Arguments = "-l -v"
-        $proc.StartInfo.RedirectStandardOutput = $true
-        $proc.StartInfo.UseShellExecute = $false
-        $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::Unicode
-        $proc.Start() | Out-Null
-        $output = $proc.StandardOutput.ReadToEnd()
-        $proc.WaitForExit()
-        if ($output -match "docker-desktop" -or $output -match "Ubuntu") {
-            $hasDistro = $true
-        }
-    } catch {
-        # Ignore — will be caught by Docker check later
-    }
-
-    if ($hasDistro) {
-        Write-OK "WSL2 ya instalado"
-    } else {
-        Write-Step "WSL detectado. Verificando que funcione con Docker..."
-        # WSL exists but might need update — Docker check will validate later
-        Write-OK "WSL presente (Docker verificara WSL2)"
-    }
+    Write-Step "Instalando WSL2..."
+    $ErrorActionPreferenceOld = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    wsl --install --no-launch
+    $ErrorActionPreference = $ErrorActionPreferenceOld
+    Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 }
 
 # --- Step 2: Docker Desktop ---
