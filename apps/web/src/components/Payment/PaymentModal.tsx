@@ -364,16 +364,19 @@ export function PaymentModal({
             <div>
               <label className="mb-1 block text-sm text-[#7A7060]">Comprobante (opcional)</label>
               <div className="flex gap-2">
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                  className="h-12 flex-1 rounded-lg bg-[#1E1E1E] px-4 text-[#7A7060] file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-[#C8A84E] file:px-4 file:font-bold file:text-[#0A0A0A] file:active:bg-[#C8A84E]/80"
-                />
+                <label className="h-12 flex-1 min-w-0 cursor-pointer rounded-lg bg-[#1E1E1E] px-4 leading-[48px] text-[#7A7060] active:bg-[#141414]">
+                  <span className="pointer-events-none truncate block">{proofFile ? proofFile.name : 'Seleccionar archivo'}</span>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  className="h-12 shrink-0 rounded-lg bg-[#1E1E1E] px-4 font-bold text-[#E8E0D0] active:bg-[#141414]"
+                  className="h-12 w-12 shrink-0 rounded-lg bg-[#1E1E1E] text-lg text-[#E8E0D0] active:bg-[#141414]"
                   title="Tomar foto"
                 >
                   📷
@@ -387,9 +390,6 @@ export function PaymentModal({
                   className="hidden"
                 />
               </div>
-              {proofFile && (
-                <p className="mt-1 text-xs text-[#7CCD7C]">Archivo: {proofFile.name}</p>
-              )}
             </div>
           )}
 
