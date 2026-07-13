@@ -6,9 +6,10 @@ interface OrderItemListProps {
   items: IOrderItem[];
   onRemoveItem: (itemId: string) => void;
   onIncrementItem: (itemId: string) => void;
+  readonly?: boolean;
 }
 
-export function OrderItemList({ items, onRemoveItem, onIncrementItem }: OrderItemListProps): JSX.Element {
+export function OrderItemList({ items, onRemoveItem, onIncrementItem, readonly = false }: OrderItemListProps): JSX.Element {
   if (items.length === 0) {
     return (
       <div className="rounded-xl bg-[#141414] p-4 text-center text-[#7A7060]">
@@ -45,12 +46,14 @@ export function OrderItemList({ items, onRemoveItem, onIncrementItem }: OrderIte
           <span className="font-bold text-[#E8E0D0]">
             {formatCOP(Number(item.quantity) * Number(item.unitPrice))}
           </span>
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemoveItem(item.id); }}
-            className="h-8 w-8 shrink-0 rounded-lg bg-[#5C1A1A] text-lg font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
-          >
-            🗑️
-          </button>
+          {!readonly && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemoveItem(item.id); }}
+              className="h-8 w-8 shrink-0 rounded-lg bg-[#5C1A1A] active:bg-[#5C1A1A]/80"
+            >
+              <img src="/papelera-de-reciclaje.png" alt="Eliminar" className="h-5 w-5" />
+            </button>
+          )}
         </div>
       ))}
     </div>

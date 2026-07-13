@@ -255,7 +255,7 @@ export function AccountDetailPage(): JSX.Element {
 
         <section>
           <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-          <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
+          <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} readonly={readonly} />
         </section>
 
         {readonly && payments.length > 0 && (
@@ -371,7 +371,7 @@ export function AccountDetailPage(): JSX.Element {
 
           <section>
             <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-            <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
+            <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} readonly={readonly} />
           </section>
 
           {readonly && payments.length > 0 && (
