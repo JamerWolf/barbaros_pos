@@ -123,8 +123,7 @@ export function PaymentModal({
 
     setLoading(true);
     try {
-      let proofUrl: string | undefined;
-      if (method === PaymentMethod.TRANSFER && proofFile) {
+      if (proofFile) {
         const formData = new FormData();
         formData.append('amount', amount);
         formData.append('method', method);
@@ -148,7 +147,7 @@ export function PaymentModal({
       const res = await fetch(`${API_URL}/accounts/${accountId}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amountNum, method, proofUrl }),
+        body: JSON.stringify({ amount: amountNum, method }),
       });
 
       if (!res.ok) {
@@ -359,8 +358,8 @@ export function PaymentModal({
             </p>
           </div>
 
-          {/* Proof upload (only for transfers) */}
-          {method === PaymentMethod.TRANSFER && (
+          {/* Proof upload (for transfers and card payments) */}
+          {(method === PaymentMethod.TRANSFER || method === PaymentMethod.CARD) && (
             <div>
               <label className="mb-1 block text-sm text-[#7A7060]">Comprobante (opcional)</label>
               <div className="flex gap-2">
