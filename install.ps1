@@ -78,21 +78,20 @@ Write-Section "[1/6] Verificando WSL2..."
 $wslExists = Get-Command wsl -ErrorAction SilentlyContinue
 if (-not $wslExists) {
     Write-Step "WSL no encontrado. Instalando WSL2..."
-    wsl --install --no-launch 2>&1 | ForEach-Object { Write-Host "  $_" }
+    & cmd /c "wsl --install --no-launch" 2>&1 | ForEach-Object { Write-Host "  $_" }
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Error instalando WSL2. Reinicia el PC y vuelve a ejecutar."
         exit 1
     }
     Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 } else {
-    # Check 2: wsl --version returns version info
-    $wslVersion = wsl --version 2>&1
-    $wslOutput = $wslVersion | Out-String
-    if ($wslOutput -match "WSL" -and $wslOutput -match "\d+\.\d+") {
+    # Check 2: wsl --version returns version info (use cmd /c to avoid stderr issues)
+    $wslOutput = & cmd /c "wsl --version" 2>&1 | Out-String
+    if ($wslOutput -match "\d+\.\d+\.\d+") {
         Write-OK "WSL2 ya instalado"
     } else {
         Write-Step "WSL presente pero WSL2 no detectado. Actualizando..."
-        wsl --update 2>&1 | ForEach-Object { Write-Host "  $_" }
+        & cmd /c "wsl --update" 2>&1 | ForEach-Object { Write-Host "  $_" }
         Write-OK "WSL2 actualizado - puede ser necesario reiniciar"
     }
 }
