@@ -88,7 +88,7 @@ if (-not $wslExists) {
     # Check 2: wsl --version returns version info
     $wslVersion = wsl --version 2>&1
     $wslOutput = $wslVersion | Out-String
-    if ($wslOutput -match "WSL version" -or $wslOutput -match "Version") {
+    if ($wslOutput -match "WSL" -and $wslOutput -match "\d+\.\d+") {
         Write-OK "WSL2 ya instalado"
     } else {
         Write-Step "WSL presente pero WSL2 no detectado. Actualizando..."
