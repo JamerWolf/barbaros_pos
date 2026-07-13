@@ -188,8 +188,13 @@ if ($dockerReady) {
 # --- Step 3: Node.js ---
 Write-Section "[3/6] Verificando Node.js..."
 
-$nodeVersion = node --version 2>&1
-if ($nodeVersion -match "v\d+") {
+$ErrorActionPreferenceOld = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$nodeVersion = node --version
+$nodeInstalled = $LASTEXITCODE -eq 0
+$ErrorActionPreference = $ErrorActionPreferenceOld
+
+if ($nodeInstalled -and $nodeVersion -match "v\d+") {
     Write-OK "Node.js $nodeVersion instalado"
 } else {
     Write-Step "Descargando Node.js LTS..."
