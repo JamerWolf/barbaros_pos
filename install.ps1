@@ -69,7 +69,7 @@ if ($virt -eq $true) {
 }
 
 # --- Step 1: WSL2 ---
-Write-Section "[1/5] Verificando WSL2..."
+Write-Section "[1/6] Verificando WSL2..."
 
 $wslVersion = wsl --version 2>&1
 if ($wslVersion -match "WSL version") {
@@ -85,7 +85,7 @@ if ($wslVersion -match "WSL version") {
 }
 
 # --- Step 2: Docker Desktop ---
-Write-Section "[2/5] Verificando Docker Desktop..."
+Write-Section "[2/6] Verificando Docker Desktop..."
 
 $dockerRunning = & cmd /c "docker info 2>nul" | Select-String "Server Version"
 if ($dockerRunning) {
@@ -138,15 +138,52 @@ if ($dockerRunning) {
     }
 }
 
-# --- Step 3: Clone or update repo ---
-Write-Section "[3/5] Preparando el codigo..."
+# --- Step 3: Node.js ---
+Write-Section "[3/6] Verificando Node.js..."
+
+$nodeVersion = node --version 2>&1
+if ($nodeVersion -match "v\d+") {
+    Write-OK "Node.js $nodeVersion instalado"
+} else {
+    Write-Step "Descargando Node.js LTS..."
+    $nodeInstaller = "$env:TEMP\node-install.msi"
+    $nodeUrl = "https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi"
+
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing
+    } catch {
+        Write-Fail "No se pudo descargar Node.js"
+        Write-Host "  Descargalo manualmente desde: https://nodejs.org/" -ForegroundColor Yellow
+        exit 1
+    }
+
+    Write-Step "Instalando Node.js..."
+    Start-Process msiexec.exe -Wait -ArgumentList "/i `"$nodeInstaller`" /qn"
+    Remove-Item $nodeInstaller -ErrorAction SilentlyContinue
+
+    # Refresh PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+    $nodeVersion = node --version 2>&1
+    if ($nodeVersion -match "v\d+") {
+        Write-OK "Node.js $nodeVersion instalado"
+    } else {
+        Write-Fail "Node.js se instalo pero no se detecta en PATH"
+        Write-Host "  Reinicia el PC y vuelve a ejecutar" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+# --- Step 4: Clone or update repo ---
+Write-Section "[4/6] Preparando el codigo..."
 
 if (Test-Path "$InstallDir\.git") {
     Write-Step "Repo ya existe, actualizando..."
-    git -C $InstallDir pull origin develop 2>&1 | ForEach-Object { Write-Host "  $_" }
+    git -C $InstallDir pull origin main 2>&1 | ForEach-Object { Write-Host "  $_" }
 } else {
     Write-Step "Clonando repo..."
-    git clone $RepoUrl $InstallDir 2>&1 | ForEach-Object { Write-Host "  $_" }
+    git clone -b main $RepoUrl $InstallDir 2>&1 | ForEach-Object { Write-Host "  $_" }
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Error clonando repo"
         exit 1
@@ -155,13 +192,22 @@ if (Test-Path "$InstallDir\.git") {
 
 Set-Location $InstallDir
 
-# --- Step 4: Start app ---
-Write-Section "[4/5] Levantando la app en PRODUCCION..."
+# --- Step 5: Install dependencies ---
+Write-Section "[5/6] Instalando dependencias..."
+npm install 2>&1 | ForEach-Object { Write-Host "  $_" }
+if ($LASTEXITCODE -ne 0) {
+    Write-Fail "Error en npm install"
+    exit 1
+}
+Write-OK "Dependencias instaladas"
+
+# --- Step 6: Start app ---
+Write-Section "[6/6] Levantando la app en PRODUCCION..."
 Write-Step "Ejecutando switch-env.ps1 production..."
 & "$InstallDir\switch-env.ps1" production
 
-# --- Step 5: Done ---
-Write-Section "[5/5] Listo!"
+# --- Step 7: Done ---
+Write-Section "Listo!"
 Write-Host ""
 Write-Host "=== Barbaros POS esta corriendo! ===" -ForegroundColor Green
 Write-Host ""
