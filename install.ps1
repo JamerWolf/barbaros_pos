@@ -148,8 +148,7 @@ if ($dockerReady) {
         $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
 
         try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
+            Start-BitsTransfer -Source $dockerUrl -Destination $dockerInstaller
         } catch {
             Write-Fail "No se pudo descargar Docker Desktop"
             Write-Host "  Descargalo manualmente desde: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
@@ -196,8 +195,7 @@ if ($nodeVersion -match "v\d+") {
     $nodeUrl = "https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi"
 
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing
+        Start-BitsTransfer -Source $nodeUrl -Destination $nodeInstaller
     } catch {
         Write-Fail "No se pudo descargar Node.js"
         Write-Host "  Descargalo manualmente desde: https://nodejs.org/" -ForegroundColor Yellow
