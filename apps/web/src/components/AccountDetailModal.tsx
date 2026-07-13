@@ -175,6 +175,19 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
   const pendingAmount = account.pendingAmount ?? account.total ?? 0;
   const canClose = pendingAmount === 0;
 
+  const handleHide = async () => {
+    try {
+      const res = await fetch(`${API_URL}/accounts/${account.id}/hide`, { method: 'PATCH' });
+      if (res.ok) {
+        useAccountStore.getState().removeAccount(account.id);
+        onClose();
+        showToast('Cuenta ocultada del canvas');
+      }
+    } catch {
+      showToast('Error de conexión', 'error');
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-[#E8E0D0] lg:flex-row"
@@ -200,10 +213,18 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
           />
         </header>
         <div className="px-4 pb-4">
-          <div className="mb-4 rounded-xl bg-[#141414] p-4">
+          <div className="relative mb-4 rounded-xl bg-[#141414] p-4">
             <p className="text-sm text-[#7A7060]">Estado: {account.status}</p>
             <p className="mt-1 text-3xl font-bold">{formatCOP(Number(account.total ?? 0))}</p>
             {pendingAmount > 0 && <p className="mt-2 text-lg text-[#E85050]">Pendiente: {formatCOP(pendingAmount)}</p>}
+            {account.status === 'OPEN' && (
+              <button
+                onClick={handleHide}
+                className="absolute right-3 top-3 rounded-lg bg-[#1E1E1E] px-3 py-1.5 text-xs font-bold text-[#7A7060] active:bg-[#5C1A1A] active:text-[#E85050]"
+              >
+                Ocultar
+              </button>
+            )}
           </div>
           {account.status === 'OPEN' && (
             <button onClick={() => setShowPaymentModal(true)} className="mb-3 h-12 w-full rounded-lg bg-[#C8A84E] px-4 font-bold text-[#0A0A0A] active:bg-[#C8A84E]/80">Pagar</button>
@@ -255,6 +276,14 @@ export function AccountDetailModal({ accountId, onClose }: AccountDetailModalPro
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               className="w-0 min-w-0 flex-1 rounded-lg bg-[#141414] px-3 py-2 text-xl font-bold text-[#E8E0D0] outline-none focus:ring-2 focus:ring-[#C8A84E]"
             />
+            {account.status === 'OPEN' && (
+              <button
+                onClick={handleHide}
+                className="shrink-0 rounded-lg bg-[#1E1E1E] px-3 py-2 text-xs font-bold text-[#7A7060] active:bg-[#5C1A1A] active:text-[#E85050]"
+              >
+                Ocultar
+              </button>
+            )}
           </header>
 
           <div className="mb-4 rounded-xl bg-[#141414] p-4">

@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react'
 import { isPinching, setLongPressActive, setCardTouched, pinchThisGesture, didPanOccur } from './CanvasContainer.js'
 import { computeSnap, type SnapBounds, type SnapGuide } from '../../utils/snapAlignment.js'
+import { screenToCanvas, calculateDragOffset, calculateDragPosition } from '../../utils/canvas/drag.js'
 
 const LONG_PRESS_MS = 400
 const DRAG_THRESHOLD_MOUSE = 3
@@ -116,23 +117,22 @@ export function useCanvasDrag({
 
       const parentRect = elementRef.current?.parentElement?.getBoundingClientRect()
       if (!parentRect) return
-      let newX = (ev.clientX - parentRect.left) / zoom - offset.current.x
-      let newY = (ev.clientY - parentRect.top) / zoom - offset.current.y
+      const canvasCoords = screenToCanvas(ev.clientX, ev.clientY, parentRect, zoom)
+      let newPos = calculateDragPosition(canvasCoords, offset.current)
 
       // Snap alignment
       if (getSnapBounds && getOtherSnapBounds && onSnapGuides) {
         const draggedBounds = getSnapBounds()
         if (draggedBounds) {
-          const snappedBounds = { ...draggedBounds, left: newX, top: newY }
+          const snappedBounds = { ...draggedBounds, left: newPos.x, top: newPos.y }
           const others = getOtherSnapBounds()
           const snapResult = computeSnap(snappedBounds, others)
-          newX += snapResult.dx
-          newY += snapResult.dy
+          newPos = { x: newPos.x + snapResult.dx, y: newPos.y + snapResult.dy }
           onSnapGuides(snapResult.guides)
         }
       }
 
-      onDragMove({ x: newX, y: newY })
+      onDragMove(newPos)
     }
 
     const onDocUp = (ev: PointerEvent) => {
@@ -173,10 +173,8 @@ export function useCanvasDrag({
 
     const rect = elementRef.current?.getBoundingClientRect()
     if (rect) {
-      offset.current = {
-        x: (e.clientX - rect.left) / zoom,
-        y: (e.clientY - rect.top) / zoom,
-      }
+      const canvasCoords = screenToCanvas(e.clientX, e.clientY, rect, zoom)
+      offset.current = calculateDragOffset(canvasCoords, { x: 0, y: 0 })
     }
     startPos.current = { x: e.clientX, y: e.clientY }
 

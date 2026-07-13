@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { PaymentMethod, DiscountType } from '@barbaros/shared';
 import type { Payment, IAccount } from '@barbaros/shared';
 import { formatCOP } from '../../utils/format.js';
@@ -48,6 +48,7 @@ export function PaymentModal({
       ? { type: accountDiscountType, value: accountDiscountValue }
       : null
   );
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const previewTotal = (() => {
     const numVal = parseFloat(discountValue);
@@ -122,8 +123,7 @@ export function PaymentModal({
 
     setLoading(true);
     try {
-      let proofUrl: string | undefined;
-      if (method === PaymentMethod.TRANSFER && proofFile) {
+      if (proofFile) {
         const formData = new FormData();
         formData.append('amount', amount);
         formData.append('method', method);
@@ -147,7 +147,7 @@ export function PaymentModal({
       const res = await fetch(`${API_URL}/accounts/${accountId}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amountNum, method, proofUrl }),
+        body: JSON.stringify({ amount: amountNum, method }),
       });
 
       if (!res.ok) {
@@ -166,7 +166,7 @@ export function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[#141414] p-6">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#141414] p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-[#E8E0D0]">Registrar Pago</h2>
           <button
@@ -358,16 +358,37 @@ export function PaymentModal({
             </p>
           </div>
 
-          {/* Proof upload (only for transfers) */}
-          {method === PaymentMethod.TRANSFER && (
+          {/* Proof upload (for transfers and card payments) */}
+          {(method === PaymentMethod.TRANSFER || method === PaymentMethod.CARD) && (
             <div>
               <label className="mb-1 block text-sm text-[#7A7060]">Comprobante (opcional)</label>
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp"
-                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                className="h-12 w-full rounded-lg bg-[#1E1E1E] px-4 text-[#7A7060] file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-[#C8A84E] file:px-4 file:font-bold file:text-[#0A0A0A] file:active:bg-[#C8A84E]/80"
-              />
+              <div className="flex gap-2">
+                <label className="h-12 flex-1 min-w-0 cursor-pointer rounded-lg bg-[#1E1E1E] px-4 leading-[48px] text-[#7A7060] active:bg-[#141414]">
+                  <span className="pointer-events-none truncate block">{proofFile ? proofFile.name : 'Seleccionar archivo'}</span>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="h-12 w-12 shrink-0 rounded-lg bg-[#1E1E1E] text-lg text-[#E8E0D0] active:bg-[#141414]"
+                  title="Tomar foto"
+                >
+                  📷
+                </button>
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </div>
             </div>
           )}
 

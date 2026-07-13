@@ -10,6 +10,7 @@ import { Toast } from '../components/Toast.js';
 import { useToast } from '../hooks/useToast.js';
 import API_URL from '../utils/apiUrl.js';
 import { tw } from '../utils/colors.js';
+import type { Payment, PaymentMethod } from '@barbaros/shared';
 
 export function AccountDetailPage(): JSX.Element {
   const { id } = useParams();
@@ -24,6 +25,7 @@ export function AccountDetailPage(): JSX.Element {
   const [confirmClose, setConfirmClose] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [previewProof, setPreviewProof] = useState<string | null>(null);
   const { toast, showToast } = useToast();
 
   useEffect(() => {
@@ -169,6 +171,16 @@ export function AccountDetailPage(): JSX.Element {
 
   const pendingAmount = account.pendingAmount ?? account.total ?? 0;
   const canClose = pendingAmount === 0;
+  const payments = (account.payments ?? []) as Payment[];
+
+  const paymentMethodLabel = (method: PaymentMethod) => {
+    switch (method) {
+      case 'CASH': return 'Efectivo';
+      case 'TRANSFER': return 'Transferencia';
+      case 'CARD': return 'Tarjeta';
+      default: return method;
+    }
+  };
 
   return (
     <div className={`flex flex-col ${tw.bg} ${tw.text} lg:min-h-dvh lg:flex-row lg:gap-0 lg:p-0`}>
@@ -243,8 +255,32 @@ export function AccountDetailPage(): JSX.Element {
 
         <section>
           <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-          <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
+          <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} readonly={readonly} />
         </section>
+
+        {readonly && payments.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Historial de pagos</h2>
+            <div className={`rounded-xl ${tw.bgCard} divide-y divide-[#C8A84E]/10`}>
+              {payments.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-3">
+                  <div>
+                    <p className={`text-sm ${tw.textMuted}`}>{paymentMethodLabel(p.method)}</p>
+                    <p className="text-xs text-[#7A7060]">
+                      {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {p.proofUrl && (
+                      <button onClick={() => setPreviewProof(`/${p.proofUrl}`)} className="text-xs text-[#C8A84E] underline">
+                        Ver comprobante
+                      </button>
+                    )}
+                  </div>
+                  <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {!readonly && (
           <section>
@@ -335,8 +371,32 @@ export function AccountDetailPage(): JSX.Element {
 
           <section>
             <h2 className="mb-2 text-lg font-bold">Productos en la cuenta</h2>
-            <OrderItemList items={account.items ?? []} onRemoveItem={readonly ? () => {} : handleRemoveItem} onIncrementItem={readonly ? () => {} : handleIncrementItem} />
+            <OrderItemList items={account.items ?? []} onRemoveItem={handleRemoveItem} onIncrementItem={handleIncrementItem} readonly={readonly} />
           </section>
+
+          {readonly && payments.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-lg font-bold">Historial de pagos</h2>
+              <div className={`rounded-xl ${tw.bgCard} divide-y divide-[#C8A84E]/10`}>
+                {payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3">
+                    <div>
+                      <p className={`text-sm ${tw.textMuted}`}>{paymentMethodLabel(p.method)}</p>
+                      <p className="text-xs text-[#7A7060]">
+                        {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {p.proofUrl && (
+                        <button onClick={() => setPreviewProof(`/${p.proofUrl}`)} className="text-xs text-[#C8A84E] underline">
+                          Ver comprobante
+                        </button>
+                      )}
+                    </div>
+                    <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
@@ -357,6 +417,27 @@ export function AccountDetailPage(): JSX.Element {
         />
       )}
       {toast && <Toast message={toast.message} type={toast.type} />}
+
+      {previewProof && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setPreviewProof(null)}
+        >
+          <div className="relative max-h-[90vh] max-w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewProof}
+              alt="Comprobante de pago"
+              className="max-h-[85vh] max-w-full rounded-xl object-contain"
+            />
+            <button
+              onClick={() => setPreviewProof(null)}
+              className="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl font-bold text-white active:bg-black/80"
+            >
+              X
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

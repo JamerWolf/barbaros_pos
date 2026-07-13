@@ -17,6 +17,7 @@ export interface IAccount {
   number: number;
   name: string;
   status: AccountStatus;
+  hidden?: boolean;
   discountType: DiscountType;
   discountValue: number;
   posX?: number | null;

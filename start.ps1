@@ -18,7 +18,8 @@ Write-Host "=== Barbaros POS - Start (develop) ===" -ForegroundColor Cyan
 # 0. Verificar que Docker este corriendo, si no, levantarlo
 Write-Host ""
 Write-Host "[0/4] Verificando Docker..." -ForegroundColor Yellow
-$dockerRunning = docker info 2>&1 | Select-String "Server Version"
+$out = & cmd /c "docker info 2>nul"
+$dockerRunning = $out | Select-String "Server Version"
 if (-not $dockerRunning) {
     Write-Host "  Docker no esta corriendo. Abriendo Docker Desktop..." -ForegroundColor Yellow
     $dockerDesktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
@@ -34,7 +35,8 @@ if (-not $dockerRunning) {
     while ($waited -lt $maxWait) {
         Start-Sleep -Seconds 2
         $waited += 2
-        $check = docker info 2>&1 | Select-String "Server Version"
+        $out = & cmd /c "docker info 2>nul"
+        $check = $out | Select-String "Server Version"
         if ($check) {
             Write-Host "  Docker listo!" -ForegroundColor Green
             break

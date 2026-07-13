@@ -4,6 +4,7 @@ import { saveAccountPosition, saveAccountCardDimensions } from '../../services/a
 import { getSaveGeneration } from './CanvasContainer.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasResize } from './useCanvasResize.js'
+import { ResizeHandles } from './ResizeHandles.js'
 import { computeGroupBounds, type SnapBounds } from '../../utils/snapAlignment.js'
 
 interface DragNodeProps {
@@ -163,35 +164,10 @@ export function DragNode({ accountId, children, onClick }: DragNodeProps): JSX.E
     >
       {children}
       {isSelected && selectionMode && !cardsLocked && (
-        <>
-          {(['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'] as const).map((pos) => {
-            const style: React.CSSProperties = {
-              position: 'absolute',
-              backgroundColor: '#fff',
-              border: '1px solid rgba(200, 168, 78, 0.3)',
-              borderRadius: 1,
-              zIndex: 20,
-            };
-            // Corner handles: 8x8 squares
-            if (pos === 'nw') { style.width = 8; style.height = 8; style.top = -4; style.left = -4; style.cursor = 'nw-resize'; }
-            if (pos === 'ne') { style.width = 8; style.height = 8; style.top = -4; style.right = -4; style.cursor = 'ne-resize'; }
-            if (pos === 'sw') { style.width = 8; style.height = 8; style.bottom = -4; style.left = -4; style.cursor = 'sw-resize'; }
-            if (pos === 'se') { style.width = 8; style.height = 8; style.bottom = -4; style.right = -4; style.cursor = 'se-resize'; }
-            // Side handles: thin bars
-            if (pos === 'n') { style.width = 16; style.height = 4; style.top = -2; style.left = '50%'; style.transform = 'translateX(-50%)'; style.cursor = 'n-resize'; }
-            if (pos === 's') { style.width = 16; style.height = 4; style.bottom = -2; style.left = '50%'; style.transform = 'translateX(-50%)'; style.cursor = 's-resize'; }
-            if (pos === 'w') { style.width = 4; style.height = 16; style.top = '50%'; style.left = -2; style.transform = 'translateY(-50%)'; style.cursor = 'w-resize'; }
-            if (pos === 'e') { style.width = 4; style.height = 16; style.top = '50%'; style.right = -2; style.transform = 'translateY(-50%)'; style.cursor = 'e-resize'; }
-            return (
-              <div
-                key={pos}
-                className="pointer-events-auto"
-                style={style}
-                {...resizeHandleProps(pos)}
-              />
-            );
-          })}
-        </>
+        <ResizeHandles
+          handles={['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w']}
+          handleProps={resizeHandleProps}
+        />
       )}
     </div>
   )

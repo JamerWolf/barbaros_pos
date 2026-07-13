@@ -3,6 +3,7 @@ import type { IShape } from '@barbaros/shared';
 import { useAccountUIStore } from '../../../store/accountUIStore.js';
 import { setCardTouched } from '../CanvasContainer.js';
 import { useCanvasDrag } from '../useCanvasDrag.js';
+import { screenToCanvas, calculateDragOffset } from '../../../utils/canvas/drag.js';
 
 interface LineShapeProps {
   shape: IShape;
@@ -59,17 +60,9 @@ export function LineShape({ shape, isSelected, isLocked, interactive = true, onS
     let offset = { x: 0, y: 0 };
     if (parentRect) {
       const curPoints = shape.points || [];
-      if (handle === 'start') {
-        offset = {
-          x: (e.clientX - parentRect.left) / zoom - curPoints[0].x,
-          y: (e.clientY - parentRect.top) / zoom - curPoints[0].y,
-        };
-      } else if (handle === 'end') {
-        offset = {
-          x: (e.clientX - parentRect.left) / zoom - curPoints[curPoints.length - 1].x,
-          y: (e.clientY - parentRect.top) / zoom - curPoints[curPoints.length - 1].y,
-        };
-      }
+      const targetPoint = handle === 'start' ? curPoints[0] : curPoints[curPoints.length - 1];
+      const canvasCoords = screenToCanvas(e.clientX, e.clientY, parentRect, zoom);
+      offset = calculateDragOffset(canvasCoords, targetPoint);
     }
 
     dragRef.current = { handle, offset, origPoints: origPoints.map((p) => ({ ...p })) };
@@ -80,15 +73,14 @@ export function LineShape({ shape, isSelected, isLocked, interactive = true, onS
       if (!parentRect) return;
 
       const { handle: h, offset: off } = dragRef.current;
-      const mouseX = (ev.clientX - parentRect.left) / zoom;
-      const mouseY = (ev.clientY - parentRect.top) / zoom;
+      const mousePos = screenToCanvas(ev.clientX, ev.clientY, parentRect, zoom);
 
       const curPoints = shape.points || [];
       const newPoints = curPoints.map((p) => ({ ...p }));
       if (h === 'start') {
-        newPoints[0] = { x: mouseX - off.x, y: mouseY - off.y };
+        newPoints[0] = { x: mousePos.x - off.x, y: mousePos.y - off.y };
       } else {
-        newPoints[newPoints.length - 1] = { x: mouseX - off.x, y: mouseY - off.y };
+        newPoints[newPoints.length - 1] = { x: mousePos.x - off.x, y: mousePos.y - off.y };
       }
 
       const pXs = newPoints.map((p) => p.x);

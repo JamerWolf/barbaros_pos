@@ -1,10 +1,12 @@
 # switch-env.ps1 - Single entry point to switch between develop and production
 #
 # Uso:
-#   .\switch-env.ps1 develop     Levanta el ambiente de desarrollo (DB dev, API :3000)
-#   .\switch-env.ps1 production  Levanta el ambiente de producción (DB prod, API :3001)
-#   .\switch-env.ps1 stop        Mata todos los procesos de dev y prod
-#   .\switch-env.ps1 status      Muestra el estado actual (rama, procesos, DB)
+#   .\switch-env.ps1 develop              Levanta develop (DB dev, API :3000)
+#   .\switch-env.ps1 develop -Tunnel      develop + Cloudflare Tunnels
+#   .\switch-env.ps1 production           Levanta production (DB prod, API :3001)
+#   .\switch-env.ps1 production -Tunnel   production + Cloudflare Tunnels
+#   .\switch-env.ps1 stop                 Mata todos los procesos de dev y prod
+#   .\switch-env.ps1 status               Muestra el estado actual
 #
 # Este script es la UNICA forma de levantar la app. El viejo start.ps1 se
 # conserva como alias de switch-env.ps1 develop por compatibilidad, pero los
@@ -15,6 +17,7 @@ param(
     [ValidateSet("develop", "production", "stop", "status")]
     [string]$Command,
 
+    [switch]$Tunnel,
     [switch]$Force
 )
 
@@ -62,6 +65,42 @@ function Kill-PortIfBusy($port, $label) {
         Stop-Process -Id $pid_ -Force -ErrorAction SilentlyContinue
         Start-Sleep -Milliseconds 500
     }
+}
+
+function Wait-DockerReady {
+    Write-Section "[0] Verificando Docker..."
+    $out = & cmd /c "docker info 2>nul"
+    $dockerRunning = $out | Select-String "Server Version"
+    if ($dockerRunning) {
+        Write-Host "  Docker listo!" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "  Docker no esta corriendo. Abriendo Docker Desktop..." -ForegroundColor Yellow
+    $dockerDesktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerDesktop) {
+        Start-Process $dockerDesktop
+    } else {
+        Write-Host "  No se encontro Docker Desktop. Abrilo manualmente." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "  Esperando a que Docker este listo..." -ForegroundColor Yellow
+    $maxWait = 60
+    $waited = 0
+    while ($waited -lt $maxWait) {
+        Start-Sleep -Seconds 2
+        $waited += 2
+        $out = & cmd /c "docker info 2>nul"
+        $check = $out | Select-String "Server Version"
+        if ($check) {
+            Write-Host "  Docker listo!" -ForegroundColor Green
+            return
+        }
+        Write-Host "  Esperando... ($waited s)"
+    }
+    Write-Host "  Docker no se inicio a tiempo" -ForegroundColor Red
+    exit 1
 }
 
 function Wait-DbReady($container, $db) {
@@ -147,6 +186,9 @@ function Start-Env($envName) {
     Write-Host "  Web port:      $($config.webPort)"
     Write-Host "  DB:            $($config.dbName) (container $($config.dbContainer))"
 
+    # 0. Verificar que Docker este corriendo
+    Wait-DockerReady
+
     # 1. Verificar y forzar la rama
     $currentBranch = Get-CurrentBranch
     if ($currentBranch -ne $config.branch) {
@@ -210,12 +252,20 @@ function Start-Env($envName) {
     Write-Host "  Web: http://localhost:$($config.webPort)"
     Write-Host "  DB:  $($config.dbName) on $($config.dbContainer)"
     Write-Host "  APP_ENV=$($config.appEnv) (rama $($config.branch))"
+
+    if ($Tunnel) {
+        Write-Host ""
+        Write-Host "Levantando Cloudflare Tunnels..." -ForegroundColor Yellow
+        Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Write-Host 'Tunnel Web ($($config.webPort))' -ForegroundColor Cyan; cloudflared tunnel --url http://localhost:$($config.webPort)")
+        Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Write-Host 'Tunnel API ($($config.apiPort))' -ForegroundColor Cyan; cloudflared tunnel --url http://localhost:$($config.apiPort)")
+        Write-Host "  Tunnels abiertos - copia las URLs de las ventanas nuevas" -ForegroundColor DarkGray
+    }
 }
 
 # --- Main ------------------------------------------------------------------
 
 if (-not $Command) {
-    Write-Host "Uso: .\switch-env.ps1 <develop|production|stop|status>" -ForegroundColor Yellow
+    Write-Host "Uso: .\switch-env.ps1 <develop|production|stop|status> [-Tunnel]" -ForegroundColor Yellow
     exit 1
 }
 
