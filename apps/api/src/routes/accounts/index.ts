@@ -360,7 +360,7 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ error: 'Only JPG, PNG, or WebP images accepted' });
           }
 
-          const uploadsDir = path.join(__dirname, '../../uploads/payments');
+          const uploadsDir = path.join(__dirname, '../../../uploads/payments');
           await fs.mkdir(uploadsDir, { recursive: true });
 
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
