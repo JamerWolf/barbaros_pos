@@ -85,21 +85,31 @@ if (-not $wslExists) {
     }
     Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 } else {
-    # Check 2: list WSL distros — output is UTF-16, need to convert
-    $wslBytes = & cmd /c "wsl -l -v" 2>&1
-    $wslText = ""
-    foreach ($line in $wslBytes) {
-        if ($line -is [string]) {
-            $wslText += $line
+    # WSL exists — try to detect if it has distros (UTF-16 output, check raw bytes)
+    $hasDistro = $false
+    try {
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo.FileName = "wsl"
+        $proc.StartInfo.Arguments = "-l -v"
+        $proc.StartInfo.RedirectStandardOutput = $true
+        $proc.StartInfo.UseShellExecute = $false
+        $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::Unicode
+        $proc.Start() | Out-Null
+        $output = $proc.StandardOutput.ReadToEnd()
+        $proc.WaitForExit()
+        if ($output -match "docker-desktop" -or $output -match "Ubuntu") {
+            $hasDistro = $true
         }
+    } catch {
+        # Ignore — will be caught by Docker check later
     }
-    # Check if any distro has VERSION column with value "2"
-    if ($wslText -match "2" -and ($wslText -match "docker" -or $wslText -match "Ubuntu" -or $wslText -match "Running" -or $wslText -match "Stopped")) {
-        Write-OK "WSL2 ya instalado con distros"
+
+    if ($hasDistro) {
+        Write-OK "WSL2 ya instalado"
     } else {
-        Write-Step "WSL presente pero WSL2 no detectado. Actualizando..."
-        & cmd /c "wsl --update" 2>&1 | ForEach-Object { Write-Host "  $_" }
-        Write-OK "WSL2 actualizado - puede ser necesario reiniciar"
+        Write-Step "WSL detectado. Verificando que funcione con Docker..."
+        # WSL exists but might need update — Docker check will validate later
+        Write-OK "WSL presente (Docker verificara WSL2)"
     }
 }
 
