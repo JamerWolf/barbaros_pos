@@ -226,12 +226,16 @@ if ($nodeVersion -match "v\d+") {
 # --- Step 4: Clone or update repo ---
 Write-Section "[4/6] Preparando el codigo..."
 
+$ErrorActionPreferenceOld = $ErrorActionPreference
+
 if (Test-Path "$InstallDir\.git") {
     Write-Step "Repo ya existe, actualizando..."
-    Push-Location $InstallDir
-    git pull origin main 2>$null
+    $ErrorActionPreference = "SilentlyContinue"
+    Set-Location $InstallDir
+    git pull origin main
     $pullOk = $LASTEXITCODE -eq 0
-    Pop-Location
+    Set-Location $PSScriptRoot
+    $ErrorActionPreference = $ErrorActionPreferenceOld
     if ($pullOk) {
         Write-OK "Codigo actualizado"
     } else {
@@ -239,8 +243,11 @@ if (Test-Path "$InstallDir\.git") {
     }
 } else {
     Write-Step "Clonando repo..."
-    git clone -b main $RepoUrl $InstallDir 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference = "SilentlyContinue"
+    git clone -b main $RepoUrl $InstallDir
+    $cloneOk = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $ErrorActionPreferenceOld
+    if (-not $cloneOk) {
         Write-Fail "Error clonando repo"
         exit 1
     }
