@@ -269,7 +269,7 @@ export function AccountDetailPage(): JSX.Element {
                       {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                     {p.proofUrl && (
-                      <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                      <a href={`${API_URL}/${p.proofUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
                         Ver comprobante
                       </a>
                     )}
@@ -385,7 +385,7 @@ export function AccountDetailPage(): JSX.Element {
                         {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                       {p.proofUrl && (
-                        <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                        <a href={`${API_URL}/${p.proofUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
                           Ver comprobante
                         </a>
                       )}
