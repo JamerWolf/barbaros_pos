@@ -25,6 +25,7 @@ export function AccountDetailPage(): JSX.Element {
   const [confirmClose, setConfirmClose] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [previewProof, setPreviewProof] = useState<string | null>(null);
   const { toast, showToast } = useToast();
 
   useEffect(() => {
@@ -269,9 +270,9 @@ export function AccountDetailPage(): JSX.Element {
                       {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                     {p.proofUrl && (
-                      <a href={`/${p.proofUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                      <button onClick={() => setPreviewProof(`/${p.proofUrl}`)} className="text-xs text-[#C8A84E] underline">
                         Ver comprobante
-                      </a>
+                      </button>
                     )}
                   </div>
                   <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
@@ -385,9 +386,9 @@ export function AccountDetailPage(): JSX.Element {
                         {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                       {p.proofUrl && (
-                        <a href={`/${p.proofUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#C8A84E] underline">
+                        <button onClick={() => setPreviewProof(`/${p.proofUrl}`)} className="text-xs text-[#C8A84E] underline">
                           Ver comprobante
-                        </a>
+                        </button>
                       )}
                     </div>
                     <p className="font-bold text-[#7CCD7C]">{formatCOP(Number(p.amount))}</p>
@@ -416,6 +417,27 @@ export function AccountDetailPage(): JSX.Element {
         />
       )}
       {toast && <Toast message={toast.message} type={toast.type} />}
+
+      {previewProof && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setPreviewProof(null)}
+        >
+          <div className="relative max-h-[90vh] max-w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewProof}
+              alt="Comprobante de pago"
+              className="max-h-[85vh] max-w-full rounded-xl object-contain"
+            />
+            <button
+              onClick={() => setPreviewProof(null)}
+              className="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl font-bold text-white active:bg-black/80"
+            >
+              X
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
