@@ -48,6 +48,26 @@ if (-not $isAdmin) {
 Write-Host "=== Bárbaro's POS - Instalador ===" -ForegroundColor Cyan
 Write-Host ""
 
+# --- Check virtualization ---
+Write-Section "[0/5] Verificando virtualizacion..."
+
+$virt = (Get-CimInstance -ClassName Win32_Processor).VirtualizationFirmwareEnabled
+if ($virt -eq $true) {
+    Write-OK "Virtualizacion habilitada en BIOS"
+} else {
+    Write-Fail "Virtualizacion NO habilitada"
+    Write-Host ""
+    Write-Host "  Docker y WSL2 necesitan virtualizacion de hardware (VT-x o AMD-V)." -ForegroundColor Yellow
+    Write-Host "  Para habilitarla:" -ForegroundColor Yellow
+    Write-Host "    1. Reiniciar el PC" -ForegroundColor Gray
+    Write-Host "    2. Entrar al BIOS (F2, F10, Del, o Esc al encender)" -ForegroundColor Gray
+    Write-Host "    3. Buscar 'Virtualization Technology' o 'SVM Mode'" -ForegroundColor Gray
+    Write-Host "    4. Habilitarlo y guardar" -ForegroundColor Gray
+    Write-Host "    5. Volver a ejecutar este script" -ForegroundColor Gray
+    Write-Host ""
+    exit 1
+}
+
 # --- Step 1: WSL2 ---
 Write-Section "[1/5] Verificando WSL2..."
 
