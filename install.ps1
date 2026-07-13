@@ -8,10 +8,13 @@
 #   - Virtualizacion habilitada en BIOS
 #
 # Este script:
-#   1. Verifica/instala WSL2
-#   2. Verifica/instala Docker Desktop
-#   3. Clona el repo (o actualiza)
-#   4. Levanta la app
+#   1. Verifica virtualizacion
+#   2. Verifica/instala WSL2
+#   3. Verifica/instala Docker Desktop
+#   4. Verifica/instala Node.js
+#   5. Clona el repo (o actualiza)
+#   6. Instala dependencias
+#   7. Levanta la app
 
 param(
     [string]$InstallDir = "C:\barbaros_pos",
@@ -41,15 +44,15 @@ function Write-Fail($msg) {
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "Este script necesita permisos de administrador." -ForegroundColor Red
-    Write-Host "Click derecho → Ejecutar como administrador" -ForegroundColor Yellow
+    Write-Host "Click derecho -> Ejecutar como administrador" -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host "=== Bárbaro's POS - Instalador ===" -ForegroundColor Cyan
+Write-Host "=== Barbaros POS - Instalador ===" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Check virtualization ---
-Write-Section "[0/5] Verificando virtualizacion..."
+Write-Section "[0/6] Verificando virtualizacion..."
 
 $virt = (Get-CimInstance -ClassName Win32_Processor).VirtualizationFirmwareEnabled
 if ($virt -eq $true) {
@@ -81,13 +84,13 @@ if ($wslVersion -match "WSL version") {
         Write-Fail "Error instalando WSL2. Reinicia el PC y vuelve a ejecutar."
         exit 1
     }
-    Write-OK "WSL2 instalado — puede ser necesario reiniciar"
+    Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 }
 
 # --- Step 2: Docker Desktop ---
 Write-Section "[2/6] Verificando Docker Desktop..."
 
-$dockerRunning = & cmd /c "docker info 2>nul" | Select-String "Server Version"
+$dockerRunning = & cmd /c "docker info" 2>$null | Select-String "Server Version"
 if ($dockerRunning) {
     Write-OK "Docker Desktop ya corriendo"
 } else {
@@ -124,12 +127,12 @@ if ($dockerRunning) {
     while ($waited -lt $maxWait) {
         Start-Sleep -Seconds 3
         $waited += 3
-        $check = & cmd /c "docker info 2>nul" | Select-String "Server Version"
+        $check = & cmd /c "docker info" 2>$null | Select-String "Server Version"
         if ($check) {
             Write-OK "Docker listo!"
             break
         }
-        Write-Host "  Esperando... ($waited s)" -ForegroundColor DarkGray
+        Write-Host "  Esperando... $waited s" -ForegroundColor DarkGray
     }
     if ($waited -ge $maxWait) {
         Write-Fail "Docker no se inicio a tiempo"
@@ -163,7 +166,9 @@ if ($nodeVersion -match "v\d+") {
     Remove-Item $nodeInstaller -ErrorAction SilentlyContinue
 
     # Refresh PATH
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
 
     $nodeVersion = node --version 2>&1
     if ($nodeVersion -match "v\d+") {
@@ -206,8 +211,7 @@ Write-Section "[6/6] Levantando la app en PRODUCCION..."
 Write-Step "Ejecutando switch-env.ps1 production..."
 & "$InstallDir\switch-env.ps1" production
 
-# --- Step 7: Done ---
-Write-Section "Listo!"
+# --- Done ---
 Write-Host ""
 Write-Host "=== Barbaros POS esta corriendo! ===" -ForegroundColor Green
 Write-Host ""
@@ -216,7 +220,7 @@ Write-Host "  API: http://localhost:3001" -ForegroundColor Cyan
 Write-Host "  DB:  localhost:5433" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Para acceder desde otros dispositivos:" -ForegroundColor Yellow
-Write-Host "  Abrir navegador → http://$(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1 -ExpandProperty IPAddress):5174" -ForegroundColor Cyan
+Write-Host "  Abrir navegador a la IP de este PC en puerto 5174" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Para que arranque automaticamente al encender:" -ForegroundColor Yellow
-Write-Host "  Copiar shortcuts\Bárbaro's POS.bat a shell:startup" -ForegroundColor Gray
+Write-Host "  Copiar shortcuts\Barbaros POS.bat a shell:startup" -ForegroundColor Gray
