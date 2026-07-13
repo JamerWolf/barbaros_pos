@@ -85,10 +85,17 @@ if (-not $wslExists) {
     }
     Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 } else {
-    # Check 2: wsl --version returns version info (use cmd /c to avoid stderr issues)
-    $wslOutput = & cmd /c "wsl --version" 2>&1 | Out-String
-    if ($wslOutput -match "\d+\.\d+\.\d+") {
-        Write-OK "WSL2 ya instalado"
+    # Check 2: list WSL distros — output is UTF-16, need to convert
+    $wslBytes = & cmd /c "wsl -l -v" 2>&1
+    $wslText = ""
+    foreach ($line in $wslBytes) {
+        if ($line -is [string]) {
+            $wslText += $line
+        }
+    }
+    # Check if any distro has VERSION column with value "2"
+    if ($wslText -match "2" -and ($wslText -match "docker" -or $wslText -match "Ubuntu" -or $wslText -match "Running" -or $wslText -match "Stopped")) {
+        Write-OK "WSL2 ya instalado con distros"
     } else {
         Write-Step "WSL presente pero WSL2 no detectado. Actualizando..."
         & cmd /c "wsl --update" 2>&1 | ForEach-Object { Write-Host "  $_" }
