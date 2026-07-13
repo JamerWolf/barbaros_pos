@@ -156,21 +156,21 @@ if (Test-Path "$InstallDir\.git") {
 Set-Location $InstallDir
 
 # --- Step 4: Start app ---
-Write-Section "[4/5] Levantando la app..."
-Write-Step "Ejecutando switch-env.ps1 develop..."
-& "$InstallDir\switch-env.ps1" develop
+Write-Section "[4/5] Levantando la app en PRODUCCION..."
+Write-Step "Ejecutando switch-env.ps1 production..."
+& "$InstallDir\switch-env.ps1" production
 
 # --- Step 5: Done ---
 Write-Section "[5/5] Listo!"
 Write-Host ""
 Write-Host "=== Barbaros POS esta corriendo! ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Web: http://localhost:5173" -ForegroundColor Cyan
-Write-Host "  API: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "  DB:  localhost:5432" -ForegroundColor Cyan
+Write-Host "  Web: http://localhost:5174" -ForegroundColor Cyan
+Write-Host "  API: http://localhost:3001" -ForegroundColor Cyan
+Write-Host "  DB:  localhost:5433" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Para acceder desde otros dispositivos:" -ForegroundColor Yellow
-Write-Host "  Abrir navegador → http://$(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1 -ExpandProperty IPAddress):5173" -ForegroundColor Cyan
+Write-Host "  Abrir navegador → http://$(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1 -ExpandProperty IPAddress):5174" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Para que arranque automaticamente al encender:" -ForegroundColor Yellow
 Write-Host "  Copiar shortcuts\Bárbaro's POS.bat a shell:startup" -ForegroundColor Gray
