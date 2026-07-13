@@ -116,8 +116,26 @@ if (-not $wslExists) {
 # --- Step 2: Docker Desktop ---
 Write-Section "[2/6] Verificando Docker Desktop..."
 
-$dockerRunning = & cmd /c "docker info" 2>$null | Select-String "Server Version"
-if ($dockerRunning) {
+# Helper: check if Docker daemon is responsive
+function Test-DockerReady {
+    try {
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo.FileName = "docker"
+        $proc.StartInfo.Arguments = "info"
+        $proc.StartInfo.RedirectStandardOutput = $true
+        $proc.StartInfo.RedirectStandardError = $true
+        $proc.StartInfo.UseShellExecute = $false
+        $proc.Start() | Out-Null
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $proc.WaitForExit(5000)
+        return ($proc.ExitCode -eq 0)
+    } catch {
+        return $false
+    }
+}
+
+$dockerReady = Test-DockerReady
+if ($dockerReady) {
     Write-OK "Docker Desktop ya corriendo"
 } else {
     $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
@@ -147,14 +165,13 @@ if ($dockerRunning) {
         Start-Process $dockerPath
     }
 
-    Write-Step "Esperando a que Docker este listo..."
-    $maxWait = 120
+    Write-Step "Esperando a que Docker este listo (puede tardar 1-2 minutos)..."
+    $maxWait = 180
     $waited = 0
     while ($waited -lt $maxWait) {
-        Start-Sleep -Seconds 3
-        $waited += 3
-        $check = & cmd /c "docker info" 2>$null | Select-String "Server Version"
-        if ($check) {
+        Start-Sleep -Seconds 5
+        $waited += 5
+        if (Test-DockerReady) {
             Write-OK "Docker listo!"
             break
         }
