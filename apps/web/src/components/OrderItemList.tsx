@@ -49,7 +49,7 @@ export function OrderItemList({ items, onRemoveItem, onIncrementItem, readonly =
           {!readonly && (
             <button
               onClick={(e) => { e.stopPropagation(); onRemoveItem(item.id); }}
-              className="h-8 w-8 shrink-0 rounded-lg bg-[#5C1A1A] active:bg-[#5C1A1A]/80"
+              className="h-8 w-8 shrink-0 rounded-lg bg-[#5C1A1A] active:bg-[#5C1A1A]/80 flex items-center justify-center"
             >
               <img src="/papelera-de-reciclaje.png" alt="Eliminar" className="h-5 w-5" />
             </button>
