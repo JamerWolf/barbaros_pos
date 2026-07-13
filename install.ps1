@@ -194,10 +194,10 @@ Write-Section "[4/6] Preparando el codigo..."
 
 if (Test-Path "$InstallDir\.git") {
     Write-Step "Repo ya existe, actualizando..."
-    git -C $InstallDir pull origin main 2>&1 | ForEach-Object { Write-Host "  $_" }
+    & cmd /c "cd /d $InstallDir && git pull origin main" 2>&1 | ForEach-Object { Write-Host "  $_" }
 } else {
     Write-Step "Clonando repo..."
-    git clone -b main $RepoUrl $InstallDir 2>&1 | ForEach-Object { Write-Host "  $_" }
+    & cmd /c "git clone -b main $RepoUrl $InstallDir" 2>&1 | ForEach-Object { Write-Host "  $_" }
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Error clonando repo"
         exit 1
