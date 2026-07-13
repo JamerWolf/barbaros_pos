@@ -258,8 +258,12 @@ Set-Location $InstallDir
 
 # --- Step 5: Install dependencies ---
 Write-Section "[5/6] Instalando dependencias..."
-npm install 2>&1 | ForEach-Object { Write-Host "  $_" }
-if ($LASTEXITCODE -ne 0) {
+$ErrorActionPreferenceOld = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+npm install
+$npmOk = $LASTEXITCODE -eq 0
+$ErrorActionPreference = $ErrorActionPreferenceOld
+if (-not $npmOk) {
     Write-Fail "Error en npm install"
     exit 1
 }
