@@ -170,9 +170,29 @@ if ($dockerReady) {
         $dockerInstaller = "$env:TEMP\DockerDesktopInstaller.exe"
         $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
 
+        $downloadOk = $false
+        # Try BITS first (faster)
         try {
             Start-BitsTransfer -Source $dockerUrl -Destination $dockerInstaller
-        } catch {
+            $downloadOk = Test-Path $dockerInstaller
+        } catch { }
+        # Fallback to Invoke-WebRequest
+        if (-not $downloadOk) {
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
+                $downloadOk = Test-Path $dockerInstaller
+            } catch { }
+        }
+        # Fallback to curl (built into Windows 10+)
+        if (-not $downloadOk) {
+            try {
+                & cmd /c "curl -L -o `"$dockerInstaller`" `"$dockerUrl`""
+                $downloadOk = Test-Path $dockerInstaller
+            } catch { }
+        }
+
+        if (-not $downloadOk) {
             Write-Fail "No se pudo descargar Docker Desktop"
             Write-Host "  Descargalo manualmente desde: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
             Write-Host "  Y vuelve a ejecutar este script" -ForegroundColor Yellow
@@ -222,9 +242,29 @@ if ($nodeInstalled -and $nodeVersion -match "v\d+") {
     $nodeInstaller = "$env:TEMP\node-install.msi"
     $nodeUrl = "https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi"
 
+    $downloadOk = $false
+    # Try BITS first (faster)
     try {
         Start-BitsTransfer -Source $nodeUrl -Destination $nodeInstaller
-    } catch {
+        $downloadOk = Test-Path $nodeInstaller
+    } catch { }
+    # Fallback to Invoke-WebRequest
+    if (-not $downloadOk) {
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing
+            $downloadOk = Test-Path $nodeInstaller
+        } catch { }
+    }
+    # Fallback to curl (built into Windows 10+)
+    if (-not $downloadOk) {
+        try {
+            & cmd /c "curl -L -o `"$nodeInstaller`" `"$nodeUrl`""
+            $downloadOk = Test-Path $nodeInstaller
+        } catch { }
+    }
+
+    if (-not $downloadOk) {
         Write-Fail "No se pudo descargar Node.js"
         Write-Host "  Descargalo manualmente desde: https://nodejs.org/" -ForegroundColor Yellow
         exit 1
@@ -265,9 +305,29 @@ if ($gitInstalled -and $gitVersion -match "git version") {
     $gitInstaller = "$env:TEMP\git-install.exe"
     $gitUrl = "https://github.com/git-scm/git/releases/download/v2.49.0.windows.1/Git-2.49.0-64-bit.exe"
 
+    $downloadOk = $false
+    # Try BITS first (faster)
     try {
         Start-BitsTransfer -Source $gitUrl -Destination $gitInstaller
-    } catch {
+        $downloadOk = Test-Path $gitInstaller
+    } catch { }
+    # Fallback to Invoke-WebRequest
+    if (-not $downloadOk) {
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing
+            $downloadOk = Test-Path $gitInstaller
+        } catch { }
+    }
+    # Fallback to curl (built into Windows 10+)
+    if (-not $downloadOk) {
+        try {
+            & cmd /c "curl -L -o `"$gitInstaller`" `"$gitUrl`""
+            $downloadOk = Test-Path $gitInstaller
+        } catch { }
+    }
+
+    if (-not $downloadOk) {
         Write-Fail "No se pudo descargar Git"
         Write-Host "  Descargalo manualmente desde: https://git-scm.com/download/win" -ForegroundColor Yellow
         exit 1
