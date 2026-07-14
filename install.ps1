@@ -103,14 +103,35 @@ if ($virtOk) {
 # --- Step 1: WSL2 ---
 Write-Section "[1/6] Verificando WSL2..."
 
-$wslExists = Get-Command wsl -ErrorAction SilentlyContinue
-if ($wslExists) {
+# Run wsl --version using Process to handle UTF-16 encoding correctly
+$wslInstalled = $false
+try {
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo.FileName = "wsl"
+    $proc.StartInfo.Arguments = "--version"
+    $proc.StartInfo.RedirectStandardOutput = $true
+    $proc.StartInfo.RedirectStandardError = $true
+    $proc.StartInfo.UseShellExecute = $false
+    $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::Unicode
+    $proc.Start() | Out-Null
+    $output = $proc.StandardOutput.ReadToEnd()
+    $proc.WaitForExit(5000)
+    if ($output -match "2\.\d+\.\d+") {
+        $wslInstalled = $true
+    }
+} catch {
+    # wsl command doesn't exist
+}
+
+if ($wslInstalled) {
     Write-OK "WSL2 ya instalado"
 } else {
     Write-Step "Instalando WSL2..."
+    Write-Host "  Se abrira una ventana de WSL. Presiona cualquier tecla para continuar..." -ForegroundColor Yellow
     $ErrorActionPreferenceOld = $ErrorActionPreference
     $ErrorActionPreference = "SilentlyContinue"
-    wsl --install --no-launch
+    $proc2 = Start-Process wsl -PassThru -ArgumentList "--install", "--no-launch"
+    $proc2.WaitForExit()
     $ErrorActionPreference = $ErrorActionPreferenceOld
     Write-OK "WSL2 instalado - puede ser necesario reiniciar"
 }
