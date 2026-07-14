@@ -301,41 +301,11 @@ $ErrorActionPreference = $ErrorActionPreferenceOld
 if ($gitInstalled -and $gitVersion -match "git version") {
     Write-OK "Git $gitVersion instalado"
 } else {
-    Write-Step "Descargando Git..."
-    $gitInstaller = "$env:TEMP\git-install.exe"
-    $gitUrl = "https://github.com/git-scm/git/releases/download/v2.49.0.windows.1/Git-2.49.0-64-bit.exe"
-
-    $downloadOk = $false
-    # curl with -L to follow redirects (GitHub releases redirect to CDN)
-    try {
-        & cmd /c "curl -L -o `"$gitInstaller`" `"$gitUrl`""
-        $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
-    } catch { }
-    # Fallback to Invoke-WebRequest
-    if (-not $downloadOk) {
-        try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing
-            $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
-        } catch { }
-    }
-    # Fallback to BITS
-    if (-not $downloadOk) {
-        try {
-            Start-BitsTransfer -Source $gitUrl -Destination $gitInstaller
-            $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
-        } catch { }
-    }
-
-    if (-not $downloadOk) {
-        Write-Fail "No se pudo descargar Git"
-        Write-Host "  Descargalo manualmente desde: https://git-scm.com/download/win" -ForegroundColor Yellow
-        exit 1
-    }
-
-    Write-Step "Instalando Git..."
-    Start-Process -Wait -FilePath $gitInstaller -ArgumentList '/VERYSILENT', '/NORESTART', '/NOCANCEL', '/SP-', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS', '/COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"'
-    Remove-Item $gitInstaller -ErrorAction SilentlyContinue
+    Write-Step "Instalando Git via winget..."
+    $ErrorActionPreferenceOld = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    & cmd /c "winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements"
+    $ErrorActionPreference = $ErrorActionPreferenceOld
 
     # Refresh PATH
     $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
@@ -347,11 +317,11 @@ if ($gitInstalled -and $gitVersion -match "git version") {
     $gitInstalled = $LASTEXITCODE -eq 0
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
-    if ($gitInstalled) {
+    if ($gitInstalled -and $gitVersion -match "git version") {
         Write-OK "Git instalado"
     } else {
-        Write-Fail "Git se instalo pero no se detecta en PATH"
-        Write-Host "  Reinicia el PC y vuelve a ejecutar" -ForegroundColor Yellow
+        Write-Fail "No se pudo instalar Git"
+        Write-Host "  Instalalo manualmente: winget install --id Git.Git" -ForegroundColor Yellow
         exit 1
     }
 }
