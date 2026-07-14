@@ -123,7 +123,7 @@ function Start-AppWindows($apiPort, $webPort, $appEnv) {
     )
     Start-Process powershell -ArgumentList @(
         "-NoExit", "-Command",
-        "Set-Location '$REPO_ROOT'; Write-Host 'Web Frontend (port $webPort)' -ForegroundColor Cyan; npm run dev:web"
+        "Set-Location '$REPO_ROOT'; `$env:API_PORT='$apiPort'; `$env:VITE_PORT='$webPort'; Write-Host 'Web Frontend (port $webPort, API port $apiPort)' -ForegroundColor Cyan; npm run dev:web"
     )
 }
 
