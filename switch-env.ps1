@@ -250,10 +250,11 @@ function Start-Env($envName) {
     # El wrapper (scripts/migrate.js) lee .env.<env> y bloquea comandos peligrosos en prod.
     Write-Section "[4/4] Corriendo migraciones..."
 
-    # First ensure prisma client is generated
-    Write-Step "Generando Prisma Client..."
+    # First ensure shared package and prisma client are generated
+    Write-Step "Compilando paquetes..."
     $ErrorActionPreferenceOld = $ErrorActionPreference
     $ErrorActionPreference = "SilentlyContinue"
+    npm run --workspace=packages/shared build 2>$null
     npm run --prefix apps/api prisma:generate 2>$null
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
