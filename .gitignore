@@ -39,7 +39,8 @@ apps/web/dist/
 apps/api/uploads/*
 
 # Design / scratch files (not part of the app)
-apps/web/public/logo*.svg
-apps/web/public/logo*.png
+apps/web/public/logo-traced*.svg
+apps/web/public/logo-cropped*.svg
+apps/web/public/logo-optimized*.svg
 *.op
 pos-mobile-design.op
