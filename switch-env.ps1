@@ -46,6 +46,10 @@ function Write-Section($msg) {
     Write-Host $msg -ForegroundColor Yellow
 }
 
+function Write-Step($msg) {
+    Write-Host "  $msg" -ForegroundColor Cyan
+}
+
 function Get-CurrentBranch {
     $branch = git -C $REPO_ROOT rev-parse --abbrev-ref HEAD 2>$null
     if ($LASTEXITCODE -ne 0) { throw "No se pudo determinar la rama actual de git." }
