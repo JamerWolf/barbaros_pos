@@ -23,8 +23,8 @@ export function OrderItemList({ items, onRemoveItem, onIncrementItem, readonly =
       {items.map((item) => (
         <div
           key={item.id}
-          onClick={() => onIncrementItem(item.id)}
-          className="flex items-center gap-3 rounded-xl bg-[#141414] px-4 py-3 active:bg-[#1E1E1E] cursor-pointer"
+          onClick={readonly ? undefined : () => onIncrementItem(item.id)}
+          className={`flex items-center gap-3 rounded-xl bg-[#141414] px-4 py-3 ${readonly ? '' : 'active:bg-[#1E1E1E] cursor-pointer'}`}
         >
           {item.product?.photoUrl ? (
             <img
