@@ -141,6 +141,12 @@ Write-Section "[2/6] Verificando Docker Desktop..."
 
 # Helper: check if Docker daemon is responsive
 function Test-DockerReady {
+    # First check if Docker Desktop process is running
+    $dockerProc = Get-Process "Docker Desktop" -ErrorAction SilentlyContinue
+    if (-not $dockerProc) {
+        return $false
+    }
+    # Then check if daemon responds
     try {
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo.FileName = "docker"
@@ -149,8 +155,7 @@ function Test-DockerReady {
         $proc.StartInfo.RedirectStandardError = $true
         $proc.StartInfo.UseShellExecute = $false
         $proc.Start() | Out-Null
-        $stdout = $proc.StandardOutput.ReadToEnd()
-        $proc.WaitForExit(5000)
+        $proc.WaitForExit(10000)
         return ($proc.ExitCode -eq 0)
     } catch {
         return $false
