@@ -38,6 +38,8 @@ $DEV_DB_CONTAINER = "barbaros-pos-db-dev"
 $PROD_DB_CONTAINER = "barbaros-pos-db-prod"
 $DEV_DB_NAME = "barbaros_pos_dev"
 $PROD_DB_NAME = "barbaros_pos_prod"
+$DEV_DB_PORT = 5432
+$PROD_DB_PORT = 5433
 
 # --- Helpers ---------------------------------------------------------------
 
@@ -178,6 +180,7 @@ function Start-Env($envName) {
             webPort = $DEV_WEB_PORT
             dbContainer = $DEV_DB_CONTAINER
             dbName = $DEV_DB_NAME
+            dbPort = $DEV_DB_PORT
             composeService = "postgres-dev"
         }
         "production" = @{
@@ -187,6 +190,7 @@ function Start-Env($envName) {
             webPort = $PROD_WEB_PORT
             dbContainer = $PROD_DB_CONTAINER
             dbName = $PROD_DB_NAME
+            dbPort = $PROD_DB_PORT
             composeService = "postgres-prod"
         }
     }[$envName]
@@ -259,10 +263,13 @@ function Start-Env($envName) {
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
     # Use db push (non-interactive) instead of migrate dev (asks for name)
-    # migrate deploy only works if migrations already exist in the repo
+    # Set DATABASE_URL from the env file so prisma can connect
+    $env:DATABASE_URL = "postgresql://barbaros:barbaros@localhost:$($config.dbPort)/$($config.dbName)"
     $ErrorActionPreference = "SilentlyContinue"
-    & cmd /c "npx --prefix apps/api prisma db push --schema apps/api/prisma/schema.prisma"
+    Push-Location "$REPO_ROOT\apps\api"
+    npx prisma db push --schema prisma/schema.prisma 2>$null
     $migOk = $LASTEXITCODE -eq 0
+    Pop-Location
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
     if (-not $migOk) {
