@@ -200,7 +200,10 @@ function Start-Env($envName) {
         }
         Write-Host ""
         Write-Host "  Cambiando de rama: $currentBranch -> $($config.branch)" -ForegroundColor Cyan
-        git -C $REPO_ROOT checkout $config.branch 2>&1 | ForEach-Object { Write-Host "  $_" }
+        $ErrorActionPreferenceOld = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        git -C $REPO_ROOT checkout $config.branch
+        $ErrorActionPreference = $ErrorActionPreferenceOld
     }
 
     # 2. Forzar APP_ENV para que se propague a todos los procesos hijos
