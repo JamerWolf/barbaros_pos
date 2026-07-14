@@ -306,24 +306,24 @@ if ($gitInstalled -and $gitVersion -match "git version") {
     $gitUrl = "https://github.com/git-scm/git/releases/download/v2.49.0.windows.1/Git-2.49.0-64-bit.exe"
 
     $downloadOk = $false
-    # Try BITS first (faster)
+    # curl with -L to follow redirects (GitHub releases redirect to CDN)
     try {
-        Start-BitsTransfer -Source $gitUrl -Destination $gitInstaller
-        $downloadOk = Test-Path $gitInstaller
+        & cmd /c "curl -L -o `"$gitInstaller`" `"$gitUrl`""
+        $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
     } catch { }
     # Fallback to Invoke-WebRequest
     if (-not $downloadOk) {
         try {
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
             Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing
-            $downloadOk = Test-Path $gitInstaller
+            $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
         } catch { }
     }
-    # Fallback to curl (built into Windows 10+)
+    # Fallback to BITS
     if (-not $downloadOk) {
         try {
-            & cmd /c "curl -L -o `"$gitInstaller`" `"$gitUrl`""
-            $downloadOk = Test-Path $gitInstaller
+            Start-BitsTransfer -Source $gitUrl -Destination $gitInstaller
+            $downloadOk = (Test-Path $gitInstaller) -and ((Get-Item $gitInstaller).Length -gt 1MB)
         } catch { }
     }
 
