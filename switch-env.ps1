@@ -258,9 +258,10 @@ function Start-Env($envName) {
     npm run --prefix apps/api prisma:generate 2>$null
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
-    $npmScript = if ($config.appEnv -eq 'production') { 'prisma:deploy' } else { 'prisma:migrate' }
+    # Use db push (non-interactive) instead of migrate dev (asks for name)
+    # migrate deploy only works if migrations already exist in the repo
     $ErrorActionPreference = "SilentlyContinue"
-    & cmd /c "npm run --prefix apps/api $npmScript"
+    & cmd /c "npx --prefix apps/api prisma db push --schema apps/api/prisma/schema.prisma"
     $migOk = $LASTEXITCODE -eq 0
     $ErrorActionPreference = $ErrorActionPreferenceOld
 
