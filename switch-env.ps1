@@ -237,13 +237,25 @@ function Start-Env($envName) {
     # En production: prisma:deploy (wrapper -> migrate deploy, solo aplica migraciones existentes)
     # El wrapper (scripts/migrate.js) lee .env.<env> y bloquea comandos peligrosos en prod.
     Write-Section "[4/4] Corriendo migraciones..."
+
+    # First ensure prisma client is generated
+    Write-Step "Generando Prisma Client..."
+    $ErrorActionPreferenceOld = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    npm run --prefix apps/api prisma:generate 2>$null
+    $ErrorActionPreference = $ErrorActionPreferenceOld
+
     $npmScript = if ($config.appEnv -eq 'production') { 'prisma:deploy' } else { 'prisma:migrate' }
-    $migOut = & cmd /c "npm run --prefix apps/api $npmScript 2>&1"
-    foreach ($line in $migOut) { Write-Host "  $line" }
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Migraciones fallaron (exit $LASTEXITCODE). Abortando." -ForegroundColor Red
+    $ErrorActionPreference = "SilentlyContinue"
+    & cmd /c "npm run --prefix apps/api $npmScript"
+    $migOk = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $ErrorActionPreferenceOld
+
+    if (-not $migOk) {
+        Write-Host "  Migraciones fallaron. Abortando." -ForegroundColor Red
         exit 1
     }
+    Write-OK "Migraciones completadas"
 
     # 7. Levantar API + Web
     Write-Section "[start] Levantando API y Web..."
