@@ -38,6 +38,10 @@ apps/web/dist/
 # User uploads (solo pagos, las fotos de productos se suben al repo)
 apps/api/uploads/payments/*
 
+# Installer build artifacts
+installer/staging/
+installer/releases/
+
 # Design / scratch files (not part of the app)
 apps/web/public/logo-traced*.svg
 apps/web/public/logo-cropped*.svg

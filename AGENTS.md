@@ -30,6 +30,7 @@ D:\barbaros_pos
 | Frontend        | React + TypeScript + Vite + TailwindCSS |
 | Offline/PWA     | Workbox (Service Worker)                |
 | Infraestructura | Docker + Linux                          |
+| Installer       | Inno Setup (.exe) + Task Scheduler      |
 
 ---
 
@@ -178,6 +179,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Search icon** (iconoLupa.png en dashboard)
 - ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
 - ✅ **Canvas LEGO architecture** (composable hooks: useCanvasDrag, useCanvasResize, useCanvasRotate, ResizeHandles, utils/canvas/drag.ts)
+- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, auto-start via Task Scheduler, Docker PostgreSQL)
 
 ### Próximas features
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
@@ -211,6 +213,8 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **`__dirname` en ES modules**: Usar `fileURLToPath(import.meta.url)` + `path.dirname()`. `__dirname` no existe en ES modules.
 - **`dotenv` override**: Los archivos `.env.develop`/`.env.production` se cargan con `override: true` para que un `DATABASE_URL` stale del shell no pise la config correcta.
 - **Multipart limits**: `@fastify/multipart` tiene límite por defecto de 1MB. Configurar `limits.fileSize` explícitamente (5MB para fotos/CSV).
+- **Inno Setup**: El installer compila con ISCC.exe (Inno Setup Compiler). El build script `installer/build-production.ps1` ejecuta todo el pipeline. Requiere Node.js y Docker Desktop pre-instalados en la PC destino.
+- **Docker port**: Producción usa :5433 para evitar conflicto con dev (:5432). Nunca confundir.
 
 ---
 

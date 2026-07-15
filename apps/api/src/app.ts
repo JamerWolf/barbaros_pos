@@ -13,6 +13,7 @@ import categoryRoutes from './routes/categories/index.js'
 import productRoutes from './routes/products/index.js'
 import reportRoutes from './routes/reports.js'
 import shapeRoutes from './routes/shapes/index.js'
+import { APP_ENV } from './config.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -44,6 +45,18 @@ export async function buildApp() {
     prefix: '/uploads/',
     decorateReply: false,
   })
+
+  // Static file serving for web build (production only)
+  if (APP_ENV === 'production') {
+    const webDistPath = path.join(__dirname, '../../web/dist')
+    if (fs.existsSync(webDistPath)) {
+      await app.register(fastifyStatic, {
+        root: webDistPath,
+        prefix: '/',
+        decorateReply: false,
+      })
+    }
+  }
 
   app.get('/health', async () => ({ status: 'ok' }))
 
