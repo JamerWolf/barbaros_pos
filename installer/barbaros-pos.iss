@@ -111,53 +111,61 @@ end;
 
 // Pre-install checks and automatic installation
 function IsDockerInstalled: Boolean;
-var
-  ResultCode: Integer;
 begin
-  Result := Exec('docker', 'version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  Result :=
+    FileExists(ExpandConstant('{pf64}\Docker\Docker\Docker Desktop.exe')) or
+    FileExists(ExpandConstant('{pf}\Docker\Docker\Docker Desktop.exe'));
 end;
 
 function IsNodeInstalled: Boolean;
-var
-  ResultCode: Integer;
 begin
-  Result := Exec('node', '--version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  Result :=
+    FileExists(ExpandConstant('{pf64}\nodejs\node.exe')) or
+    FileExists(ExpandConstant('{pf}\nodejs\node.exe'));
 end;
 
 function DownloadAndInstallNode: Boolean;
 var
   ResultCode: Integer;
-  InstallerPath: String;
-  ScriptPath: String;
+  Url: string;
+  InstallerPath: string;
 begin
   Result := False;
+
+  Url := 'https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi';
   InstallerPath := ExpandConstant('{tmp}\node-install.msi');
-  ScriptPath := ExpandConstant('{tmp}\download.ps1');
-  
-  WizardForm.StatusLabel.Caption := 'Descargando Node.js v20.18.3...';
+
+  WizardForm.StatusLabel.Caption := 'Descargando Node.js...';
   WizardForm.ProgressGauge.Position := 10;
-  
-  // Create a PowerShell script to download the file
-  SaveStringToFile(ScriptPath, 'Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi" -OutFile "' + InstallerPath + '"', False);
-  
-  // Execute the PowerShell script
-  if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-  begin
-    MsgBox('Error al descargar Node.js. Verifique su conexion a internet.', mbError, MB_OK);
+
+  try
+    DownloadTemporaryFile(Url, 'node-install.msi', '', nil);
+  except
+    MsgBox(
+      'No fue posible descargar Node.js.' + #13#10 +
+      'Verifique su conexión a Internet.',
+      mbError,
+      MB_OK
+    );
     Exit;
   end;
-  
+
   if not FileExists(InstallerPath) then
   begin
-    MsgBox('Error al descargar Node.js. Verifique su conexion a internet.', mbError, MB_OK);
+    MsgBox('El instalador de Node.js no se descargó correctamente.', mbError, MB_OK);
     Exit;
   end;
-  
+
   WizardForm.StatusLabel.Caption := 'Instalando Node.js...';
   WizardForm.ProgressGauge.Position := 50;
-  
-  // Install Node.js silently
-  if Exec('msiexec.exe', '/i "' + InstallerPath + '" /qn /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
+
+  if Exec(
+      ExpandConstant('{sys}\msiexec.exe'),
+      '/i "' + InstallerPath + '" /qn /norestart',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode) then
   begin
     if ResultCode = 0 then
     begin
@@ -166,133 +174,120 @@ begin
     end
     else
     begin
-      MsgBox('Error al instalar Node.js. Codigo: ' + IntToStr(ResultCode), mbError, MB_OK);
+      MsgBox(
+        'La instalación de Node.js falló.' + #13#10 +
+        'Código: ' + IntToStr(ResultCode),
+        mbError,
+        MB_OK
+      );
     end;
   end
   else
   begin
-    MsgBox('No se pudo ejecutar el instalador de Node.js.', mbError, MB_OK);
+    MsgBox('No fue posible ejecutar el instalador de Node.js.', mbError, MB_OK);
   end;
 end;
 
 function DownloadAndInstallDocker: Boolean;
 var
   ResultCode: Integer;
-  InstallerPath: String;
-  ScriptPath: String;
+  Url: string;
+  InstallerPath: string;
 begin
   Result := False;
+
+  Url := 'https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe';
   InstallerPath := ExpandConstant('{tmp}\docker-install.exe');
-  ScriptPath := ExpandConstant('{tmp}\download-docker.ps1');
-  
+
   WizardForm.StatusLabel.Caption := 'Descargando Docker Desktop...';
   WizardForm.ProgressGauge.Position := 10;
-  
-  // Create a PowerShell script to download the file
-  SaveStringToFile(ScriptPath, 'Invoke-WebRequest -Uri "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" -OutFile "' + InstallerPath + '"', False);
-  
-  // Execute the PowerShell script
-  if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-  begin
-    MsgBox('Error al descargar Docker Desktop. Verifique su conexion a internet.', mbError, MB_OK);
+
+  try
+    DownloadTemporaryFile(Url, 'docker-install.exe', '', nil);
+  except
+    MsgBox(
+      'No fue posible descargar Docker Desktop.' + #13#10 +
+      'Verifique su conexión a Internet.',
+      mbError,
+      MB_OK
+    );
     Exit;
   end;
   
+  if PendingReboot then
+begin
+  MsgBox(
+    'Es necesario reiniciar Windows para terminar la instalación de Docker Desktop.' +
+    'Ejecute nuevamente este instalador después del reinicio.',
+    mbInformation,
+    MB_OK);
+
+  WizardForm.Close;
+  Exit;
+end;
+
   if not FileExists(InstallerPath) then
   begin
-    MsgBox('Error al descargar Docker Desktop. Verifique su conexion a internet.', mbError, MB_OK);
+    MsgBox(
+      'El instalador de Docker Desktop no se descargó correctamente.',
+      mbError,
+      MB_OK
+    );
     Exit;
   end;
-  
+
   WizardForm.StatusLabel.Caption := 'Instalando Docker Desktop...';
-  WizardForm.ProgressGauge.Position := 50;
-  
-  // Install Docker Desktop silently
-  if Exec(InstallerPath, 'install --quiet --accept-license', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
+  WizardForm.ProgressGauge.Position := 60;
+
+  if Exec(
+      InstallerPath,
+      'install --quiet --accept-license',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode) then
   begin
-    if ResultCode = 0 then
-    begin
-      Result := True;
-      MsgBox('Docker Desktop instalado correctamente. Es posible que necesite reiniciar el sistema.', mbInformation, MB_OK);
-    end
+    case ResultCode of
+      0:
+      begin
+        Result := True;
+        MsgBox(
+          'Docker Desktop instalado correctamente.',
+          mbInformation,
+          MB_OK
+        );
+      end;
+
+      3010:
+      begin
+        Result := True;
+        PendingReboot := True;
+        MsgBox(
+          'Docker Desktop se instaló correctamente.' + #13#10 +
+          'Es necesario reiniciar Windows antes de continuar.',
+          mbInformation,
+          MB_OK
+        );
+      end;
+
     else
-    begin
-      MsgBox('Error al instalar Docker Desktop. Codigo: ' + IntToStr(ResultCode), mbError, MB_OK);
+      MsgBox(
+        'La instalación de Docker Desktop falló.' + #13#10 +
+        'Código: ' + IntToStr(ResultCode),
+        mbError,
+        MB_OK);
     end;
   end
   else
-  begin
-    MsgBox('No se pudo ejecutar el instalador de Docker Desktop.', mbError, MB_OK);
-  end;
+    MsgBox(
+      'No fue posible ejecutar el instalador de Docker Desktop.',
+      mbError,
+      MB_OK);
 end;
 
 function InitializeSetup: Boolean;
-var
-  NeedRestart: Boolean;
 begin
-  Result := False;
-  NeedRestart := False;
-  
-  // Check and install Node.js if needed
-  if not IsNodeInstalled then
-  begin
-    if MsgBox('Node.js no está instalado. Se requiere para ejecutar la API.' + #13#10 + #13#10 +
-              '¿Desea instalarlo ahora?',
-              mbConfirmation, MB_YESNO) = IDYES then
-    begin
-      if DownloadAndInstallNode then
-      begin
-        // Refresh PATH to detect newly installed Node.js
-        EnvAddPath(ExpandConstant('{pf}\nodejs'));
-      end;
-    end
-    else
-    begin
-      MsgBox('La instalación no puede continuar sin Node.js.', mbError, MB_OK);
-      Exit;
-    end;
-  end;
-  
-  // Check and install Docker Desktop if needed
-  if not IsDockerInstalled then
-  begin
-    if MsgBox('Docker Desktop no está instalado. Se requiere para ejecutar la base de datos.' + #13#10 + #13#10 +
-              '¿Desea instalarlo ahora?' + #13#10 + #13#10 +
-              'Nota: Docker Desktop requiere Windows 10/11 Pro o Enterprise con virtualización habilitada.',
-              mbConfirmation, MB_YESNO) = IDYES then
-    begin
-      if DownloadAndInstallDocker then
-      begin
-        NeedRestart := True;
-      end;
-    end
-    else
-    begin
-      MsgBox('La instalación no puede continuar sin Docker Desktop.', mbError, MB_OK);
-      Exit;
-    end;
-  end;
-  
-  // If Docker was just installed, we might need a restart
-  if NeedRestart then
-  begin
-    if MsgBox('Se requiere reiniciar el sistema para completar la instalación de Docker Desktop.' + #13#10 + #13#10 +
-              '¿Desea reiniciar ahora?',
-              mbConfirmation, MB_YESNO) = IDYES then
-    begin
-      Result := True;
-      PendingReboot := True;
-    end
-    else
-    begin
-      MsgBox('Por favor reinicie el sistema manualmente antes de ejecutar Barbaros POS.', mbInformation, MB_OK);
-      Result := True;
-    end;
-  end
-  else
-  begin
-    Result := True;
-  end;
+  Result := True;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -301,8 +296,58 @@ var
 begin
   if CurStep = ssInstall then
   begin
-    // Remove old Task Scheduler task before creating new one
-    Exec('schtasks.exe', '/delete /tn "BarbarosPOS" /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    // Instalar Node.js si no existe
+    if not IsNodeInstalled then
+    begin
+      if MsgBox(
+          'Node.js no está instalado.' + #13#10 +
+          'Se requiere para ejecutar la API.' + #13#10 + #13#10 +
+          '¿Desea instalarlo ahora?',
+          mbConfirmation,
+          MB_YESNO) = IDYES then
+      begin
+        if not DownloadAndInstallNode then
+        begin
+          MsgBox(
+            'No fue posible instalar Node.js.',
+            mbError,
+            MB_OK);
+
+Abort;
+        end;
+      end
+      else
+      begin
+        RaiseException('La instalación requiere Node.js.');
+      end;
+    end;
+    
+    // Instalar Docker Desktop si no existe
+    if not IsDockerInstalled then
+    begin
+      if MsgBox(
+          'Docker Desktop no está instalado.' + #13#10 +
+          'Es necesario para ejecutar PostgreSQL.' + #13#10 + #13#10 +
+          '¿Desea instalarlo ahora?',
+          mbConfirmation,
+          MB_YESNO) = IDYES then
+      begin
+        if not DownloadAndInstallDocker then
+          RaiseException('No se pudo instalar Docker Desktop.');
+      end
+      else
+        RaiseException('La instalación requiere Docker Desktop.');
+    end;
+
+    // Eliminar tarea anterior
+    Exec(
+      'schtasks.exe',
+      '/delete /tn "BarbarosPOS" /f',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode
+    );
   end;
 end;
 
