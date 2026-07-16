@@ -6,7 +6,6 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Barbaros"
 #define MyAppURL "https://github.com/barbaros/pos"
-#define MyAppExeName "start-barbaros.ps1"
 #define InstallDir "C:\Barbaros POS"
 
 [Setup]
@@ -22,8 +21,6 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-; SetupIconFile=..\installer\icon.ico
-; UninstallDisplayIcon={app}\installer\icon.ico
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
@@ -43,14 +40,12 @@ Source: "..\apps\web\dist\*"; DestDir: "{app}\apps\web\dist"; Flags: recursesubd
 Source: "..\packages\shared\dist\*"; DestDir: "{app}\node_modules\@barbaros\shared\dist"; Flags: recursesubdirs
 Source: "..\packages\shared\package.json"; DestDir: "{app}\node_modules\@barbaros\shared"
 
-; Root node_modules (production deps only, from staging)
-Source: "..\installer\staging\node_modules\*"; DestDir: "{app}\node_modules"; Flags: recursesubdirs skipifsourcedoesntexist
+; Root package.json for npm install
+Source: "..\apps\api\package.json"; DestDir: "{app}"
 
 ; Installer scripts
-Source: "..\installer\staging\docker-compose.yml"; DestDir: "{app}"
 Source: "..\installer\staging\start-barbaros.ps1"; DestDir: "{app}"
 Source: "..\installer\staging\stop-barbaros.ps1"; DestDir: "{app}"
-Source: "..\installer\staging\.env.production"; DestDir: "{app}"
 Source: "..\installer\staging\nssm.exe"; DestDir: "{app}"
 
 [Dirs]
@@ -73,14 +68,14 @@ Name: "desktopicon"; Description: "Crear icono en el escritorio"; GroupDescripti
 Filename: "{app}\nssm.exe"; Parameters: "stop BarbarosPOS"; Flags: runhidden
 Filename: "{app}\nssm.exe"; Parameters: "remove BarbarosPOS confirm"; Flags: runhidden
 
+; Stop PostgreSQL service
+Filename: "sc.exe"; Parameters: "stop postgresql-x64-16"; Flags: runhidden
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\logs"
 Type: filesandordirs; Name: "{app}\apps"
-Type: filesandordirs; Name: "{app}\packages"
 Type: filesandordirs; Name: "{app}\node_modules"
-Type: filesandordirs; Name: "{app}\installer"
 Type: files; Name: "{app}\*.ps1"
-Type: files; Name: "{app}\*.yml"
 Type: files; Name: "{app}\*.json"
 Type: files; Name: "{app}\*.env*"
 
@@ -105,220 +100,260 @@ begin
   );
 end;
 
-// Add directory to system PATH
-procedure EnvAddPath(Path: string);
+// Add installer to RunOnce registry so it auto-runs after reboot
+procedure AddToRunOnce();
 var
-  Paths: string;
+  InstallerPath: String;
 begin
-  if not RegQueryStringValue(HKLM, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', Paths) then
-    Paths := '';
+  InstallerPath := ExpandConstant('{srcexe}');
   
-  if Pos(';' + Uppercase(Path) + ';', ';' + Uppercase(Paths) + ';') = 0 then
-  begin
-    if Paths <> '' then
-      Paths := Paths + ';' + Path
-    else
-      Paths := Path;
-    
-    RegWriteStringValue(HKLM, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', Paths);
-  end;
+  RegWriteStringValue(
+    HKCU,
+    'Software\Microsoft\Windows\CurrentVersion\RunOnce',
+    'BarbarosPOS',
+    '"' + InstallerPath + '"'
+  );
 end;
 
-function GetDockerExe(): String;
-begin
-    if FileExists(ExpandConstant('{pf64}\Docker\Docker\resources\bin\docker.exe')) then
-        Result := ExpandConstant('{pf64}\Docker\Docker\resources\bin\docker.exe')
-    else
-    if FileExists(ExpandConstant('{pf}\Docker\Docker\resources\bin\docker.exe')) then
-        Result := ExpandConstant('{pf}\Docker\Docker\resources\bin\docker.exe')
-    else
-        Result := '';
-end;
-
-function DockerExists(): Boolean;
-begin
-    Result := GetDockerExe() <> '';
-end;
-
-function WaitForDockerReady(): Boolean;
-var
-    DockerExe: String;
-    ResultCode: Integer;
-    I: Integer;
-begin
-    Result := False;
-
-    DockerExe := GetDockerExe();
-
-    if DockerExe = '' then
-        Exit;
-
-    for I := 1 to 60 do
-    begin
-        if Exec(
-            DockerExe,
-            'version',
-            '',
-            SW_HIDE,
-            ewWaitUntilTerminated,
-            ResultCode) then
-        begin
-            if ResultCode = 0 then
-            begin
-                Result := True;
-                Exit;
-            end;
-        end;
-
-        Sleep(2000);
-    end;
-end;
-
-function StartDatabase(): Boolean;
-var
-    DockerExe: String;
-    ResultCode: Integer;
-begin
-    Result := False;
-
-    DockerExe := GetDockerExe();
-
-    if DockerExe = '' then
-    begin
-        MsgBox(
-            'No se encontró docker.exe.',
-            mbError,
-            MB_OK);
-
-        Exit;
-    end;
-
-    if not Exec(
-        DockerExe,
-        'compose -f "' +
-        ExpandConstant('{app}\docker-compose.yml') +
-        '" up -d',
-        '',
-        SW_HIDE,
-        ewWaitUntilTerminated,
-        ResultCode) then
-    begin
-        MsgBox(
-            'No fue posible iniciar Docker Compose.',
-            mbError,
-            MB_OK);
-
-        Exit;
-    end;
-
-    if ResultCode <> 0 then
-    begin
-        MsgBox(
-            'Docker Compose devolvió el código ' +
-            IntToStr(ResultCode),
-            mbError,
-            MB_OK);
-
-        Exit;
-    end;
-
-    Result := True;
-end;
-
-procedure StopDatabase();
-var
-    DockerExe: String;
-    ResultCode: Integer;
-begin
-
-    DockerExe := GetDockerExe();
-
-    if DockerExe = '' then
-        Exit;
-
-    Exec(
-        DockerExe,
-        'compose -f "' +
-        ExpandConstant('{app}\docker-compose.yml') +
-        '" down',
-        '',
-        SW_HIDE,
-        ewWaitUntilTerminated,
-        ResultCode);
-
-end;
-
-// Check if virtualization is enabled in BIOS/UEFI
-function IsVirtualizationEnabled(): Boolean;
+// Reboot the computer
+procedure RebootComputer();
 var
   ResultCode: Integer;
 begin
+  Exec(
+    'shutdown.exe',
+    '/r /t 30 /c "Barbaros POS requiere reiniciar para completar la instalación. El instalador se ejecutará automáticamente después del reinicio." /d p:2:4',
+    '',
+    SW_HIDE,
+    ewNoWait,
+    ResultCode
+  );
+end;
+
+// Check if Node.js is installed
+function IsNodeInstalled: Boolean;
+begin
+  Result :=
+    FileExists(ExpandConstant('{pf64}\nodejs\node.exe')) or
+    FileExists(ExpandConstant('{pf}\nodejs\node.exe'));
+end;
+
+// Download and install Node.js
+function DownloadAndInstallNode: Boolean;
+var
+  ResultCode: Integer;
+  Url: string;
+  InstallerPath: string;
+begin
   Result := False;
-  
-  // Use PowerShell exit code: 0 = virtualization enabled, 1 = disabled
+
+  Url := 'https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi';
+  InstallerPath := ExpandConstant('{tmp}\node-install.msi');
+
+  WizardForm.StatusLabel.Caption := 'Descargando Node.js...';
+  WizardForm.ProgressGauge.Position := 10;
+
+  try
+    DownloadTemporaryFile(Url, 'node-install.msi', '', nil);
+  except
+    MsgBox(
+      'No fue posible descargar Node.js.' + #13#10 +
+      'Verifique su conexión a Internet.',
+      mbError,
+      MB_OK
+    );
+    Exit;
+  end;
+
+  if not FileExists(InstallerPath) then
+  begin
+    MsgBox('El instalador de Node.js no se descargó correctamente.', mbError, MB_OK);
+    Exit;
+  end;
+
+  WizardForm.StatusLabel.Caption := 'Instalando Node.js...';
+  WizardForm.ProgressGauge.Position := 50;
+
   if Exec(
-      'powershell.exe',
-      '-Command "if ((Get-CimInstance Win32_Processor).VirtualizationFirmwareEnabled -or (Get-CimInstance Win32_ComputerSystem).HypervisorPresent) { exit 0 } else { exit 1 }"',
+      ExpandConstant('{sys}\msiexec.exe'),
+      '/i "' + InstallerPath + '" /qn /norestart',
       '',
       SW_HIDE,
       ewWaitUntilTerminated,
       ResultCode) then
   begin
-    Result := (ResultCode = 0);
+    if ResultCode = 0 then
+    begin
+      Result := True;
+      MsgBox('Node.js instalado correctamente.', mbInformation, MB_OK);
+    end
+    else
+    begin
+      MsgBox(
+        'La instalación de Node.js falló.' + #13#10 +
+        'Código: ' + IntToStr(ResultCode),
+        mbError,
+        MB_OK
+      );
+    end;
   end
   else
   begin
-    Result := True; // If we can't check, be optimistic
+    MsgBox('No fue posible ejecutar el instalador de Node.js.', mbError, MB_OK);
   end;
 end;
 
-// Start Docker Desktop explicitly
-function StartDockerDesktop(): Boolean;
-var
-  ResultCode: Integer;
-  DockerExe: String;
+// Check if PostgreSQL is installed
+function IsPostgreSQLInstalled: Boolean;
 begin
-  Result := False;
-  
-  // Find Docker Desktop executable
-  if FileExists(ExpandConstant('{pf64}\Docker\Docker\Docker Desktop.exe')) then
-    DockerExe := ExpandConstant('{pf64}\Docker\Docker\Docker Desktop.exe')
-  else if FileExists(ExpandConstant('{pf}\Docker\Docker\Docker Desktop.exe')) then
-    DockerExe := ExpandConstant('{pf}\Docker\Docker\Docker Desktop.exe')
-  else
-    Exit;
-  
-  // Start Docker Desktop (non-blocking)
-  Exec(
-      DockerExe,
-      '',
-      '',
-      SW_HIDE,
-      ewNoWait,
-      ResultCode);
-  
-  Result := True;
+  Result :=
+    FileExists(ExpandConstant('{pf}\PostgreSQL\16\bin\pg_isready.exe')) or
+    FileExists(ExpandConstant('{pf64}\PostgreSQL\16\bin\pg_isready.exe'));
 end;
 
-// Wait for PostgreSQL to be ready using pg_isready
-function WaitForPostgreSQL(): Boolean;
+// Download and install PostgreSQL
+function DownloadAndInstallPostgreSQL: Boolean;
+var
+  ResultCode: Integer;
+  Url: string;
+  InstallerPath: string;
+begin
+  Result := False;
+
+  // PostgreSQL 16.3 for Windows x64
+  Url := 'https://get.enterprisedb.com/postgresql/postgresql-16.3-1-windows-x64.exe';
+  InstallerPath := ExpandConstant('{tmp}\postgresql-install.exe');
+
+  WizardForm.StatusLabel.Caption := 'Descargando PostgreSQL...';
+  WizardForm.ProgressGauge.Position := 20;
+
+  try
+    DownloadTemporaryFile(Url, 'postgresql-install.exe', '', nil);
+  except
+    MsgBox(
+      'No fue posible descargar PostgreSQL.' + #13#10 +
+      'Verifique su conexión a Internet.',
+      mbError,
+      MB_OK
+    );
+    Exit;
+  end;
+
+  if not FileExists(InstallerPath) then
+  begin
+    MsgBox('El instalador de PostgreSQL no se descargó correctamente.', mbError, MB_OK);
+    Exit;
+  end;
+
+  WizardForm.StatusLabel.Caption := 'Instalando PostgreSQL...';
+  WizardForm.ProgressGauge.Position := 40;
+
+  // Silent installation with EDB installer
+  // --mode unattended: silent install
+  // --superpassword: password for postgres user
+  // --serverport: port number
+  // --locale: locale setting
+  if Exec(
+      InstallerPath,
+      '--mode unattended --superpassword barbaros --serverport 5432 --locale Spanish_Argentina.1252 --disable-components pgAdmin',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode) then
+  begin
+    if ResultCode = 0 then
+    begin
+      Result := True;
+      MsgBox('PostgreSQL instalado correctamente.', mbInformation, MB_OK);
+    end
+    else
+    begin
+      MsgBox(
+        'La instalación de PostgreSQL falló.' + #13#10 +
+        'Código: ' + IntToStr(ResultCode),
+        mbError,
+        MB_OK
+      );
+    end;
+  end
+  else
+  begin
+    MsgBox('No fue posible ejecutar el instalador de PostgreSQL.', mbError, MB_OK);
+  end;
+end;
+
+// Wait for PostgreSQL service to be running
+function WaitForPostgreSQLService(): Boolean;
 var
   ResultCode: Integer;
   I: Integer;
-  DockerExe: String;
+  Output: String;
+  TmpFile: String;
 begin
   Result := False;
-  DockerExe := GetDockerExe();
+  TmpFile := ExpandConstant('{tmp}\pgservice.txt');
   
-  if DockerExe = '' then
+  // Try for up to 2 minutes
+  for I := 1 to 24 do
+  begin
+    if Exec(
+        'sc.exe',
+        'query postgresql-x64-16',
+        '',
+        SW_HIDE,
+        ewWaitUntilTerminated,
+        ResultCode) then
+    begin
+      // Check if service is running (STATE: 4 RUNNING)
+      if Exec(
+          'powershell.exe',
+          '-Command "(Get-Service postgresql-x64-16).Status | Out-File -FilePath ''' + TmpFile + ''' -Encoding utf8"',
+          '',
+          SW_HIDE,
+          ewWaitUntilTerminated,
+          ResultCode) then
+      begin
+        if LoadStringFromFile(TmpFile, Output) then
+        begin
+          if Pos('Running', Output) > 0 then
+          begin
+            Result := True;
+            DeleteFile(TmpFile);
+            Exit;
+          end;
+        end;
+      end;
+    end;
+    
+    Sleep(5000);
+  end;
+  
+  DeleteFile(TmpFile);
+end;
+
+// Wait for PostgreSQL to accept connections
+function WaitForPostgreSQLReady(): Boolean;
+var
+  ResultCode: Integer;
+  I: Integer;
+  PgBin: String;
+begin
+  Result := False;
+  
+  // Find pg_isready
+  if FileExists(ExpandConstant('{pf64}\PostgreSQL\16\bin\pg_isready.exe')) then
+    PgBin := ExpandConstant('{pf64}\PostgreSQL\16\bin\pg_isready.exe')
+  else if FileExists(ExpandConstant('{pf}\PostgreSQL\16\bin\pg_isready.exe')) then
+    PgBin := ExpandConstant('{pf}\PostgreSQL\16\bin\pg_isready.exe')
+  else
     Exit;
   
   // Try for up to 60 seconds
   for I := 1 to 12 do
   begin
     if Exec(
-        DockerExe,
-        'exec barbaros-pos-db-prod pg_isready -U barbaros -d barbaros_pos',
+        PgBin,
+        '-U barbaros -d barbaros_pos',
         '',
         SW_HIDE,
         ewWaitUntilTerminated,
@@ -332,6 +367,44 @@ begin
     end;
     
     Sleep(5000);
+  end;
+end;
+
+// Install Node.js dependencies
+function InstallNodeDependencies(): Boolean;
+var
+  ResultCode: Integer;
+  NpmBin: String;
+begin
+  Result := False;
+  
+  WizardForm.StatusLabel.Caption := 'Instalando dependencias...';
+  
+  // Find npm
+  if FileExists(ExpandConstant('{pf64}\nodejs\npm.cmd')) then
+    NpmBin := ExpandConstant('{pf64}\nodejs\npm.cmd')
+  else if FileExists(ExpandConstant('{pf}\nodejs\npm.cmd')) then
+    NpmBin := ExpandConstant('{pf}\nodejs\npm.cmd')
+  else
+  begin
+    MsgBox('No se encontró npm. Verifique la instalación de Node.js.', mbError, MB_OK);
+    Exit;
+  end;
+  
+  // Run npm install
+  if Exec(
+      NpmBin,
+      'install --omit=dev --ignore-scripts',
+      ExpandConstant('{app}'),
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ResultCode) then
+  begin
+    Result := (ResultCode = 0);
+  end
+  else
+  begin
+    MsgBox('No fue posible ejecutar npm install.', mbError, MB_OK);
   end;
 end;
 
@@ -351,7 +424,6 @@ begin
   WizardForm.StatusLabel.Caption := 'Ejecutando migraciones...';
   
   // Build command that sets DATABASE_URL and runs prisma in the same process
-  // This avoids the issue of env vars not persisting across separate Exec calls
   Cmd := 'set "DATABASE_URL=postgresql://barbaros:barbaros@localhost:5432/barbaros_pos" && ';
   
   if FileExists(PrismaBin) then
@@ -417,225 +489,6 @@ begin
   end;
 end;
 
-// Add installer to RunOnce registry so it auto-runs after reboot
-procedure AddToRunOnce();
-var
-  RunOnceKey: String;
-  InstallerPath: String;
-begin
-  RunOnceKey := 'Software\Microsoft\Windows\CurrentVersion\RunOnce';
-  InstallerPath := ExpandConstant('{srcexe}');
-  
-  RegWriteStringValue(
-    HKCU,
-    RunOnceKey,
-    'BarbarosPOS',
-    '"' + InstallerPath + '"'
-  );
-end;
-
-// Reboot the computer
-procedure RebootComputer();
-var
-  ResultCode: Integer;
-begin
-  // Use shutdown command with 30 second delay
-  Exec(
-    'shutdown.exe',
-    '/r /t 30 /c "Barbaros POS requiere reiniciar para completar la instalación de Docker Desktop. El instalador se ejecutará automáticamente después del reinicio." /d p:2:4',
-    '',
-    SW_HIDE,
-    ewNoWait,
-    ResultCode
-  );
-end;
-
-// Pre-install checks and automatic installation
-function IsDockerInstalled: Boolean;
-begin
-  Result :=
-    FileExists(ExpandConstant('{pf64}\Docker\Docker\Docker Desktop.exe')) or
-    FileExists(ExpandConstant('{pf}\Docker\Docker\Docker Desktop.exe'));
-end;
-
-function IsNodeInstalled: Boolean;
-begin
-  Result :=
-    FileExists(ExpandConstant('{pf64}\nodejs\node.exe')) or
-    FileExists(ExpandConstant('{pf}\nodejs\node.exe'));
-end;
-
-function DownloadAndInstallNode: Boolean;
-var
-  ResultCode: Integer;
-  Url: string;
-  InstallerPath: string;
-begin
-  Result := False;
-
-  Url := 'https://nodejs.org/dist/v20.18.3/node-v20.18.3-x64.msi';
-  InstallerPath := ExpandConstant('{tmp}\node-install.msi');
-
-  WizardForm.StatusLabel.Caption := 'Descargando Node.js...';
-  WizardForm.ProgressGauge.Position := 10;
-
-  try
-    DownloadTemporaryFile(Url, 'node-install.msi', '', nil);
-  except
-    MsgBox(
-      'No fue posible descargar Node.js.' + #13#10 +
-      'Verifique su conexión a Internet.',
-      mbError,
-      MB_OK
-    );
-    Exit;
-  end;
-
-  if not FileExists(InstallerPath) then
-  begin
-    MsgBox('El instalador de Node.js no se descargó correctamente.', mbError, MB_OK);
-    Exit;
-  end;
-
-  WizardForm.StatusLabel.Caption := 'Instalando Node.js...';
-  WizardForm.ProgressGauge.Position := 50;
-
-  if Exec(
-      ExpandConstant('{sys}\msiexec.exe'),
-      '/i "' + InstallerPath + '" /qn /norestart',
-      '',
-      SW_HIDE,
-      ewWaitUntilTerminated,
-      ResultCode) then
-  begin
-    if ResultCode = 0 then
-    begin
-      Result := True;
-      MsgBox('Node.js instalado correctamente.', mbInformation, MB_OK);
-    end
-    else
-    begin
-      MsgBox(
-        'La instalación de Node.js falló.' + #13#10 +
-        'Código: ' + IntToStr(ResultCode),
-        mbError,
-        MB_OK
-      );
-    end;
-  end
-  else
-  begin
-    MsgBox('No fue posible ejecutar el instalador de Node.js.', mbError, MB_OK);
-  end;
-end;
-
-function DownloadAndInstallDocker: Boolean;
-var
-  ResultCode: Integer;
-  Url: string;
-  InstallerPath: string;
-begin
-  Result := False;
-
-  Url := 'https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe';
-  InstallerPath := ExpandConstant('{tmp}\docker-install.exe');
-
-  WizardForm.StatusLabel.Caption := 'Descargando Docker Desktop...';
-  WizardForm.ProgressGauge.Position := 10;
-
-  try
-    DownloadTemporaryFile(Url, 'docker-install.exe', '', nil);
-  except
-    MsgBox(
-      'No fue posible descargar Docker Desktop.' + #13#10 +
-      'Verifique su conexión a Internet.',
-      mbError,
-      MB_OK
-    );
-    Exit;
-  end;
-  
-  if not FileExists(InstallerPath) then
-  begin
-    MsgBox(
-      'El instalador de Docker Desktop no se descargó correctamente.',
-      mbError,
-      MB_OK
-    );
-    Exit;
-  end;
-
-  WizardForm.StatusLabel.Caption := 'Instalando Docker Desktop...';
-  WizardForm.ProgressGauge.Position := 60;
-
-  if Exec(
-      InstallerPath,
-      'install --quiet --accept-license',
-      '',
-      SW_HIDE,
-      ewWaitUntilTerminated,
-      ResultCode) then
-  begin
-    case ResultCode of
-      0:
-      begin
-        Result := True;
-        
-        // Always reboot after Docker installation for stability
-        AddToRunOnce();
-        
-        MsgBox(
-          'Docker Desktop instalado correctamente.' + #13#10 +
-          'Es necesario reiniciar Windows para completar la configuración.' + #13#10 + #13#10 +
-          'El instalador se ejecutará automáticamente después del reinicio.',
-          mbInformation,
-          MB_OK);
-        
-        // Reboot in 30 seconds
-        RebootComputer();
-        
-        // Close installer
-        WizardForm.Close;
-        Exit;
-      end;
-
-      3010:
-      begin
-        Result := True;
-        
-        // Docker explicitly requested reboot
-        AddToRunOnce();
-        
-        MsgBox(
-          'Docker Desktop se instaló correctamente.' + #13#10 +
-          'Es necesario reiniciar Windows para completar la instalación.' + #13#10 + #13#10 +
-          'El instalador se ejecutará automáticamente después del reinicio.',
-          mbInformation,
-          MB_OK);
-        
-        // Reboot in 30 seconds
-        RebootComputer();
-        
-        // Close installer
-        WizardForm.Close;
-        Exit;
-      end;
-
-    else
-      MsgBox(
-        'La instalación de Docker Desktop falló.' + #13#10 +
-        'Código: ' + IntToStr(ResultCode),
-        mbError,
-        MB_OK);
-    end;
-  end
-  else
-    MsgBox(
-      'No fue posible ejecutar el instalador de Docker Desktop.',
-      mbError,
-      MB_OK);
-end;
-
 function InitializeSetup: Boolean;
 begin
   Result := True;
@@ -657,10 +510,8 @@ begin
   PostRebootMode := IsPostReboot();
   if PostRebootMode then
   begin
-    // Remove from RunOnce so it doesn't run again
     RemoveFromRunOnce();
-    
-    Log('Running in post-reboot mode (Docker Desktop was just installed)');
+    Log('Running in post-reboot mode');
   end;
 end;
 
@@ -670,23 +521,7 @@ var
 begin
   if CurStep = ssInstall then
   begin
-    // === 1. Verificar virtualización ===
-    WizardForm.StatusLabel.Caption := 'Verificando virtualización...';
-    
-    if not IsVirtualizationEnabled() then
-    begin
-      MsgBox(
-        'La virtualización (VT-x/AMD-V) no está habilitada en el BIOS/UEFI.' + #13#10 + #13#10 +
-        'Docker Desktop requiere virtualización para funcionar.' + #13#10 +
-        'Reinicie el equipo, entre al BIOS/UEFI y habilite la virtualización.' + #13#10 + #13#10 +
-        'Luego vuelva a ejecutar el instalador.',
-        mbError,
-        MB_OK);
-      
-      Abort;
-    end;
-    
-    // === 2. Verificar Node.js ===
+    // === 1. Verificar Node.js ===
     if not IsNodeInstalled then
     begin
       if MsgBox(
@@ -712,44 +547,43 @@ begin
       end;
     end;
     
-    // === 3. Verificar Docker Desktop ===
-    // Skip Docker installation if we're in post-reboot mode (Docker was just installed)
+    // === 2. Verificar PostgreSQL ===
     if not PostRebootMode then
     begin
-      if not IsDockerInstalled then
+      if not IsPostgreSQLInstalled then
       begin
         if MsgBox(
-            'Docker Desktop no está instalado.' + #13#10 +
-            'Es necesario para ejecutar PostgreSQL.' + #13#10 + #13#10 +
+            'PostgreSQL no está instalado.' + #13#10 +
+            'Es necesario para la base de datos.' + #13#10 + #13#10 +
             '¿Desea instalarlo ahora?',
             mbConfirmation,
             MB_YESNO) = IDYES then
         begin
-          if not DownloadAndInstallDocker then
-            RaiseException('No se pudo instalar Docker Desktop.');
+          if not DownloadAndInstallPostgreSQL then
+            RaiseException('No se pudo instalar PostgreSQL.');
         end
         else
-          RaiseException('La instalación requiere Docker Desktop.');
+          RaiseException('La instalación requiere PostgreSQL.');
       end;
     end
     else
     begin
-      // In post-reboot mode, verify Docker is now installed
-      if not IsDockerInstalled then
+      // In post-reboot mode, verify PostgreSQL is now installed
+      if not IsPostgreSQLInstalled then
       begin
         MsgBox(
-          'Docker Desktop no se instaló correctamente.' + #13#10 +
-          'Instale Docker Desktop manualmente y vuelva a ejecutar el instalador.',
+          'PostgreSQL no se instaló correctamente.' + #13#10 +
+          'Instale PostgreSQL manualmente y vuelva a ejecutar el instalador.',
           mbError,
           MB_OK);
         
         Abort;
       end;
       
-      Log('Docker Desktop detected after reboot');
+      Log('PostgreSQL detected after reboot');
     end;
 
-    // === 4. Eliminar servicio anterior si existe ===
+    // === 3. Eliminar servicio anterior si existe ===
     if FileExists(ExpandConstant('{app}\nssm.exe')) then
     begin
       Exec(
@@ -773,57 +607,47 @@ begin
 
   if CurStep = ssPostInstall then
   begin
-    // === 1. Iniciar Docker Desktop ===
-    WizardForm.StatusLabel.Caption := 'Iniciando Docker Desktop...';
-    
-    if not StartDockerDesktop() then
+    // === 1. Instalar dependencias Node.js ===
+    if not InstallNodeDependencies() then
     begin
       MsgBox(
-        'No fue posible iniciar Docker Desktop.' + #13#10 +
-        'Inicie Docker Desktop manualmente y vuelva a ejecutar el instalador.',
+        'La instalación de dependencias Node.js falló.' + #13#10 +
+        'Verifique la conexión a Internet.',
         mbError,
         MB_OK);
       
       Abort;
     end;
-    
-    // === 2. Esperar Docker Desktop ready ===
-    WizardForm.StatusLabel.Caption := 'Esperando a que Docker Desktop inicie...';
 
-    if not WaitForDockerReady() then
+    // === 2. Esperar a que PostgreSQL esté corriendo ===
+    WizardForm.StatusLabel.Caption := 'Esperando a que PostgreSQL inicie...';
+    
+    if not WaitForPostgreSQLService() then
     begin
       MsgBox(
-        'Docker Desktop no terminó de iniciar después de 2 minutos.' + #13#10 +
-        'Abra Docker Desktop y vuelva a ejecutar el instalador.',
+        'El servicio PostgreSQL no inició después de 2 minutos.' + #13#10 +
+        'Verifique el estado del servicio en services.msc',
         mbError,
         MB_OK);
-
+      
       Abort;
     end;
 
-    // === 3. docker compose up ===
-    WizardForm.StatusLabel.Caption := 'Iniciando PostgreSQL...';
-
-    if not StartDatabase() then
-      Abort;
-
-    // === 4. Esperar PostgreSQL ready ===
+    // === 3. Esperar a que PostgreSQL acepte conexiones ===
     WizardForm.StatusLabel.Caption := 'Esperando a que PostgreSQL esté listo...';
     
-    if not WaitForPostgreSQL() then
+    if not WaitForPostgreSQLReady() then
     begin
       MsgBox(
         'PostgreSQL no respondió después de 60 segundos.' + #13#10 +
-        'Verifique los logs de Docker Desktop.',
+        'Verifique los logs de PostgreSQL.',
         mbError,
         MB_OK);
       
       Abort;
     end;
     
-    // === 5. Ejecutar migraciones Prisma ===
-    WizardForm.StatusLabel.Caption := 'Ejecutando migraciones de base de datos...';
-    
+    // === 4. Ejecutar migraciones Prisma ===
     if not RunPrismaMigrations() then
     begin
       MsgBox(
@@ -835,7 +659,7 @@ begin
       Abort;
     end;
 
-    // === 6. Crear servicio NSSM ===
+    // === 5. Crear servicio Windows para la API ===
     WizardForm.StatusLabel.Caption := 'Instalando servicio Windows...';
 
     Exec(
@@ -846,7 +670,6 @@ begin
       ewWaitUntilTerminated,
       ResultCode);
 
-    // Configure service
     Exec(
       ExpandConstant('{app}\nssm.exe'),
       'set BarbarosPOS AppDirectory "' + ExpandConstant('{app}\apps\api') + '"',
@@ -911,7 +734,7 @@ begin
       ewWaitUntilTerminated,
       ResultCode);
 
-    // === 7. Iniciar servicio ===
+    // === 6. Iniciar servicio ===
     WizardForm.StatusLabel.Caption := 'Iniciando servicio...';
 
     Exec(
@@ -922,7 +745,7 @@ begin
       ewWaitUntilTerminated,
       ResultCode);
     
-    // === 8. Verificar que la API responde ===
+    // === 7. Verificar que la API responde ===
     WizardForm.StatusLabel.Caption := 'Verificando que la API esté funcionando...';
     
     if not VerifyAPIHealth() then
@@ -949,30 +772,15 @@ end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-    ResultCode: Integer;
+  ResultCode: Integer;
 begin
-
-    if CurUninstallStep = usUninstall then
-    begin
-
-        StopDatabase();
-
-        Exec(
-            ExpandConstant('{app}\nssm.exe'),
-            'stop BarbarosPOS',
-            '',
-            SW_HIDE,
-            ewWaitUntilTerminated,
-            ResultCode);
-
-        Exec(
-            ExpandConstant('{app}\nssm.exe'),
-            'remove BarbarosPOS confirm',
-            '',
-            SW_HIDE,
-            ewWaitUntilTerminated,
-            ResultCode);
-
-    end;
-
+  if CurUninstallStep = usUninstall then
+  begin
+    // Stop and remove API service
+    Exec(ExpandConstant('{app}\nssm.exe'), 'stop BarbarosPOS', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{app}\nssm.exe'), 'remove BarbarosPOS confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    
+    // Stop PostgreSQL service
+    Exec('sc.exe', 'stop postgresql-x64-16', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  end;
 end;

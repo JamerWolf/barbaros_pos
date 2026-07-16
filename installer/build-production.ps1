@@ -44,52 +44,19 @@ if (Test-Path $apiWebDist) {
 }
 Copy-Item -Recurse $webDist $apiWebDist
 
-# --- Step 6: Install production-only dependencies for API ---
-Write-Host "`n[6/6] Installing production dependencies for API..." -ForegroundColor Yellow
+# --- Step 6: Copy package.json for npm install during deployment ---
+Write-Host "`n[6/6] Preparing package.json for deployment..." -ForegroundColor Yellow
 $stagingDir = Join-Path $root "installer\staging"
-$stagingNodeModules = Join-Path $stagingDir "node_modules"
-$stagingApiDir = Join-Path $stagingDir "apps\api"
 
-# Clean previous staging node_modules
-if (Test-Path $stagingNodeModules) {
-    Remove-Item -Recurse -Force $stagingNodeModules
+# Clean previous staging
+if (Test-Path (Join-Path $stagingDir "node_modules")) {
+    Remove-Item -Recurse -Force (Join-Path $stagingDir "node_modules")
 }
 
-# Create a temp directory for standalone install (avoid workspace hoisting)
-$tempApi = Join-Path $stagingDir "_temp_api"
-if (Test-Path $tempApi) { Remove-Item -Recurse -Force $tempApi }
-New-Item -ItemType Directory -Path $tempApi -Force | Out-Null
+# Copy package.json (dependencies will be installed on target machine)
+Copy-Item (Join-Path $root "apps\api\package.json") (Join-Path $stagingDir "package.json")
 
-# Copy only package.json (no node_modules, no src)
-Copy-Item (Join-Path $root "apps\api\package.json") $tempApi
-Copy-Item (Join-Path $root "apps\api\prisma") (Join-Path $tempApi "prisma") -Recurse
-
-# Remove @barbaros/shared from package.json (workspace package, not on npm, not needed at runtime)
-$pkg = Get-Content (Join-Path $tempApi "package.json") -Raw | ConvertFrom-Json
-$pkg.dependencies.PSObject.Properties.Remove("@barbaros/shared")
-$pkg | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $tempApi "package.json")
-
-# Install production deps in isolation (no workspace context)
-Push-Location $tempApi
-$prevEAP = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-& npm install --omit=dev --ignore-scripts --no-package-lock --no-fund --no-audit 2>&1 | Out-Null
-$npmExit = $LASTEXITCODE
-$ErrorActionPreference = $prevEAP
-Pop-Location
-
-if ($npmExit -ne 0) {
-    Remove-Item -Recurse -Force $tempApi -ErrorAction SilentlyContinue
-    throw "npm install failed"
-}
-
-# Move the result to staging
-Copy-Item (Join-Path $tempApi "node_modules") $stagingNodeModules -Recurse
-
-# Cleanup
-Remove-Item -Recurse -Force $tempApi
-
-Write-Host "  Production dependencies staged" -ForegroundColor Green
+Write-Host "  package.json staged for npm install" -ForegroundColor Green
 
 # --- Verify artifacts ---
 Write-Host "`n=== Verifying build artifacts ===" -ForegroundColor Cyan
@@ -100,7 +67,7 @@ $artifacts = @(
     @{ Path = "apps\web\dist\index.html";                   Label = "apps/web/dist/index.html" },
     @{ Path = "apps\api\dist\web\index.html";               Label = "apps/api/dist/web/index.html" },
     @{ Path = "apps\api\generated\prisma\index.js";         Label = "apps/api/generated/prisma/index.js" },
-    @{ Path = "installer\staging\node_modules";             Label = "staging/node_modules" }
+    @{ Path = "installer\staging\package.json";             Label = "staging/package.json" }
 )
 
 $allGood = $true

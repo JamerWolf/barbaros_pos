@@ -183,7 +183,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Search icon** (iconoLupa.png en dashboard)
 - ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
 - ✅ **Canvas LEGO architecture** (composable hooks: useCanvasDrag, useCanvasResize, useCanvasRotate, ResizeHandles, utils/canvas/drag.ts)
-- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, Windows Service via NSSM with auto-restart, Docker PostgreSQL, full pre-flight checks: 64-bit, virtualization, WSL, Node.js, Docker, PostgreSQL ready, Prisma migrations, API health check)
+- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, Windows Service via NSSM with auto-restart, PostgreSQL 16 direct installation, full pre-flight checks: 64-bit, Node.js, PostgreSQL ready, npm install, Prisma migrations, API health check)
 
 ### Próximas features
 
@@ -219,7 +219,9 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **`__dirname` en ES modules**: Usar `fileURLToPath(import.meta.url)` + `path.dirname()`. `__dirname` no existe en ES modules.
 - **`dotenv` override**: Los archivos `.env.develop`/`.env.production` se cargan con `override: true` para que un `DATABASE_URL` stale del shell no pise la config correcta.
 - **Multipart limits**: `@fastify/multipart` tiene límite por defecto de 1MB. Configurar `limits.fileSize` explícitamente (5MB para fotos/CSV).
-- **Inno Setup**: El installer compila con ISCC.exe (Inno Setup Compiler). El build script `installer/build-production.ps1` ejecuta todo el pipeline. Requiere Node.js y Docker Desktop pre-instalados en la PC destino.
+- **Inno Setup**: El installer compila con ISCC.exe (Inno Setup Compiler). El build script `installer/build-production.ps1` ejecuta todo el pipeline. Requiere Node.js pre-instalado en la PC destino (el instalador lo descarga si no está).
+- **PostgreSQL directo**: PostgreSQL 16 se instala como servicio Windows nativo (no Docker). Puerto 5432, usuario barbaros, password barbaros, base de datos barbaros_pos. El servicio se inicia automáticamente al encender Windows.
+- **npm install en destino**: Las dependencias Node.js se instalan durante la instalación (no se empaquetan). Requiere conexión a Internet durante la instalación.
 - **Windows Service**: La API corre como servicio Windows (NSSM). Se reinicia automáticamente si crashea. Comandos: `nssm start BarbarosPOS`, `nssm stop BarbarosPOS`, `nssm status BarbarosPOS`. Logs en `logs/api-stdout.log` y `logs/api-stderr.log`.
 - **Docker port**: Producción usa :5433 para evitar conflicto con dev (:5432). Nunca confundir.
 
