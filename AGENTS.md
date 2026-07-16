@@ -129,18 +129,21 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Sin comentarios obvios** — el código se documenta solo con nombres claros
 
 ### Frontend (Mobile-First UI)
+
 - Todo el código UI debe adherirse a la skill `mobile-first-ui` (`.agent/skills/mobile-first-ui/SKILL.md`).
 - **Mobile-First Estricto**: Las clases de Tailwind SIEMPRE se escriben para móvil primero. `md:` y `lg:` se usan solo para adaptar.
 - **Touch-Friendly**: Botones GRANDES (min `h-12` o `p-4`), sin dependencias de `hover:`. Todo debe usarse cómodamente con los pulgares en una pantalla táctil apurado.
 - **High Contrast**: Entorno oscuro de discoteca requiere fondos oscuros con colores semánticos vivos y alto contraste.
 
 ### Canvas (Drag & Shapes)
+
 - Todo el código del canvas debe adherirse a la skill `canvas-tools` (`.agent/skills/canvas-tools/SKILL.md`).
 - **Two-Layer Architecture**: Eventos en div sin transformar, render en div transformado.
 - **Lock Mode**: Cuando `canvasLocked` está activo, bloquear TODO (drag, shapes, selection, tools).
 - **Card Sizes**: S/M/L solo aplica a cuentas nuevas; existentes conservan su tamaño al crearse.
 
 ### Color System
+
 - Todos los colores deben seguir la skill `color-system` (`.agent/skills/color-system/SKILL.md`).
 - **Paleta centralizada**: Colores en `utils/colors.ts`, nunca hardcodear hex en componentes.
 - **Botones**: Usar estándar de la skill (primary/secondary/danger/success).
@@ -151,6 +154,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 ## Estado actual
 
 ### Completado
+
 - ✅ Setup Monorepo (TypeScript, ESLint, Prettier, Husky, Docker)
 - ✅ Gestión de cuentas (Shift, Account, CRUD, WebSockets)
 - ✅ UI de cuentas (Dashboard Canvas, DragNode, persistencia localStorage)
@@ -179,15 +183,17 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Search icon** (iconoLupa.png en dashboard)
 - ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
 - ✅ **Canvas LEGO architecture** (composable hooks: useCanvasDrag, useCanvasResize, useCanvasRotate, ResizeHandles, utils/canvas/drag.ts)
-- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, auto-start via Task Scheduler, Docker PostgreSQL)
+- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, Windows Service via NSSM with auto-restart, Docker PostgreSQL, full pre-flight checks: 64-bit, virtualization, WSL, Node.js, Docker, PostgreSQL ready, Prisma migrations, API health check)
 
 ### Próximas features
+
 - 🔲 Auth y roles (login, permisos Admin/Mesero/Barman)
 - 🔲 Modificadores de producto (hielo, doble, notas especiales)
 - 🔲 Tests formales (vitest/jest)
 - 🔲 PWA completa (Service Worker, offline sync)
 
 ### TODO
+
 - 🔲 Cuenta cerrada no desaparece del canvas en otros dispositivos
 
 ---
@@ -214,6 +220,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **`dotenv` override**: Los archivos `.env.develop`/`.env.production` se cargan con `override: true` para que un `DATABASE_URL` stale del shell no pise la config correcta.
 - **Multipart limits**: `@fastify/multipart` tiene límite por defecto de 1MB. Configurar `limits.fileSize` explícitamente (5MB para fotos/CSV).
 - **Inno Setup**: El installer compila con ISCC.exe (Inno Setup Compiler). El build script `installer/build-production.ps1` ejecuta todo el pipeline. Requiere Node.js y Docker Desktop pre-instalados en la PC destino.
+- **Windows Service**: La API corre como servicio Windows (NSSM). Se reinicia automáticamente si crashea. Comandos: `nssm start BarbarosPOS`, `nssm stop BarbarosPOS`, `nssm status BarbarosPOS`. Logs en `logs/api-stdout.log` y `logs/api-stderr.log`.
 - **Docker port**: Producción usa :5433 para evitar conflicto con dev (:5432). Nunca confundir.
 
 ---
