@@ -25,12 +25,12 @@ D:\barbaros_pos
 | --------------- | --------------------------------------- |
 | Backend         | Node.js + TypeScript + Fastify          |
 | Tiempo real     | Socket.io                               |
-| Base de datos   | PostgreSQL (dev: :5432, prod: :5433)    |
+| Base de datos   | PostgreSQL (dev Docker: :5432, prod native: :5432) |
 | ORM             | Prisma                                  |
 | Frontend        | React + TypeScript + Vite + TailwindCSS |
 | Offline/PWA     | Workbox (Service Worker)                |
-| Infraestructura | Docker + Linux                          |
-| Installer       | Inno Setup (.exe) + Task Scheduler      |
+| Infraestructura | Dev: Docker + Linux; Prod: Windows + PostgreSQL nativo |
+| Installer       | Inno Setup (.exe) + NSSM + PostgreSQL nativo |
 
 ---
 
@@ -183,7 +183,9 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - ✅ **Search icon** (iconoLupa.png en dashboard)
 - ✅ **Header responsive** (logo + selector de modo en sm, controles en segunda fila)
 - ✅ **Canvas LEGO architecture** (composable hooks: useCanvasDrag, useCanvasResize, useCanvasRotate, ResizeHandles, utils/canvas/drag.ts)
-- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, Windows Service via NSSM with auto-restart, PostgreSQL 16 direct installation, full pre-flight checks: 64-bit, Node.js, PostgreSQL ready, npm install, Prisma migrations, API health check)
+- ✅ **Inno Setup installer** (build-production.ps1, barbaros-pos.iss, Windows Service via NSSM with auto-restart, PostgreSQL 16 direct installation as `postgresql-barbaros` service, full pre-flight checks: 64-bit, Node.js, PostgreSQL ready, silent npm install, Prisma `migrate deploy`, default shapes seed, API health check with 60s retry)
+- ✅ **Installer UX hardening** (Node.js and PostgreSQL install without prompts, explicit PATH for npm/prisma to avoid "node not recognized", improved health check with 127.0.0.1/localhost fallback, softer failure message)
+- ✅ **Dev environment fix** (`docker-compose.yml` split into `postgres-dev` and `postgres-prod`, `apps/api/.env.develop` points to `barbaros_pos_dev`)
 
 ### Próximas features
 
@@ -213,7 +215,10 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 - **Selection mode**: Los botones del toolbar (S/M/L, cancelar, etc.) necesitan `data-toolbar` para que CanvasContainer no los trate como taps de fondo
 - **Pinch-to-zoom**: Usar `_pinchThisGesture` flag que solo se limpia cuando `touches.length === 0` — sobrevive el gap entre touchend y pointerup
 - **Long press vs pinch**: El timer de long press (400ms) puede dispararse después de iniciar pinch si ambas manos tocan en <400ms
-- **Dev/prod DB**: `switch-env.ps1 develop` usa `barbaros_pos_dev` (:5432), `switch-env.ps1 production` usa `barbaros_pos_prod` (:5433). Nunca confundir ramas.
+- **Dev/prod DB**: `switch-env.ps1 develop` usa Docker `postgres-dev` → `barbaros_pos_dev` (:5432). Producción usa PostgreSQL Windows nativo (`postgresql-barbaros` service) → `barbaros_pos` (:5432). Nunca confundir ramas ni entornos.
+- **`npm run dev:api` fails**: Si falla con "tsx no se reconoce", correr `npm install` desde la raíz del workspace para instalar devDependencies.
+- **Installer PATH**: Después de instalar Node.js via MSI, el proceso del instalador no hereda el PATH actualizado. Los comandos `npm` y `prisma` del installer se ejecutan dentro de batch files que agregan el directorio de Node.js al PATH.
+- **Seed shapes**: `scripts/seed-production.sql` ahora solo contiene las formas del canvas por defecto. El installer lo ejecuta automáticamente después de las migraciones.
 - **CSV import**: El parser detecta separador automáticamente (`,` o `;`). El CSV debe tener encoding UTF-8. Las fotos se suben junto al CSV en el mismo request multipart.
 - **Canvas resize**: Al hacer resize, SIEMPRE guardar posición Y dimensiones en el backend. Si solo se guardan dimensiones, el otro dispositivo muestra la tarjeta en la posición vieja (norte se ve como sur).
 - **`__dirname` en ES modules**: Usar `fileURLToPath(import.meta.url)` + `path.dirname()`. `__dirname` no existe en ES modules.
