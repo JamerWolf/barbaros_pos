@@ -33,11 +33,14 @@ if (Test-Path $nssm) {
 # --- Step 2: Optionally stop PostgreSQL service ---
 # Uncomment the following lines if you want to stop PostgreSQL as well
 # Log "Stopping PostgreSQL service..."
-# Stop-Service postgresql-x64-16 -Force -ErrorAction SilentlyContinue
-# if ($LASTEXITCODE -eq 0) {
-#     Log "PostgreSQL service stopped"
-# } else {
-#     Log "WARNING: PostgreSQL stop failed"
+# $service = Get-Service postgresql-barbaros -ErrorAction SilentlyContinue
+# if ($service) {
+#     Stop-Service $service.Name -Force -ErrorAction SilentlyContinue
+#     if ($LASTEXITCODE -eq 0) {
+#         Log "PostgreSQL service stopped"
+#     } else {
+#         Log "WARNING: PostgreSQL stop failed"
+#     }
 # }
 
 Log "=== Services stopped ==="

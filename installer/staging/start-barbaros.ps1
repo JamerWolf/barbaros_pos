@@ -34,7 +34,11 @@ Log "Waiting for PostgreSQL service to be running..."
 $pgReady = $false
 for ($i = 0; $i -lt 120; $i += 5) {
     try {
-        $service = Get-Service postgresql-x64-16 -ErrorAction SilentlyContinue
+        # Check both possible service names
+        $service = Get-Service postgresql-barbaros -ErrorAction SilentlyContinue
+        if (-not $service) {
+            $service = Get-Service postgresql-x64-16 -ErrorAction SilentlyContinue
+        }
         if ($service -and $service.Status -eq 'Running') {
             $pgReady = $true
             Log "PostgreSQL service is running"
@@ -50,16 +54,16 @@ if (-not $pgReady) {
 
 # --- Step 2: Wait for PostgreSQL to accept connections ---
 Log "Waiting for PostgreSQL to accept connections..."
-$pgBin = "C:\Program Files\PostgreSQL\16\bin\pg_isready.exe"
-if (-not (Test-Path $pgBin)) {
-    $pgBin = "C:\Program Files (x86)\PostgreSQL\16\bin\pg_isready.exe"
+$pgBin = "C:\Program Files\PostgreSQL\16\bin"
+if (-not (Test-Path "$pgBin\pg_isready.exe")) {
+    $pgBin = "C:\Program Files (x86)\PostgreSQL\16\bin"
 }
 
-if (Test-Path $pgBin) {
+if (Test-Path "$pgBin\pg_isready.exe") {
     $connReady = $false
     for ($i = 0; $i -lt 60; $i += 5) {
         try {
-            & $pgBin -U barbaros -d barbaros_pos 2>$null
+            & "$pgBin\pg_isready.exe" -h localhost -p 5432 2>$null
             if ($LASTEXITCODE -eq 0) {
                 $connReady = $true
                 Log "PostgreSQL is ready to accept connections"
@@ -76,26 +80,20 @@ if (Test-Path $pgBin) {
 
 # --- Step 3: Sync database schema ---
 Log "Syncing database schema..."
-$envFile = Join-Path $installDir ".env.production"
-if (Test-Path $envFile) {
-    Get-Content $envFile | ForEach-Object {
-        if ($_ -match "^(.+?)=(.*)$") {
-            [Environment]::SetEnvironmentVariable($Matches[1].Trim(), $Matches[2].Trim(), "Process")
-        }
-    }
-    Log "Loaded .env.production"
-}
+$env:PGPASSWORD = "barbaros"
+$env:APP_ENV = "production"
+
 $prismaBin = Join-Path $installDir "node_modules\.bin\prisma.cmd"
 Push-Location (Join-Path $installDir "apps\api")
 if (Test-Path $prismaBin) {
-    & $prismaBin db push --schema=prisma/schema.prisma --accept-data-loss
+    & $prismaBin migrate deploy --schema=prisma/schema.prisma
 } else {
     Log "WARNING: Prisma binary not found at $prismaBin, trying npx..."
-    & npx prisma db push --schema=prisma/schema.prisma --accept-data-loss
+    & npx prisma migrate deploy --schema=prisma/schema.prisma
 }
 Pop-Location
 if ($LASTEXITCODE -ne 0) {
-    Log "ERROR: Prisma db push failed"
+    Log "ERROR: Prisma migrate deploy failed"
     exit 1
 }
 Log "Database schema synced"
