@@ -292,8 +292,8 @@ function Start-Env($envName) {
     if ($Tunnel) {
         Write-Host ""
         Write-Host "Levantando Cloudflare Tunnels..." -ForegroundColor Yellow
-        Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Write-Host 'Tunnel Web ($($config.webPort))' -ForegroundColor Cyan; cloudflared tunnel --url http://localhost:$($config.webPort)")
-        Start-Process powershell -ArgumentList @("-NoExit", "-Command", "Write-Host 'Tunnel API ($($config.apiPort))' -ForegroundColor Cyan; cloudflared tunnel --url http://localhost:$($config.apiPort)")
+        Start-Process powershell -WorkingDirectory $REPO_ROOT -ArgumentList "-NoExit", "-Command", "Write-Host 'Tunnel Web ($($config.webPort))' -ForegroundColor Cyan; .\cloudflared.exe tunnel --url http://localhost:$($config.webPort)"
+        Start-Process powershell -WorkingDirectory $REPO_ROOT -ArgumentList "-NoExit", "-Command", "Write-Host 'Tunnel API ($($config.apiPort))' -ForegroundColor Cyan; .\cloudflared.exe tunnel --url http://localhost:$($config.apiPort)"
         Write-Host "  Tunnels abiertos - copia las URLs de las ventanas nuevas" -ForegroundColor DarkGray
     }
 }

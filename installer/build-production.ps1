@@ -25,10 +25,19 @@ Write-Host "`n[3/5] Building Web (Vite)..." -ForegroundColor Yellow
 npm run --workspace=apps/web build
 if ($LASTEXITCODE -ne 0) { throw "Web build failed" }
 
-# --- Step 4: Generate Prisma client ---
+# --- Step 4: Generate Prisma client (with retry for locked DLL on Windows) ---
 Write-Host "`n[4/5] Generating Prisma client..." -ForegroundColor Yellow
-npx prisma generate --schema=apps/api/prisma/schema.prisma
-if ($LASTEXITCODE -ne 0) { throw "Prisma generate failed" }
+$maxAttempts = 3
+for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    npx prisma generate --schema=apps/api/prisma/schema.prisma
+    if ($LASTEXITCODE -eq 0) { break }
+    if ($attempt -lt $maxAttempts) {
+        Write-Host "  Attempt $attempt failed (DLL may be locked), waiting 3s and retrying..." -ForegroundColor DarkYellow
+        Start-Sleep -Seconds 3
+    } else {
+        throw "Prisma generate failed after $maxAttempts attempts"
+    }
+}
 
 # --- Step 5: Copy web dist into api/dist/web/ for static serving ---
 Write-Host "`n[5/5] Copying web dist into api/dist/web/..." -ForegroundColor Yellow

@@ -1,86 +1,97 @@
-import { prisma } from '../db/prisma.js';
-import { calculateAccountTotal, DiscountType } from '@barbaros/shared';
+import { prisma } from '../db/prisma.js'
+import { calculateAccountTotal, DiscountType } from '@barbaros/shared'
 
 export class AccountService {
   static async getActiveShift() {
     return prisma.shift.findFirst({
       where: { status: 'OPEN' },
-      orderBy: { createdAt: 'desc' }
-    });
+      orderBy: { createdAt: 'desc' },
+    })
   }
 
   static async openShift() {
-    const active = await this.getActiveShift();
-    if (active) throw new Error('There is already an active shift');
-    return prisma.shift.create({ data: { status: 'OPEN' } });
+    const active = await this.getActiveShift()
+    if (active) throw new Error('There is already an active shift')
+    return prisma.shift.create({ data: { status: 'OPEN' } })
   }
 
   static async closeShift() {
-    const active = await this.getActiveShift();
-    if (!active) throw new Error('No active shift to close');
+    const active = await this.getActiveShift()
+    if (!active) throw new Error('No active shift to close')
 
     // Delete open accounts with $0 total before closing the shift
     const zeroAccounts = await prisma.account.findMany({
       where: { shiftId: active.id, status: 'OPEN' },
       include: { orderItems: true, payments: true },
-    });
+    })
 
     for (const acc of zeroAccounts) {
       const total = acc.orderItems.reduce((sum: number, item: any) => {
-        const qty = item.quantity;
-        const price = Number(item.unitPrice);
-        const itemDiscount = item.discountType === 'FIXED' ? Number(item.discountValue) : item.discountType === 'PERCENT' ? (price * qty * Number(item.discountValue)) / 100 : 0;
-        return sum + (price * qty - itemDiscount);
-      }, 0);
+        const qty = item.quantity
+        const price = Number(item.unitPrice)
+        const itemDiscount =
+          item.discountType === 'FIXED'
+            ? Number(item.discountValue)
+            : item.discountType === 'PERCENT'
+              ? (price * qty * Number(item.discountValue)) / 100
+              : 0
+        return sum + (price * qty - itemDiscount)
+      }, 0)
       if (total === 0) {
-        await prisma.account.delete({ where: { id: acc.id } });
+        await prisma.account.delete({ where: { id: acc.id } })
       }
     }
 
     return prisma.shift.update({
       where: { id: active.id },
-      data: { status: 'CLOSED' }
-    });
+      data: { status: 'CLOSED' },
+    })
   }
 
   static async createAccount(name: string, cardSize?: string) {
-    return prisma.$transaction(async (tx: any) => {
-      const shift = await tx.shift.findFirst({
-        where: { status: 'OPEN' },
-        orderBy: { createdAt: 'desc' }
-      });
+    return prisma.$transaction(
+      async (tx: any) => {
+        const shift = await tx.shift.findFirst({
+          where: { status: 'OPEN' },
+          orderBy: { createdAt: 'desc' },
+        })
 
-      if (!shift) {
-        throw new Error('No active shift available');
-      }
-
-      const maxAccount = await tx.account.findFirst({
-        where: { shiftId: shift.id },
-        orderBy: { number: 'desc' }
-      });
-
-      const nextNumber = maxAccount ? maxAccount.number + 1 : 1;
-
-      return tx.account.create({
-        data: {
-          shiftId: shift.id,
-          name,
-          number: nextNumber,
-          status: 'OPEN',
-          cardSize: cardSize || null
+        if (!shift) {
+          throw new Error('No active shift available')
         }
-      });
-    }, {
-      isolationLevel: 'Serializable'
-    });
+
+        const maxAccount = await tx.account.findFirst({
+          where: { shiftId: shift.id },
+          orderBy: { number: 'desc' },
+        })
+
+        const nextNumber = maxAccount ? maxAccount.number + 1 : 1
+
+        return tx.account.create({
+          data: {
+            shiftId: shift.id,
+            name,
+            number: nextNumber,
+            status: 'OPEN',
+            cardSize: cardSize || null,
+          },
+        })
+      },
+      {
+        isolationLevel: 'Serializable',
+      },
+    )
   }
 
   static async getAccountWithItems(id: string) {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { orderItems: { include: { product: true }, orderBy: { createdAt: 'asc' as const } }, payments: true }
-    });
-    if (!account) return null;
+      include: {
+        orderItems: { include: { product: true }, orderBy: { createdAt: 'asc' as const } },
+        payments: true,
+      },
+    })
+    if (!account) return null
 
     const result = calculateAccountTotal({
       items: account.orderItems.map((item: any) => ({
@@ -91,20 +102,21 @@ export class AccountService {
       })),
       accountDiscountType: account.discountType as DiscountType,
       accountDiscountValue: Number(account.discountValue),
-    });
+    })
 
-    const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-    const pendingAmount = result.total - paidSum;
-    return { ...account, total: result.total, pendingAmount, payments: account.payments };
+    const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+    const pendingAmount = result.total - paidSum
+    return { ...account, total: result.total, pendingAmount, payments: account.payments }
   }
 
   static async closeAccount(id: string) {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
-    });
-    if (!account) throw new Error('Account not found');
-    if (account.status === 'CLOSED') throw new Error('Account is already closed');
+      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true },
+    })
+    if (!account) throw new Error('Account not found')
+    if (account.status === 'VOIDED') throw new Error('Account is voided')
+    if (account.status === 'CLOSED') throw new Error('Account is already closed')
 
     const result = calculateAccountTotal({
       items: account.orderItems.map((item: any) => ({
@@ -115,33 +127,55 @@ export class AccountService {
       })),
       accountDiscountType: account.discountType as DiscountType,
       accountDiscountValue: Number(account.discountValue),
-    });
+    })
 
-    const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-    const pendingAmount = result.total - paidSum;
+    const paidSum = account.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+    const pendingAmount = result.total - paidSum
 
     if (pendingAmount > 0) {
-      throw new Error('Cannot close account with pending payments');
+      throw new Error('Cannot close account with pending payments')
     }
 
     if (result.total === 0) {
-      await prisma.account.delete({ where: { id } });
-      return { deleted: true, id };
+      await prisma.account.delete({ where: { id } })
+      return { deleted: true, id }
     }
 
     const updated = await prisma.account.update({
       where: { id },
-      data: { status: 'CLOSED' }
-    });
-    return { deleted: false, account: updated };
+      data: { status: 'CLOSED' },
+    })
+    return { deleted: false, account: updated }
+  }
+
+  static async voidAccount(id: string) {
+    const account = await prisma.account.findUnique({ where: { id } })
+    if (!account) throw new Error('Account not found')
+    if (account.status === 'VOIDED') throw new Error('Account is already voided')
+
+    return prisma.account.update({
+      where: { id },
+      data: { status: 'VOIDED' },
+    })
+  }
+
+  static async reopenAccount(id: string) {
+    const account = await prisma.account.findUnique({ where: { id } })
+    if (!account) throw new Error('Account not found')
+    if (account.status !== 'CLOSED') throw new Error('Account is not closed')
+
+    return prisma.account.update({
+      where: { id },
+      data: { status: 'OPEN' },
+    })
   }
 
   static async listItems(accountId: string) {
     const items = await prisma.orderItem.findMany({
       where: { accountId },
-      include: { product: true }
-    });
-    const account = await prisma.account.findUnique({ where: { id: accountId } });
+      include: { product: true },
+    })
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
     const result = calculateAccountTotal({
       items: items.map((item: any) => ({
         quantity: item.quantity,
@@ -151,29 +185,29 @@ export class AccountService {
       })),
       accountDiscountType: (account?.discountType as DiscountType) || DiscountType.NONE,
       accountDiscountValue: Number(account?.discountValue ?? 0),
-    });
-    return { items, total: result.total };
+    })
+    return { items, total: result.total }
   }
 
   static async addItem(accountId: string, productId: string, quantity?: number) {
-    const account = await prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new Error('Account not found');
-    if (account.status !== 'OPEN') throw new Error('Account is not open');
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account) throw new Error('Account not found')
+    if (account.status !== 'OPEN') throw new Error('Account is not open')
 
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw new Error('Product not found');
-    if (!product.active) throw new Error('Product is inactive');
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    if (!product) throw new Error('Product not found')
+    if (!product.active) throw new Error('Product is inactive')
 
     const existing = await prisma.orderItem.findUnique({
-      where: { accountId_productId: { accountId, productId } }
-    });
+      where: { accountId_productId: { accountId, productId } },
+    })
 
     if (existing) {
       return prisma.orderItem.update({
         where: { id: existing.id },
         data: { quantity: existing.quantity + (quantity || 1) },
-        include: { product: true }
-      });
+        include: { product: true },
+      })
     }
 
     return prisma.orderItem.create({
@@ -183,92 +217,102 @@ export class AccountService {
         quantity: quantity || 1,
         unitPrice: product.price,
       },
-      include: { product: true }
-    });
+      include: { product: true },
+    })
   }
 
   static async updateItemQuantity(accountId: string, itemId: string, quantity: number) {
-    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } });
-    if (!item) throw new Error('Item not found');
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account) throw new Error('Account not found')
+    if (account.status !== 'OPEN') throw new Error('Account is not open')
+
+    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } })
+    if (!item) throw new Error('Item not found')
 
     if (quantity < 1) {
-      await prisma.orderItem.delete({ where: { id: itemId } });
-      return { deleted: true };
+      await prisma.orderItem.delete({ where: { id: itemId } })
+      return { deleted: true }
     }
 
     return prisma.orderItem.update({
       where: { id: itemId },
       data: { quantity },
-      include: { product: true }
-    });
+      include: { product: true },
+    })
   }
 
   static async removeItem(accountId: string, itemId: string) {
-    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } });
-    if (!item) throw new Error('Item not found');
-    await prisma.orderItem.delete({ where: { id: itemId } });
-    return { deleted: true };
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account) throw new Error('Account not found')
+    if (account.status !== 'OPEN') throw new Error('Account is not open')
+
+    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } })
+    if (!item) throw new Error('Item not found')
+    await prisma.orderItem.delete({ where: { id: itemId } })
+    return { deleted: true }
   }
 
   static async setItemDiscount(
     accountId: string,
     itemId: string,
     discountType: DiscountType,
-    discountValue: number
+    discountValue: number,
   ) {
-    const account = await prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new Error('Account not found');
-    if (account.status === 'CLOSED') throw new Error('Account is closed');
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account) throw new Error('Account not found')
+    if (account.status === 'VOIDED') throw new Error('Account is voided')
+    if (account.status === 'CLOSED') throw new Error('Account is closed')
 
     if (!Object.values(DiscountType).includes(discountType)) {
-      throw new Error('Invalid discount type');
+      throw new Error('Invalid discount type')
     }
 
     if (discountType === DiscountType.NONE) {
-      discountValue = 0;
+      discountValue = 0
     } else if (discountType === DiscountType.FIXED) {
-      if (discountValue < 0) throw new Error('Value out of range');
+      if (discountValue < 0) throw new Error('Value out of range')
     } else if (discountType === DiscountType.PERCENT) {
-      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range');
+      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range')
     }
 
-    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } });
-    if (!item) throw new Error('Item not found');
+    const item = await prisma.orderItem.findFirst({ where: { id: itemId, accountId } })
+    if (!item) throw new Error('Item not found')
 
     await prisma.orderItem.update({
       where: { id: itemId },
       data: { discountType, discountValue },
-    });
+    })
 
-    return this.getAccountWithItems(accountId);
+    return this.getAccountWithItems(accountId)
   }
 
   static async setAccountDiscount(
     accountId: string,
     discountType: DiscountType,
-    discountValue: number
+    discountValue: number,
   ) {
-    const account = await prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new Error('Account not found');
-    if (account.status === 'CLOSED') throw new Error('Account is closed');
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    if (!account) throw new Error('Account not found')
+    if (account.status === 'VOIDED') throw new Error('Account is voided')
+    if (account.status === 'CLOSED') throw new Error('Account is closed')
 
     if (!Object.values(DiscountType).includes(discountType)) {
-      throw new Error('Invalid discount type');
+      throw new Error('Invalid discount type')
     }
 
     if (discountType === DiscountType.NONE) {
-      discountValue = 0;
+      discountValue = 0
     } else if (discountType === DiscountType.FIXED) {
-      if (discountValue < 0) throw new Error('Value out of range');
+      if (discountValue < 0) throw new Error('Value out of range')
     } else if (discountType === DiscountType.PERCENT) {
-      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range');
+      if (discountValue < 0 || discountValue > 100) throw new Error('Value out of range')
     }
 
     await prisma.account.update({
       where: { id: accountId },
       data: { discountType, discountValue },
-    });
+    })
 
-    return this.getAccountWithItems(accountId);
+    return this.getAccountWithItems(accountId)
   }
 }

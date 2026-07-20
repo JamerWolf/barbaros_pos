@@ -21,16 +21,16 @@ D:\barbaros_pos
 
 ## Stack tecnológico
 
-| Capa            | Tecnología                              |
-| --------------- | --------------------------------------- |
-| Backend         | Node.js + TypeScript + Fastify          |
-| Tiempo real     | Socket.io                               |
-| Base de datos   | PostgreSQL (dev Docker: :5432, prod native: :5432) |
-| ORM             | Prisma                                  |
-| Frontend        | React + TypeScript + Vite + TailwindCSS |
-| Offline/PWA     | Workbox (Service Worker)                |
+| Capa            | Tecnología                                             |
+| --------------- | ------------------------------------------------------ |
+| Backend         | Node.js + TypeScript + Fastify                         |
+| Tiempo real     | Socket.io                                              |
+| Base de datos   | PostgreSQL (dev Docker: :5432, prod native: :5432)     |
+| ORM             | Prisma                                                 |
+| Frontend        | React + TypeScript + Vite + TailwindCSS                |
+| Offline/PWA     | Workbox (Service Worker)                               |
 | Infraestructura | Dev: Docker + Linux; Prod: Windows + PostgreSQL nativo |
-| Installer       | Inno Setup (.exe) + NSSM + PostgreSQL nativo |
+| Installer       | Inno Setup (.exe) + NSSM + PostgreSQL nativo           |
 
 ---
 
@@ -203,7 +203,7 @@ El PIN de admin se usa también para reabrir cuentas cerradas.
 ## Gotchas
 
 - **PowerShell**: nunca usar `&&`, usar `;` para encadenar comandos
-- **Husky pre-commit**: roto (lint-staged ejecuta `tsc -b` en archivos individuales) — siempre usar `--no-verify`
+- **Husky pre-commit**: ahora corre `npm run typecheck` y luego `npx lint-staged`; el `tsc -b` ya no recibe archivos individuales, así que `--no-verify` no es necesario
 - **No remote**: no hay origin configurado, solo commits locales
 - **`__dirname` en routes**: en `routes/products/index.ts`, `__dirname` = `apps/api/src/routes/products`. Para llegar a `apps/api/uploads` se necesitan `../../../uploads`, NO `../../uploads`
 - **Timezone en reportes**: `new Date("YYYY-MM-DD")` crea medianoche UTC, no local. El frontend debe enviar ISO con offset (`localDateToISO()`)

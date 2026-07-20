@@ -30,12 +30,12 @@ export async function buildApp() {
 
   await app.register(websocket)
 
-  // Register multipart for file uploads (5MB per file, 50MB total)
+  // Register multipart for file uploads (5MB per file, 200 files max)
   await app.register(multipart, {
     limits: {
-      fileSize: 5 * 1024 * 1024,   // 5MB per file
-      files: 20,                     // max 20 files (CSV + photos)
-      fieldSize: 1 * 1024 * 1024,   // 1MB per field
+      fileSize: 5 * 1024 * 1024, // 5MB per file
+      files: 200, // max 200 files (CSV + photos)
+      fieldSize: 1 * 1024 * 1024, // 1MB per field
     },
   })
 

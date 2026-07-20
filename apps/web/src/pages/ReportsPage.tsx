@@ -1,84 +1,92 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { formatCOP } from '../utils/format.js';
-import { DateRangePicker } from '../components/DateRangePicker.js';
-import { useShiftSockets } from '../hooks/useShiftSockets.js';
-import API_URL from '../utils/apiUrl.js';
-import { tw } from '../utils/colors.js';
-import type { ShiftListItem, ShiftSummary } from '@barbaros/shared';
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { formatCOP } from '../utils/format.js'
+import { DateRangePicker } from '../components/DateRangePicker.js'
+import { useShiftSockets } from '../hooks/useShiftSockets.js'
+import API_URL from '../utils/apiUrl.js'
+import { tw } from '../utils/colors.js'
+import type { ShiftListItem, ShiftSummary } from '@barbaros/shared'
 
 /** Convert YYYY-MM-DD to ISO string with local timezone offset */
 function localDateToISO(dateStr: string, endOfDay = false): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
-  return dt.toISOString();
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(
+    y,
+    m - 1,
+    d,
+    endOfDay ? 23 : 0,
+    endOfDay ? 59 : 0,
+    endOfDay ? 59 : 0,
+    endOfDay ? 999 : 0,
+  )
+  return dt.toISOString()
 }
 
 function getCurrentMonthRange(): { from: string; to: string } {
-  const now = new Date();
-  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return { from, to };
+  const now = new Date()
+  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return { from, to }
 }
 
 export function ReportsPage(): JSX.Element {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [shifts, setShifts] = useState<ShiftListItem[]>([]);
-  const [selectedShift, setSelectedShift] = useState<ShiftSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const defaultRange = useMemo(getCurrentMonthRange, []);
-  const [dateFrom, setDateFrom] = useState(defaultRange.from);
-  const [dateTo, setDateTo] = useState(defaultRange.to);
-  const [accountSearch, setAccountSearch] = useState('');
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [shifts, setShifts] = useState<ShiftListItem[]>([])
+  const [selectedShift, setSelectedShift] = useState<ShiftSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [_loadingDetail, setLoadingDetail] = useState(false)
+  const defaultRange = useMemo(getCurrentMonthRange, [])
+  const [dateFrom, setDateFrom] = useState(defaultRange.from)
+  const [dateTo, setDateTo] = useState(defaultRange.to)
+  const [accountSearch, setAccountSearch] = useState('')
 
   // Auto-select shift from URL params (when returning from account detail)
-  const shiftIdParam = searchParams.get('shiftId');
+  const shiftIdParam = searchParams.get('shiftId')
 
   useEffect(() => {
     if (shiftIdParam && !selectedShift) {
-      setLoadingDetail(true);
+      setLoadingDetail(true)
       fetch(`${API_URL}/shifts/${shiftIdParam}`)
         .then((res) => res.json())
         .then((data) => setSelectedShift(data))
-        .finally(() => setLoadingDetail(false));
-      setSearchParams({});
+        .finally(() => setLoadingDetail(false))
+      setSearchParams({})
     }
-  }, [shiftIdParam]);
+  }, [shiftIdParam])
 
   useEffect(() => {
     const loadShifts = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        const params = new URLSearchParams();
-        if (dateFrom) params.set('from', localDateToISO(dateFrom));
-        if (dateTo) params.set('to', localDateToISO(dateTo, true));
-        const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`;
-        const res = await fetch(url);
+        const params = new URLSearchParams()
+        if (dateFrom) params.set('from', localDateToISO(dateFrom))
+        if (dateTo) params.set('to', localDateToISO(dateTo, true))
+        const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`
+        const res = await fetch(url)
         if (res.ok) {
-          const data = await res.json();
-          setShifts(data);
+          const data = await res.json()
+          setShifts(data)
         }
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    loadShifts();
-  }, [dateFrom, dateTo]);
+    }
+    loadShifts()
+  }, [dateFrom, dateTo])
 
   const handleSelectShift = async (shiftId: string) => {
-    setLoadingDetail(true);
+    setLoadingDetail(true)
     try {
-      const res = await fetch(`${API_URL}/shifts/${shiftId}`);
+      const res = await fetch(`${API_URL}/shifts/${shiftId}`)
       if (res.ok) {
-        const data = await res.json();
-        setSelectedShift(data);
+        const data = await res.json()
+        setSelectedShift(data)
       }
     } finally {
-      setLoadingDetail(false);
+      setLoadingDetail(false)
     }
-  };
+  }
 
   // Real-time refresh via WebSocket
   const refreshData = useCallback(() => {
@@ -87,37 +95,37 @@ export function ReportsPage(): JSX.Element {
       fetch(`${API_URL}/shifts/${selectedShift.id}`)
         .then((res) => res.json())
         .then((data) => setSelectedShift(data))
-        .catch(() => {});
+        .catch(() => {})
     }
     // Refresh shifts list
-    const params = new URLSearchParams();
-    if (dateFrom) params.set('from', localDateToISO(dateFrom));
-    if (dateTo) params.set('to', localDateToISO(dateTo, true));
-    const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`;
+    const params = new URLSearchParams()
+    if (dateFrom) params.set('from', localDateToISO(dateFrom))
+    if (dateTo) params.set('to', localDateToISO(dateTo, true))
+    const url = `${API_URL}/shifts${params.toString() ? '?' + params.toString() : ''}`
     fetch(url)
       .then((res) => res.json())
       .then((data) => setShifts(data))
-      .catch(() => {});
-  }, [selectedShift?.id, dateFrom, dateTo]);
+      .catch(() => {})
+  }, [selectedShift?.id, dateFrom, dateTo])
 
-  useShiftSockets(refreshData);
+  useShiftSockets(refreshData)
 
   const handleExport = async (shiftId: string) => {
     try {
-      const res = await fetch(`${API_URL}/reports/export/${shiftId}`);
+      const res = await fetch(`${API_URL}/reports/export/${shiftId}`)
       if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte_${shiftId}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `reporte_${shiftId}.xlsx`
+        a.click()
+        URL.revokeObjectURL(url)
       }
     } catch {
       // silent
     }
-  };
+  }
 
   const formatDate = (iso: string) => {
     return new Date(iso).toLocaleString('es-CO', {
@@ -126,25 +134,31 @@ export function ReportsPage(): JSX.Element {
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
-    });
-  };
+    })
+  }
 
   // Aggregated summary across all visible shifts (must be before any early return)
   const summary = useMemo(() => {
-    let totalSales = 0;
-    let totalPaid = 0;
-    let accountsCount = 0;
-    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 };
+    let totalSales = 0
+    let totalPaid = 0
+    let accountsCount = 0
+    const paymentsByMethod: Record<string, number> = { CASH: 0, TRANSFER: 0, CARD: 0 }
     for (const s of shifts) {
-      totalSales += s.totalSales;
-      totalPaid += s.totalPaid;
-      accountsCount += s.accountsCount;
+      totalSales += s.totalSales
+      totalPaid += s.totalPaid
+      accountsCount += s.accountsCount
       for (const [method, amount] of Object.entries(s.paymentsByMethod)) {
-        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount;
+        paymentsByMethod[method] = (paymentsByMethod[method] || 0) + amount
       }
     }
-    return { totalSales, totalPaid, pendingAmount: totalSales - totalPaid, accountsCount, paymentsByMethod };
-  }, [shifts]);
+    return {
+      totalSales,
+      totalPaid,
+      pendingAmount: totalSales - totalPaid,
+      accountsCount,
+      paymentsByMethod,
+    }
+  }, [shifts])
 
   // Detail view
   if (selectedShift) {
@@ -170,7 +184,9 @@ export function ReportsPage(): JSX.Element {
         <div className={`rounded-xl ${tw.bgCard} p-4`}>
           <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Estado:</span>
-            <span className={`font-bold ${selectedShift.status === 'OPEN' ? 'text-[#7CCD7C]' : tw.text}`}>
+            <span
+              className={`font-bold ${selectedShift.status === 'OPEN' ? 'text-[#7CCD7C]' : tw.text}`}
+            >
               {selectedShift.status === 'OPEN' ? 'Abierto' : 'Cerrado'}
             </span>
           </div>
@@ -180,7 +196,9 @@ export function ReportsPage(): JSX.Element {
           </div>
           <div className={`flex justify-between text-sm ${tw.textMuted}`}>
             <span>Hasta:</span>
-            <span className={tw.text}>{selectedShift.closedAt ? formatDate(selectedShift.closedAt) : '—'}</span>
+            <span className={tw.text}>
+              {selectedShift.closedAt ? formatDate(selectedShift.closedAt) : '—'}
+            </span>
           </div>
           <div className={`mt-3 flex justify-between text-sm ${tw.textMuted}`}>
             <span>Cuentas:</span>
@@ -197,7 +215,9 @@ export function ReportsPage(): JSX.Element {
           {selectedShift.pendingAmount > 0 && (
             <div className={`flex justify-between text-sm ${tw.textMuted}`}>
               <span>Pendiente:</span>
-              <span className="font-bold text-[#E85050]">{formatCOP(selectedShift.pendingAmount)}</span>
+              <span className="font-bold text-[#E85050]">
+                {formatCOP(selectedShift.pendingAmount)}
+              </span>
             </div>
           )}
         </div>
@@ -207,7 +227,13 @@ export function ReportsPage(): JSX.Element {
           <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
           {Object.entries(selectedShift.paymentsByMethod).map(([method, total]) => (
             <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
-              <span>{method === 'CASH' ? 'Efectivo' : method === 'TRANSFER' ? 'Transferencia' : 'Tarjeta'}</span>
+              <span>
+                {method === 'CASH'
+                  ? 'Efectivo'
+                  : method === 'TRANSFER'
+                    ? 'Transferencia'
+                    : 'Tarjeta'}
+              </span>
               <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
             </div>
           ))}
@@ -234,37 +260,52 @@ export function ReportsPage(): JSX.Element {
             <div className="flex flex-col gap-2">
               {selectedShift.accounts
                 .filter((account) => {
-                  if (!accountSearch.trim()) return true;
-                  const q = accountSearch.toLowerCase();
+                  if (!accountSearch.trim()) return true
+                  const q = accountSearch.toLowerCase()
                   return (
                     String(account.number).includes(q) ||
                     (account.name || '').toLowerCase().includes(q)
-                  );
+                  )
                 })
                 .map((account, i) => (
-                <button
-                  key={account.id}
-                  onClick={() => navigate(`/accounts/${account.id}?readonly=1&shiftId=${selectedShift.id}`)}
-                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-left active:bg-[#1E1E1E] ${i % 2 === 0 ? 'bg-[#141414]' : 'bg-[#1E1E1E]'}`}
-                >
-                  <div>
-                    <p className={`font-bold ${tw.text}`}>#{account.number} {account.name}</p>
-                    <p className={`text-xs ${tw.textMuted}`}>
-                      {account.status === 'OPEN' ? '🟢 Abierta' : '✅ Cerrada'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${tw.text}`}>{formatCOP(account.total)}</p>
-                    {account.pendingAmount > 0 && (
-                      <p className="text-xs text-[#E85050]">Pendiente: {formatCOP(account.pendingAmount)}</p>
-                    )}
-                  </div>
-                </button>
-              ))}
+                  <button
+                    key={account.id}
+                    onClick={() =>
+                      navigate(`/accounts/${account.id}?readonly=1&shiftId=${selectedShift.id}`)
+                    }
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-left active:bg-[#1E1E1E] ${i % 2 === 0 ? 'bg-[#141414]' : 'bg-[#1E1E1E]'}`}
+                  >
+                    <div>
+                      <p className={`font-bold ${tw.text}`}>
+                        #{account.number} {account.name}
+                      </p>
+                      <p className={`text-xs ${tw.textMuted}`}>
+                        {account.status === 'VOIDED' ? (
+                          <span className="font-bold text-[#E85050]">Anulada</span>
+                        ) : account.status === 'OPEN' ? (
+                          '🟢 Abierta'
+                        ) : (
+                          '✅ Cerrada'
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${tw.text}`}>{formatCOP(account.total)}</p>
+                      {account.pendingAmount > 0 && (
+                        <p className="text-xs text-[#E85050]">
+                          Pendiente: {formatCOP(account.pendingAmount)}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
               {selectedShift.accounts.filter((account) => {
-                if (!accountSearch.trim()) return true;
-                const q = accountSearch.toLowerCase();
-                return String(account.number).includes(q) || (account.name || '').toLowerCase().includes(q);
+                if (!accountSearch.trim()) return true
+                const q = accountSearch.toLowerCase()
+                return (
+                  String(account.number).includes(q) ||
+                  (account.name || '').toLowerCase().includes(q)
+                )
               }).length === 0 && (
                 <p className={`text-center text-sm ${tw.textMuted}`}>No se encontraron cuentas.</p>
               )}
@@ -272,7 +313,7 @@ export function ReportsPage(): JSX.Element {
           )}
         </div>
       </div>
-    );
+    )
   }
 
   // List view
@@ -292,8 +333,8 @@ export function ReportsPage(): JSX.Element {
         from={dateFrom}
         to={dateTo}
         onChange={(from, to) => {
-          setDateFrom(from);
-          setDateTo(to);
+          setDateFrom(from)
+          setDateTo(to)
         }}
       />
 
@@ -328,7 +369,13 @@ export function ReportsPage(): JSX.Element {
             <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
             {Object.entries(summary.paymentsByMethod).map(([method, total]) => (
               <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
-                <span>{method === 'CASH' ? 'Efectivo' : method === 'TRANSFER' ? 'Transferencia' : 'Tarjeta'}</span>
+                <span>
+                  {method === 'CASH'
+                    ? 'Efectivo'
+                    : method === 'TRANSFER'
+                      ? 'Transferencia'
+                      : 'Tarjeta'}
+                </span>
                 <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
               </div>
             ))}
@@ -349,11 +396,10 @@ export function ReportsPage(): JSX.Element {
               className={`flex items-center justify-between rounded-xl ${tw.bgCard} p-4 text-left active:bg-[#1E1E1E]`}
             >
               <div>
-                <p className={`font-bold ${tw.text}`}>
-                  {formatDate(shift.openedAt)}
-                </p>
+                <p className={`font-bold ${tw.text}`}>{formatDate(shift.openedAt)}</p>
                 <p className={`text-sm ${tw.textMuted}`}>
-                  {shift.accountsCount} cuentas · {shift.status === 'OPEN' ? '🟢 Abierto' : '✅ Cerrado'}
+                  {shift.accountsCount} cuentas ·{' '}
+                  {shift.status === 'OPEN' ? '🟢 Abierto' : '✅ Cerrado'}
                 </p>
               </div>
               <div className="text-right">
@@ -367,5 +413,5 @@ export function ReportsPage(): JSX.Element {
         </div>
       )}
     </div>
-  );
+  )
 }

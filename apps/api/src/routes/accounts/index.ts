@@ -1,69 +1,74 @@
-import { FastifyPluginAsync } from 'fastify';
-import { AccountService } from '../../services/account.service.js';
-import { PaymentService } from '../../services/payment.service.js';
-import { prisma } from '../../db/prisma.js';
-import { calculateAccountTotal, DiscountType } from '@barbaros/shared';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs/promises';
+import { FastifyPluginAsync } from 'fastify'
+import { AccountService } from '../../services/account.service.js'
+import { PaymentService } from '../../services/payment.service.js'
+import { prisma } from '../../db/prisma.js'
+import { calculateAccountTotal, DiscountType } from '@barbaros/shared'
+import { verifyAdminPin } from '../../utils/adminPin.js'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs/promises'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 function emitSocketEvent(fastify: any, event: string, payload: any) {
   if (fastify.websocketServer) {
     fastify.websocketServer.clients.forEach((client: any) => {
       if (client.readyState === 1) {
-        client.send(JSON.stringify({ event, data: payload }));
+        client.send(JSON.stringify({ event, data: payload }))
       }
-    });
+    })
   }
 }
 
 async function broadcastAccountUpdated(fastify: any, accountId: string) {
-  const account = await AccountService.getAccountWithItems(accountId);
+  const account = await AccountService.getAccountWithItems(accountId)
   if (account) {
-    emitSocketEvent(fastify, 'account:updated', account);
+    emitSocketEvent(fastify, 'account:updated', account)
   }
-  return account;
+  return account
 }
 
 const accountRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', async (request, reply) => {
-    const { name, cardSize } = request.body as { name?: string; cardSize?: string };
+    const { name, cardSize } = request.body as { name?: string; cardSize?: string }
 
     try {
-      const account = await AccountService.createAccount(name || '', cardSize);
-      emitSocketEvent(fastify, 'account:created', account);
-      return reply.code(201).send(account);
+      const account = await AccountService.createAccount(name || '', cardSize)
+      emitSocketEvent(fastify, 'account:created', account)
+      return reply.code(201).send(account)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.get('/', async (request, reply) => {
-    const activeShift = await AccountService.getActiveShift();
-    if (!activeShift) return reply.code(200).send([]);
+    const activeShift = await AccountService.getActiveShift()
+    if (!activeShift) return reply.code(200).send([])
 
     // Get accounts from the active shift
     const accounts = await prisma.account.findMany({
       where: { shiftId: activeShift.id },
-      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
-    });
+      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true },
+    })
 
     // Get pinned accounts from other shifts
-    let pinnedIds: string[] = [];
-    try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+    let pinnedIds: string[] = []
+    try {
+      pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]')
+    } catch {
+      /* ignore */
+    }
 
-    let pinnedAccounts: any[] = [];
+    let pinnedAccounts: any[] = []
     if (pinnedIds.length > 0) {
       pinnedAccounts = await prisma.account.findMany({
         where: { id: { in: pinnedIds }, shiftId: { not: activeShift.id } },
-        include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true }
-      });
+        include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true },
+      })
     }
 
-    const allAccounts = [...accounts, ...pinnedAccounts];
+    const allAccounts = [...accounts, ...pinnedAccounts]
 
     const accountsWithTotal = allAccounts.map((acc: any) => {
       const result = calculateAccountTotal({
@@ -75,21 +80,25 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
         })),
         accountDiscountType: acc.discountType as DiscountType,
         accountDiscountValue: Number(acc.discountValue),
-      });
-      const paidSum = acc.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-      const pendingAmount = result.total - paidSum;
-      return { ...acc, total: result.total, pendingAmount, payments: acc.payments };
-    });
+      })
+      const paidSum = acc.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+      const pendingAmount = result.total - paidSum
+      return { ...acc, total: result.total, pendingAmount, payments: acc.payments }
+    })
 
-    return reply.code(200).send(accountsWithTotal);
-  });
+    return reply.code(200).send(accountsWithTotal)
+  })
 
   // Get all open accounts from ALL shifts (for list mode)
   fastify.get('/all-open', async (request, reply) => {
     const accounts = await prisma.account.findMany({
       where: { status: 'OPEN' },
-      include: { orderItems: { orderBy: { createdAt: 'asc' as const } }, payments: true, shift: true }
-    });
+      include: {
+        orderItems: { orderBy: { createdAt: 'asc' as const } },
+        payments: true,
+        shift: true,
+      },
+    })
 
     const accountsWithTotal = accounts.map((acc) => {
       const result = calculateAccountTotal({
@@ -101,425 +110,486 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
         })),
         accountDiscountType: acc.discountType as DiscountType,
         accountDiscountValue: Number(acc.discountValue),
-      });
-      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const pendingAmount = result.total - paidSum;
-      return { ...acc, total: result.total, pendingAmount, payments: acc.payments };
-    });
+      })
+      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+      const pendingAmount = result.total - paidSum
+      return { ...acc, total: result.total, pendingAmount, payments: acc.payments }
+    })
 
-    return reply.code(200).send(accountsWithTotal);
-  });
+    return reply.code(200).send(accountsWithTotal)
+  })
 
   fastify.get('/:id', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const account = await AccountService.getAccountWithItems(id);
-    if (!account) return reply.code(404).send({ error: 'Account not found' });
-    return reply.code(200).send(account);
-  });
+    const { id } = request.params as { id: string }
+    const account = await AccountService.getAccountWithItems(id)
+    if (!account) return reply.code(404).send({ error: 'Account not found' })
+    return reply.code(200).send(account)
+  })
 
   fastify.patch('/:id', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { name } = request.body as { name?: string };
+    const { id } = request.params as { id: string }
+    const { name } = request.body as { name?: string }
 
     try {
       const updated = await prisma.account.update({
         where: { id },
         data: { name: name ?? '' },
-      });
-      emitSocketEvent(fastify, 'account:updated', updated);
-      return reply.code(200).send(updated);
+      })
+      emitSocketEvent(fastify, 'account:updated', updated)
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/position', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { posX, posY } = request.body as { posX?: number; posY?: number };
+    const { id } = request.params as { id: string }
+    const { posX, posY } = request.body as { posX?: number; posY?: number }
 
     try {
-      const data: any = {};
-      if (posX !== undefined) data.posX = posX;
-      if (posY !== undefined) data.posY = posY;
+      const data: any = {}
+      if (posX !== undefined) data.posX = posX
+      if (posY !== undefined) data.posY = posY
 
       const updated = await prisma.account.update({
         where: { id },
         data,
-      });
-      emitSocketEvent(fastify, 'account:position', { id: updated.id, posX: updated.posX, posY: updated.posY });
-      return reply.code(200).send(updated);
+      })
+      emitSocketEvent(fastify, 'account:position', {
+        id: updated.id,
+        posX: updated.posX,
+        posY: updated.posY,
+      })
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   // Pin an account from another shift to the active shift's canvas
   fastify.patch('/:id/pin', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     try {
-      const activeShift = await AccountService.getActiveShift();
-      if (!activeShift) return reply.code(400).send({ error: 'No active shift' });
+      const activeShift = await AccountService.getActiveShift()
+      if (!activeShift) return reply.code(400).send({ error: 'No active shift' })
 
-      let pinnedIds: string[] = [];
-      try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+      let pinnedIds: string[] = []
+      try {
+        pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]')
+      } catch {
+        /* ignore */
+      }
 
       if (!pinnedIds.includes(id)) {
-        pinnedIds.push(id);
+        pinnedIds.push(id)
         await prisma.shift.update({
           where: { id: activeShift.id },
           data: { pinnedAccountIds: JSON.stringify(pinnedIds) },
-        });
+        })
       }
-      return reply.code(200).send({ ok: true });
+      return reply.code(200).send({ ok: true })
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   // Unpin an account from the active shift's canvas
   fastify.patch('/:id/unpin', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     try {
-      const activeShift = await AccountService.getActiveShift();
-      if (!activeShift) return reply.code(400).send({ error: 'No active shift' });
+      const activeShift = await AccountService.getActiveShift()
+      if (!activeShift) return reply.code(400).send({ error: 'No active shift' })
 
-      let pinnedIds: string[] = [];
-      try { pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]'); } catch { /* ignore */ }
+      let pinnedIds: string[] = []
+      try {
+        pinnedIds = JSON.parse(activeShift.pinnedAccountIds || '[]')
+      } catch {
+        /* ignore */
+      }
 
-      pinnedIds = pinnedIds.filter((pid) => pid !== id);
+      pinnedIds = pinnedIds.filter((pid) => pid !== id)
       await prisma.shift.update({
         where: { id: activeShift.id },
         data: { pinnedAccountIds: JSON.stringify(pinnedIds) },
-      });
-      return reply.code(200).send({ ok: true });
+      })
+      return reply.code(200).send({ ok: true })
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   // Hide an account from the canvas (soft hide, recoverable later)
   fastify.patch('/:id/hide', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     try {
       const account = await prisma.account.update({
         where: { id },
         data: { hidden: true },
-      });
-      return reply.code(200).send(account);
+      })
+      return reply.code(200).send(account)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   // Unhide an account (restore to canvas)
   fastify.patch('/:id/unhide', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     try {
       const account = await prisma.account.update({
         where: { id },
         data: { hidden: false },
-      });
-      return reply.code(200).send(account);
+      })
+      return reply.code(200).send(account)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/card-dimensions', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { cardWidth, cardHeight } = request.body as { cardWidth?: number; cardHeight?: number };
+    const { id } = request.params as { id: string }
+    const { cardWidth, cardHeight } = request.body as { cardWidth?: number; cardHeight?: number }
 
     if (cardWidth !== undefined && cardWidth <= 0) {
-      return reply.code(400).send({ error: 'cardWidth must be greater than 0' });
+      return reply.code(400).send({ error: 'cardWidth must be greater than 0' })
     }
     if (cardHeight !== undefined && cardHeight <= 0) {
-      return reply.code(400).send({ error: 'cardHeight must be greater than 0' });
+      return reply.code(400).send({ error: 'cardHeight must be greater than 0' })
     }
 
     try {
-      const data: any = {};
-      if (cardWidth !== undefined) data.cardWidth = cardWidth;
-      if (cardHeight !== undefined) data.cardHeight = cardHeight;
+      const data: any = {}
+      if (cardWidth !== undefined) data.cardWidth = cardWidth
+      if (cardHeight !== undefined) data.cardHeight = cardHeight
 
       const updated = await prisma.account.update({
         where: { id },
         data,
-      });
+      })
       emitSocketEvent(fastify, 'account:card-dimensions', {
         id: updated.id,
         cardWidth: updated.cardWidth,
         cardHeight: updated.cardHeight,
-      });
-      return reply.code(200).send(updated);
+      })
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/card-size', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { cardSize } = request.body as { cardSize?: string };
+    const { id } = request.params as { id: string }
+    const { cardSize } = request.body as { cardSize?: string }
 
     try {
       const updated = await prisma.account.update({
         where: { id },
         data: { cardSize: cardSize ?? null, cardWidth: null, cardHeight: null },
-      });
-      emitSocketEvent(fastify, 'account:card-size', { id: updated.id, cardSize: updated.cardSize });
-      return reply.code(200).send(updated);
+      })
+      emitSocketEvent(fastify, 'account:card-size', { id: updated.id, cardSize: updated.cardSize })
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.put('/:id/close', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
 
     try {
-      const result = await AccountService.closeAccount(id);
+      const result = await AccountService.closeAccount(id)
 
       if (result.deleted) {
-        emitSocketEvent(fastify, 'account:deleted', id);
-        return reply.code(204).send();
+        emitSocketEvent(fastify, 'account:deleted', id)
+        return reply.code(204).send()
       } else {
-        emitSocketEvent(fastify, 'account:updated', result.account);
-        return reply.code(200).send(result.account);
+        emitSocketEvent(fastify, 'account:updated', result.account)
+        return reply.code(200).send(result.account)
       }
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
+
+  fastify.put('/:id/void', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { pin } = request.body as { pin?: string }
+
+    if (!pin || typeof pin !== 'string') {
+      return reply.code(400).send({ error: 'PIN is required' })
+    }
+
+    const ok = await verifyAdminPin(pin, request)
+    if (!ok) {
+      return reply.code(403).send({ error: 'PIN incorrecto' })
+    }
+
+    try {
+      const account = await AccountService.voidAccount(id)
+      const updated = await broadcastAccountUpdated(fastify, id)
+      return reply.code(200).send(updated || account)
+    } catch (err: any) {
+      if (err.message.includes('not found')) {
+        return reply.code(404).send({ error: err.message })
+      }
+      if (err.message.includes('already voided')) {
+        return reply.code(409).send({ error: err.message })
+      }
+      return reply.code(400).send({ error: err.message })
+    }
+  })
+
+  fastify.patch('/:id/reopen', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { pin } = request.body as { pin?: string }
+
+    if (!pin || typeof pin !== 'string') {
+      return reply.code(400).send({ error: 'PIN is required' })
+    }
+
+    const ok = await verifyAdminPin(pin, request)
+    if (!ok) {
+      return reply.code(403).send({ error: 'PIN incorrecto' })
+    }
+
+    try {
+      const account = await AccountService.reopenAccount(id)
+      const updated = await broadcastAccountUpdated(fastify, id)
+      return reply.code(200).send(updated || account)
+    } catch (err: any) {
+      if (err.message.includes('not found')) {
+        return reply.code(404).send({ error: err.message })
+      }
+      return reply.code(400).send({ error: err.message })
+    }
+  })
 
   fastify.post('/:id/payments', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     const { amount, method, proofUrl } = request.body as {
-      amount?: number;
-      method?: string;
-      proofUrl?: string;
-    };
+      amount?: number
+      method?: string
+      proofUrl?: string
+    }
 
     if (!amount || amount <= 0) {
-      return reply.code(400).send({ error: 'Amount must be greater than zero' });
+      return reply.code(400).send({ error: 'Amount must be greater than zero' })
     }
 
     if (!method || !['CASH', 'TRANSFER', 'CARD'].includes(method)) {
-      return reply.code(400).send({ error: 'Invalid payment method' });
+      return reply.code(400).send({ error: 'Invalid payment method' })
     }
 
     try {
-      const result = await PaymentService.createPayment(
-        id,
-        amount,
-        method as any,
-        proofUrl
-      );
+      const result = await PaymentService.createPayment(id, amount, method as any, proofUrl)
 
       // Get updated account for broadcast
-      const account = await AccountService.getAccountWithItems(id);
+      const account = await AccountService.getAccountWithItems(id)
 
       emitSocketEvent(fastify, 'payment:created', {
         payment: result.payment,
         pendingAmount: result.pendingAmount,
-        account
-      });
+        account,
+      })
 
       return reply.code(201).send({
         payment: result.payment,
-        pendingAmount: result.pendingAmount
-      });
+        pendingAmount: result.pendingAmount,
+      })
     } catch (err: any) {
-      const status = err.message.includes('not found') ? 404 : 400;
-      return reply.code(status).send({ error: err.message });
+      const status = err.message.includes('not found') ? 404 : 400
+      return reply.code(status).send({ error: err.message })
     }
-  });
+  })
 
   fastify.get('/:id/payments', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
 
     try {
-      const payments = await PaymentService.listPayments(id);
-      return reply.code(200).send(payments);
+      const payments = await PaymentService.listPayments(id)
+      return reply.code(200).send(payments)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.post('/:id/payments/upload', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
 
     try {
-      const parts = request.parts();
-      let amount = 0;
-      let method = '';
-      let proofUrl: string | undefined;
+      const parts = request.parts()
+      let amount = 0
+      let method = ''
+      let proofUrl: string | undefined
 
       for await (const part of parts) {
         if (part.type === 'file') {
-          const ext = path.extname(part.filename).toLowerCase();
+          const ext = path.extname(part.filename).toLowerCase()
           if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
-            return reply.code(400).send({ error: 'Only JPG, PNG, or WebP images accepted' });
+            return reply.code(400).send({ error: 'Only JPG, PNG, or WebP images accepted' })
           }
 
-          const uploadsDir = path.join(__dirname, '../../../uploads/payments');
-          await fs.mkdir(uploadsDir, { recursive: true });
+          const uploadsDir = path.join(__dirname, '../../../uploads/payments')
+          await fs.mkdir(uploadsDir, { recursive: true })
 
-          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-          const filepath = path.join(uploadsDir, filename);
+          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+          const filepath = path.join(uploadsDir, filename)
 
-          const buffer = await part.toBuffer();
+          const buffer = await part.toBuffer()
           if (buffer.length > 5 * 1024 * 1024) {
-            return reply.code(400).send({ error: 'File size must be under 5MB' });
+            return reply.code(400).send({ error: 'File size must be under 5MB' })
           }
-          await fs.writeFile(filepath, buffer);
-          proofUrl = `uploads/payments/${filename}`;
+          await fs.writeFile(filepath, buffer)
+          proofUrl = `uploads/payments/${filename}`
         } else {
-          const field = part as any;
-          if (field.fieldname === 'amount') amount = Number(field.value);
-          if (field.fieldname === 'method') method = String(field.value);
+          const field = part as any
+          if (field.fieldname === 'amount') amount = Number(field.value)
+          if (field.fieldname === 'method') method = String(field.value)
         }
       }
 
       if (!amount || amount <= 0) {
-        return reply.code(400).send({ error: 'Amount must be greater than zero' });
+        return reply.code(400).send({ error: 'Amount must be greater than zero' })
       }
 
       if (!method || !['CASH', 'TRANSFER', 'CARD'].includes(method)) {
-        return reply.code(400).send({ error: 'Invalid payment method' });
+        return reply.code(400).send({ error: 'Invalid payment method' })
       }
 
-      const result = await PaymentService.createPayment(id, amount, method as any, proofUrl);
-      const account = await AccountService.getAccountWithItems(id);
+      const result = await PaymentService.createPayment(id, amount, method as any, proofUrl)
+      const account = await AccountService.getAccountWithItems(id)
 
       emitSocketEvent(fastify, 'payment:created', {
         payment: result.payment,
         pendingAmount: result.pendingAmount,
-        account
-      });
+        account,
+      })
 
       return reply.code(201).send({
         payment: result.payment,
-        pendingAmount: result.pendingAmount
-      });
+        pendingAmount: result.pendingAmount,
+      })
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.get('/:id/items', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
 
     try {
-      const result = await AccountService.listItems(id);
-      return reply.code(200).send(result);
+      const result = await AccountService.listItems(id)
+      return reply.code(200).send(result)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.post('/:id/items', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { productId, quantity } = request.body as { productId?: string; quantity?: number };
+    const { id } = request.params as { id: string }
+    const { productId, quantity } = request.body as { productId?: string; quantity?: number }
 
-    if (!productId) return reply.code(400).send({ error: 'productId is required' });
+    if (!productId) return reply.code(400).send({ error: 'productId is required' })
 
     try {
-      await AccountService.addItem(id, productId, quantity);
-      const updated = await broadcastAccountUpdated(fastify, id);
-      return reply.code(201).send(updated);
+      await AccountService.addItem(id, productId, quantity)
+      const updated = await broadcastAccountUpdated(fastify, id)
+      return reply.code(201).send(updated)
     } catch (err: any) {
-      const status = err.message.includes('not found') ? 404 : 400;
-      return reply.code(status).send({ error: err.message });
+      const status = err.message.includes('not found') ? 404 : 400
+      return reply.code(status).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/items/:itemId', async (request, reply) => {
-    const { id, itemId } = request.params as { id: string; itemId: string };
-    const { quantity } = request.body as { quantity?: number };
+    const { id, itemId } = request.params as { id: string; itemId: string }
+    const { quantity } = request.body as { quantity?: number }
 
-    if (quantity === undefined) return reply.code(400).send({ error: 'quantity is required' });
+    if (quantity === undefined) return reply.code(400).send({ error: 'quantity is required' })
 
     try {
-      await AccountService.updateItemQuantity(id, itemId, quantity);
-      const updated = await broadcastAccountUpdated(fastify, id);
-      return reply.code(200).send(updated);
+      await AccountService.updateItemQuantity(id, itemId, quantity)
+      const updated = await broadcastAccountUpdated(fastify, id)
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.delete('/:id/items/:itemId', async (request, reply) => {
-    const { id, itemId } = request.params as { id: string; itemId: string };
+    const { id, itemId } = request.params as { id: string; itemId: string }
 
     try {
-      await AccountService.removeItem(id, itemId);
-      const updated = await broadcastAccountUpdated(fastify, id);
-      return reply.code(200).send(updated);
+      await AccountService.removeItem(id, itemId)
+      const updated = await broadcastAccountUpdated(fastify, id)
+      return reply.code(200).send(updated)
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/discount', async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id } = request.params as { id: string }
     const { discountType, discountValue } = request.body as {
-      discountType?: string;
-      discountValue?: number;
-    };
+      discountType?: string
+      discountValue?: number
+    }
 
     if (!discountType || !['NONE', 'FIXED', 'PERCENT'].includes(discountType)) {
-      return reply.code(400).send({ error: 'Invalid discount type' });
+      return reply.code(400).send({ error: 'Invalid discount type' })
     }
 
     if (discountValue === undefined || discountValue < 0) {
-      return reply.code(400).send({ error: 'Value out of range' });
+      return reply.code(400).send({ error: 'Value out of range' })
     }
 
     if (discountType === 'PERCENT' && discountValue > 100) {
-      return reply.code(400).send({ error: 'Value out of range' });
+      return reply.code(400).send({ error: 'Value out of range' })
     }
 
     try {
       const account = await AccountService.setAccountDiscount(
         id,
         discountType as DiscountType,
-        discountValue
-      );
+        discountValue,
+      )
 
-      if (!account) return reply.code(404).send({ error: 'Account not found' });
+      if (!account) return reply.code(404).send({ error: 'Account not found' })
 
-      const paidSum = account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0;
-      const pendingAmount = account.total! - paidSum;
+      const paidSum =
+        account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0
+      const pendingAmount = account.total! - paidSum
 
       emitSocketEvent(fastify, 'discount:updated', {
         accountId: id,
         total: account.total!,
         pendingAmount,
         account,
-      });
+      })
 
-      return reply.code(200).send({ account, total: account.total, pendingAmount });
+      return reply.code(200).send({ account, total: account.total, pendingAmount })
     } catch (err: any) {
-      return reply.code(400).send({ error: err.message });
+      return reply.code(400).send({ error: err.message })
     }
-  });
+  })
 
   fastify.patch('/:id/items/:itemId/discount', async (request, reply) => {
-    const { id, itemId } = request.params as { id: string; itemId: string };
+    const { id, itemId } = request.params as { id: string; itemId: string }
     const { discountType, discountValue } = request.body as {
-      discountType?: string;
-      discountValue?: number;
-    };
+      discountType?: string
+      discountValue?: number
+    }
 
     if (!discountType || !['NONE', 'FIXED', 'PERCENT'].includes(discountType)) {
-      return reply.code(400).send({ error: 'Invalid discount type' });
+      return reply.code(400).send({ error: 'Invalid discount type' })
     }
 
     if (discountValue === undefined || discountValue < 0) {
-      return reply.code(400).send({ error: 'Value out of range' });
+      return reply.code(400).send({ error: 'Value out of range' })
     }
 
     if (discountType === 'PERCENT' && discountValue > 100) {
-      return reply.code(400).send({ error: 'Value out of range' });
+      return reply.code(400).send({ error: 'Value out of range' })
     }
 
     try {
@@ -527,27 +597,28 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
         id,
         itemId,
         discountType as DiscountType,
-        discountValue
-      );
+        discountValue,
+      )
 
-      if (!account) return reply.code(404).send({ error: 'Account not found' });
+      if (!account) return reply.code(404).send({ error: 'Account not found' })
 
-      const paidSum = account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0;
-      const pendingAmount = account.total! - paidSum;
+      const paidSum =
+        account.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0
+      const pendingAmount = account.total! - paidSum
 
       emitSocketEvent(fastify, 'discount:updated', {
         accountId: id,
         total: account.total!,
         pendingAmount,
         account,
-      });
+      })
 
-      return reply.code(200).send({ account, total: account.total, pendingAmount });
+      return reply.code(200).send({ account, total: account.total, pendingAmount })
     } catch (err: any) {
-      const status = err.message.includes('not found') ? 404 : 400;
-      return reply.code(status).send({ error: err.message });
+      const status = err.message.includes('not found') ? 404 : 400
+      return reply.code(status).send({ error: err.message })
     }
-  });
-};
+  })
+}
 
-export default accountRoutes;
+export default accountRoutes
