@@ -119,6 +119,58 @@ const accountRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(200).send(accountsWithTotal)
   })
 
+  // Search accounts across ALL shifts and ALL statuses
+  fastify.get('/search', async (request, reply) => {
+    const { q } = request.query as { q?: string }
+    if (!q || !q.trim()) return reply.code(200).send([])
+
+    const query = q.trim().toLowerCase()
+
+    const accounts = await prisma.account.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { number: { equals: parseInt(query) || -1 } },
+        ],
+      },
+      include: {
+        orderItems: { orderBy: { createdAt: 'asc' as const } },
+        payments: true,
+        shift: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    })
+
+    const accountsWithTotal = accounts.map((acc) => {
+      const result = calculateAccountTotal({
+        items: acc.orderItems.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          discountType: item.discountType as DiscountType,
+          discountValue: Number(item.discountValue),
+        })),
+        accountDiscountType: acc.discountType as DiscountType,
+        accountDiscountValue: Number(acc.discountValue),
+      })
+      const paidSum = acc.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+      const pendingAmount = result.total - paidSum
+      return {
+        id: acc.id,
+        number: acc.number,
+        name: acc.name,
+        status: acc.status,
+        total: result.total,
+        pendingAmount,
+        shiftId: acc.shiftId,
+        shiftDate: acc.shift.createdAt.toISOString(),
+        shiftStatus: acc.shift.status,
+      }
+    })
+
+    return reply.code(200).send(accountsWithTotal)
+  })
+
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     const account = await AccountService.getAccountWithItems(id)

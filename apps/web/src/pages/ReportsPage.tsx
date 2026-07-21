@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { formatCOP } from '../utils/format.js'
 import { DateRangePicker } from '../components/DateRangePicker.js'
@@ -29,6 +29,18 @@ function getCurrentMonthRange(): { from: string; to: string } {
   return { from, to }
 }
 
+type AccountSearchResult = {
+  id: string
+  number: number
+  name: string
+  status: string
+  total: number
+  pendingAmount: number
+  shiftId: string
+  shiftDate: string
+  shiftStatus: string
+}
+
 export function ReportsPage(): JSX.Element {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -40,6 +52,10 @@ export function ReportsPage(): JSX.Element {
   const [dateFrom, setDateFrom] = useState(defaultRange.from)
   const [dateTo, setDateTo] = useState(defaultRange.to)
   const [accountSearch, setAccountSearch] = useState('')
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<AccountSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auto-select shift from URL params (when returning from account detail)
   const shiftIdParam = searchParams.get('shiftId')
@@ -74,6 +90,33 @@ export function ReportsPage(): JSX.Element {
     }
     loadShifts()
   }, [dateFrom, dateTo])
+
+  // Global account search (debounced)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!globalSearchQuery.trim()) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/accounts/search?q=${encodeURIComponent(globalSearchQuery.trim())}`,
+        )
+        if (res.ok) {
+          const data = await res.json()
+          setSearchResults(data)
+        }
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [globalSearchQuery])
 
   const handleSelectShift = async (shiftId: string) => {
     setLoadingDetail(true)
@@ -329,88 +372,151 @@ export function ReportsPage(): JSX.Element {
         <h1 className="text-xl font-bold">Reportes</h1>
       </header>
 
-      <DateRangePicker
-        from={dateFrom}
-        to={dateTo}
-        onChange={(from, to) => {
-          setDateFrom(from)
-          setDateTo(to)
-        }}
-      />
+      {/* Global account search */}
+      <div className="relative">
+        <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${tw.textMuted}`}>🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar cuenta (nombre o número)..."
+          value={globalSearchQuery}
+          onChange={(e) => setGlobalSearchQuery(e.target.value)}
+          className={`h-12 w-full rounded-lg ${tw.bgCard} py-2 pl-9 pr-3 text-sm ${tw.text} outline-none focus:ring-2 focus:ring-[#C8A84E]`}
+        />
+      </div>
 
-      {/* Aggregated summary */}
-      {shifts.length > 0 && (
-        <>
-          <div className={`rounded-xl ${tw.bgCard} p-4`}>
-            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
-              <span>Turnos:</span>
-              <span className={`font-bold ${tw.text}`}>{shifts.length}</span>
-            </div>
-            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
-              <span>Cuentas:</span>
-              <span className={`font-bold ${tw.text}`}>{summary.accountsCount}</span>
-            </div>
-            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
-              <span>Total Ventas:</span>
-              <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalSales)}</span>
-            </div>
-            <div className={`flex justify-between text-sm ${tw.textMuted}`}>
-              <span>Total Pagado:</span>
-              <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalPaid)}</span>
-            </div>
-            {summary.pendingAmount > 0 && (
-              <div className={`flex justify-between text-sm ${tw.textMuted}`}>
-                <span>Pendiente:</span>
-                <span className="font-bold text-[#E85050]">{formatCOP(summary.pendingAmount)}</span>
-              </div>
-            )}
-          </div>
-          <div className={`rounded-xl ${tw.bgCard} p-4`}>
-            <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
-            {Object.entries(summary.paymentsByMethod).map(([method, total]) => (
-              <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
-                <span>
-                  {method === 'CASH'
-                    ? 'Efectivo'
-                    : method === 'TRANSFER'
-                      ? 'Transferencia'
-                      : 'Tarjeta'}
-                </span>
-                <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
-              </div>
+      {/* Search results */}
+      {globalSearchQuery.trim() ? (
+        searching ? (
+          <p className={tw.textMuted}>Buscando...</p>
+        ) : searchResults.length === 0 ? (
+          <p className={`text-center text-sm ${tw.textMuted}`}>No se encontraron cuentas.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {searchResults.map((account, i) => (
+              <button
+                key={account.id}
+                onClick={() =>
+                  navigate(`/accounts/${account.id}?readonly=1&shiftId=${account.shiftId}`)
+                }
+                className={`flex items-center justify-between rounded-lg px-3 py-3 text-left active:bg-[#1E1E1E] ${i % 2 === 0 ? 'bg-[#141414]' : 'bg-[#1E1E1E]'}`}
+              >
+                <div>
+                  <p className={`font-bold ${tw.text}`}>
+                    #{account.number} {account.name}
+                  </p>
+                  <p className={`text-xs ${tw.textMuted}`}>
+                    {account.status === 'VOIDED' ? (
+                      <span className="font-bold text-[#E85050]">Anulada</span>
+                    ) : account.status === 'OPEN' ? (
+                      '🟢 Abierta'
+                    ) : (
+                      '✅ Cerrada'
+                    )}
+                    {' · '}
+                    {formatDate(account.shiftDate)} (
+                    {account.shiftStatus === 'OPEN' ? 'Turno abierto' : 'Turno cerrado'})
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className={`font-bold ${tw.text}`}>{formatCOP(account.total)}</p>
+                  {account.pendingAmount > 0 && (
+                    <p className="text-xs text-[#E85050]">
+                      Pendiente: {formatCOP(account.pendingAmount)}
+                    </p>
+                  )}
+                </div>
+              </button>
             ))}
           </div>
-        </>
-      )}
-
-      {loading ? (
-        <p className={tw.textMuted}>Cargando turnos...</p>
-      ) : shifts.length === 0 ? (
-        <p className={tw.textMuted}>Sin turnos</p>
+        )
       ) : (
-        <div className="flex flex-col gap-3">
-          {shifts.map((shift) => (
-            <button
-              key={shift.id}
-              onClick={() => handleSelectShift(shift.id)}
-              className={`flex items-center justify-between rounded-xl ${tw.bgCard} p-4 text-left active:bg-[#1E1E1E]`}
-            >
-              <div>
-                <p className={`font-bold ${tw.text}`}>{formatDate(shift.openedAt)}</p>
-                <p className={`text-sm ${tw.textMuted}`}>
-                  {shift.accountsCount} cuentas ·{' '}
-                  {shift.status === 'OPEN' ? '🟢 Abierto' : '✅ Cerrado'}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-[#7CCD7C]">{formatCOP(shift.totalSales)}</p>
-                {shift.totalPaid < shift.totalSales && (
-                  <p className="text-xs text-[#E85050]">Pagado: {formatCOP(shift.totalPaid)}</p>
+        <>
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={(from, to) => {
+              setDateFrom(from)
+              setDateTo(to)
+            }}
+          />
+
+          {/* Aggregated summary */}
+          {shifts.length > 0 && (
+            <>
+              <div className={`rounded-xl ${tw.bgCard} p-4`}>
+                <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                  <span>Turnos:</span>
+                  <span className={`font-bold ${tw.text}`}>{shifts.length}</span>
+                </div>
+                <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                  <span>Cuentas:</span>
+                  <span className={`font-bold ${tw.text}`}>{summary.accountsCount}</span>
+                </div>
+                <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                  <span>Total Ventas:</span>
+                  <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalSales)}</span>
+                </div>
+                <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                  <span>Total Pagado:</span>
+                  <span className="font-bold text-[#7CCD7C]">{formatCOP(summary.totalPaid)}</span>
+                </div>
+                {summary.pendingAmount > 0 && (
+                  <div className={`flex justify-between text-sm ${tw.textMuted}`}>
+                    <span>Pendiente:</span>
+                    <span className="font-bold text-[#E85050]">
+                      {formatCOP(summary.pendingAmount)}
+                    </span>
+                  </div>
                 )}
               </div>
-            </button>
-          ))}
-        </div>
+              <div className={`rounded-xl ${tw.bgCard} p-4`}>
+                <h2 className="mb-3 text-lg font-bold">Pagos por Método</h2>
+                {Object.entries(summary.paymentsByMethod).map(([method, total]) => (
+                  <div key={method} className={`flex justify-between text-sm ${tw.textMuted}`}>
+                    <span>
+                      {method === 'CASH'
+                        ? 'Efectivo'
+                        : method === 'TRANSFER'
+                          ? 'Transferencia'
+                          : 'Tarjeta'}
+                    </span>
+                    <span className={`font-bold ${tw.text}`}>{formatCOP(total)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {loading ? (
+            <p className={tw.textMuted}>Cargando turnos...</p>
+          ) : shifts.length === 0 ? (
+            <p className={tw.textMuted}>Sin turnos</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {shifts.map((shift) => (
+                <button
+                  key={shift.id}
+                  onClick={() => handleSelectShift(shift.id)}
+                  className={`flex items-center justify-between rounded-xl ${tw.bgCard} p-4 text-left active:bg-[#1E1E1E]`}
+                >
+                  <div>
+                    <p className={`font-bold ${tw.text}`}>{formatDate(shift.openedAt)}</p>
+                    <p className={`text-sm ${tw.textMuted}`}>
+                      {shift.accountsCount} cuentas ·{' '}
+                      {shift.status === 'OPEN' ? '🟢 Abierto' : '✅ Cerrado'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-[#7CCD7C]">{formatCOP(shift.totalSales)}</p>
+                    {shift.totalPaid < shift.totalSales && (
+                      <p className="text-xs text-[#E85050]">Pagado: {formatCOP(shift.totalPaid)}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
