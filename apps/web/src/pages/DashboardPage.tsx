@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccountStore } from '../store/accountStore.js'
 import { useAccountUIStore } from '../store/accountUIStore.js'
-import { useShapeStore, type ShapeTool } from '../store/shapeStore.js'
+import { useShapeStore } from '../store/shapeStore.js'
+import { useAppStore } from '../store/appStore.js'
 import { AccountCard } from '../components/Accounts/AccountCard.js'
 import { AccountDetailModal } from '../components/AccountDetailModal.js'
 import { AdminProductsPage } from '../components/Admin/AdminProductsPage.js'
@@ -13,7 +14,7 @@ import { Toast } from '../components/Toast.js'
 import { useToast } from '../hooks/useToast.js'
 import { toTitleCase } from '../utils/textUtils.js'
 import { formatCOP } from '../utils/format.js'
-import { saveAccountCardSize, saveAccountCardDimensions, saveAccountPosition } from '../services/accountApi.js'
+import { saveAccountCardSize, saveAccountPosition } from '../services/accountApi.js'
 import API_URL from '../utils/apiUrl.js'
 import type { IAccount } from '@barbaros/shared'
 
@@ -22,15 +23,50 @@ const ADMIN_PIN = '1234'
 export function DashboardPage(): JSX.Element {
   const navigate = useNavigate()
   const { accounts } = useAccountStore()
-  const { nodePositions, assignPositionsBatch, clearOrphanPositions, viewMode, setViewMode, selectionMode, selectedIds, setSelectionMode, clearSelection, saveSelectionSnapshot, restoreSelectionSnapshot, cardSize, setCardSize, getCardSize, getCardDimensions, resetCardDimensions, cardsLocked, setCardsLocked, shapesLocked, setShapesLocked, _hasHydrated } = useAccountUIStore()
-  const { activeTool, setActiveTool, drawingColor, setDrawingColor, selectedShapeId, setSelectedShapeId, deleteShape } = useShapeStore()
-  const [mode, setMode] = useState<'personal' | 'admin'>('personal')
+  const {
+    nodePositions,
+    assignPositionsBatch,
+    clearOrphanPositions,
+    viewMode,
+    selectionMode,
+    selectedIds,
+    setSelectionMode,
+    clearSelection,
+    saveSelectionSnapshot,
+    restoreSelectionSnapshot,
+    cardSize,
+    setCardSize,
+    getCardSize,
+    getCardDimensions,
+    resetCardDimensions,
+    cardsLocked,
+    setCardsLocked,
+    shapesLocked,
+    setShapesLocked,
+    _hasHydrated,
+  } = useAccountUIStore()
+  const {
+    activeTool,
+    setActiveTool,
+    drawingColor,
+    setDrawingColor,
+    selectedShapeId,
+    setSelectedShapeId,
+    deleteShape,
+  } = useShapeStore()
+  const { mode, setMode } = useAppStore()
   const [showAdminProducts, setShowAdminProducts] = useState(false)
   const [showPinModal, setShowPinModal] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
   const { toast, showToast } = useToast()
-  const [allOpenAccounts, setAllOpenAccounts] = useState<(IAccount & { total: number; pendingAmount: number; shift?: { id: string; createdAt: string; updatedAt: string; status: string } })[]>([])
+  const [allOpenAccounts, setAllOpenAccounts] = useState<
+    (IAccount & {
+      total: number
+      pendingAmount: number
+      shift?: { id: string; createdAt: string; updatedAt: string; status: string }
+    })[]
+  >([])
   const [showAddOldAccount, setShowAddOldAccount] = useState(false)
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
@@ -51,24 +87,22 @@ export function DashboardPage(): JSX.Element {
 
   const openAccounts = useMemo(
     () => Object.values(accounts).filter((acc) => acc.status === 'OPEN' && !acc.hidden),
-    [accounts]
+    [accounts],
   )
 
   const filteredOpenAccounts = useMemo(() => {
     if (!searchQuery.trim()) return openAccounts
     const q = searchQuery.toLowerCase()
-    return openAccounts.filter((acc) =>
-      (acc.name || '').toLowerCase().includes(q) ||
-      String(acc.number).includes(q)
+    return openAccounts.filter(
+      (acc) => (acc.name || '').toLowerCase().includes(q) || String(acc.number).includes(q),
     )
   }, [openAccounts, searchQuery])
 
   const filteredAllOpenAccounts = useMemo(() => {
     if (!searchQuery.trim()) return allOpenAccounts
     const q = searchQuery.toLowerCase()
-    return allOpenAccounts.filter((acc) =>
-      (acc.name || '').toLowerCase().includes(q) ||
-      String(acc.number).includes(q)
+    return allOpenAccounts.filter(
+      (acc) => (acc.name || '').toLowerCase().includes(q) || String(acc.number).includes(q),
     )
   }, [allOpenAccounts, searchQuery])
 
@@ -76,18 +110,16 @@ export function DashboardPage(): JSX.Element {
     if (!_hasHydrated) return
     // No limpiar ni asignar si las cuentas todavía no se cargaron del servidor
     if (openAccounts.length === 0) return
-    
+
     // Limpiar huérfanos (cuentas que ya no existen)
     const activeIds = openAccounts.map((acc) => acc.id)
     clearOrphanPositions(activeIds)
 
     // Asignar en batch solo a los que NO tienen posición
-    const idsToAssign = openAccounts
-        .filter(acc => !nodePositions[acc.id])
-        .map(acc => acc.id);
-        
+    const idsToAssign = openAccounts.filter((acc) => !nodePositions[acc.id]).map((acc) => acc.id)
+
     if (idsToAssign.length > 0) {
-        assignPositionsBatch(idsToAssign);
+      assignPositionsBatch(idsToAssign)
     }
   }, [openAccounts, assignPositionsBatch, clearOrphanPositions, _hasHydrated, nodePositions])
 
@@ -134,7 +166,9 @@ export function DashboardPage(): JSX.Element {
       if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return
       ws = new WebSocket(wsUrl)
 
-      ws.onopen = () => { delay = 1000 }
+      ws.onopen = () => {
+        delay = 1000
+      }
 
       ws.onmessage = (message) => {
         try {
@@ -157,13 +191,18 @@ export function DashboardPage(): JSX.Element {
         }, delay)
       }
 
-      ws.onerror = () => { ws?.close() }
+      ws.onerror = () => {
+        ws?.close()
+      }
     }
 
     connect()
 
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && (ws?.readyState === WebSocket.CLOSED || ws?.readyState === WebSocket.CLOSING)) {
+      if (
+        document.visibilityState === 'visible' &&
+        (ws?.readyState === WebSocket.CLOSED || ws?.readyState === WebSocket.CLOSING)
+      ) {
         connect()
       }
     }
@@ -187,7 +226,9 @@ export function DashboardPage(): JSX.Element {
         const newAccount = await res.json()
         useAccountStore.getState().addAccount(newAccount)
         // Place new account at the center of the current viewport
-        const center = useAccountUIStore.getState().getViewportCenter(window.innerWidth, window.innerHeight)
+        const center = useAccountUIStore
+          .getState()
+          .getViewportCenter(window.innerWidth, window.innerHeight)
         useAccountUIStore.getState().updatePosition(newAccount.id, center)
         refreshAllOpenAccounts()
       } else {
@@ -253,7 +294,12 @@ export function DashboardPage(): JSX.Element {
     <div className="flex min-h-dvh flex-col gap-2 bg-[#0A0A0A] px-[5px] text-[#E8E0D0]">
       {/* Header */}
       <header data-toolbar className="flex flex-wrap items-center gap-2 mt-[15px]">
-        <img src="/logo.png" alt="Bárbaro's Logo" className={`h-[60px] w-auto object-contain ${mode === 'admin' ? 'cursor-pointer' : ''}`} onClick={() => mode === 'admin' && setShowAdminSidebar(true)} />
+        <img
+          src="/logo.png"
+          alt="Bárbaro's Logo"
+          className={`h-[60px] w-auto object-contain ${mode === 'admin' ? 'cursor-pointer' : ''}`}
+          onClick={() => mode === 'admin' && setShowAdminSidebar(true)}
+        />
         {/* sm/md: mode selector next to logo */}
         <div className="ml-auto flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20 md:hidden">
           <button
@@ -273,14 +319,18 @@ export function DashboardPage(): JSX.Element {
           <div className="relative">
             {showSearch ? (
               <>
-                <span className="absolute left-3 top-1/2 -translate-y-1/2"><img src="/iconoLupa.png" alt="Buscar" className="h-5 w-5" /></span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <img src="/iconoLupa.png" alt="Buscar" className="h-5 w-5" />
+                </span>
                 <input
                   autoFocus
                   type="text"
                   placeholder="Buscar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onBlur={() => { if (!searchQuery) setShowSearch(false) }}
+                  onBlur={() => {
+                    if (!searchQuery) setShowSearch(false)
+                  }}
                   className="h-11 w-48 rounded-lg bg-[#141414] border border-[#C8A84E]/20 py-2 pl-10 pr-4 text-sm text-[#E8E0D0] placeholder-[#7A7060] outline-none focus:ring-1 focus:ring-[#C8A84E]/50"
                 />
               </>
@@ -325,7 +375,9 @@ export function DashboardPage(): JSX.Element {
                         }
                       }}
                       className={`flex-1 rounded-md py-1.5 text-xs font-bold ${
-                        cardSize === s ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#1E1E1E] text-[#7A7060]'
+                        cardSize === s
+                          ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                          : 'bg-[#1E1E1E] text-[#7A7060]'
                       }`}
                     >
                       {s.toUpperCase()}
@@ -344,13 +396,18 @@ export function DashboardPage(): JSX.Element {
                     setShowCuentaMenu(false)
                   }}
                   className={`w-full rounded-md px-3 py-2 text-left text-xs font-bold ${
-                    selectionMode ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#E8E0D0] hover:bg-[#1E1E1E]'
+                    selectionMode
+                      ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                      : 'text-[#E8E0D0] hover:bg-[#1E1E1E]'
                   }`}
                 >
                   {selectionMode ? '✓ Seleccionando' : '☐ Seleccionar'}
                 </button>
                 <button
-                  onClick={() => { setShowAddOldAccount(true); setShowCuentaMenu(false) }}
+                  onClick={() => {
+                    setShowAddOldAccount(true)
+                    setShowCuentaMenu(false)
+                  }}
                   className="w-full rounded-md px-3 py-2 text-left text-xs font-bold text-[#E8E0D0] hover:bg-[#1E1E1E]"
                 >
                   + Agregar cuenta abierta
@@ -360,15 +417,21 @@ export function DashboardPage(): JSX.Element {
           </div>
           <button
             onClick={() => {
-              setCardsLocked(!cardsLocked);
-              if (!cardsLocked) setSelectionMode(false);
+              setCardsLocked(!cardsLocked)
+              if (!cardsLocked) setSelectionMode(false)
             }}
             className={`h-11 rounded-lg px-3 text-sm font-bold ${
-              cardsLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
+              cardsLocked
+                ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
             }`}
             title={cardsLocked ? 'Desbloquear tarjetas' : 'Bloquear tarjetas'}
           >
-            <img src={cardsLocked ? '/candadoCerrado.png' : '/candadoAbierto.png'} alt="Tarjetas" className="h-5 w-5" />
+            <img
+              src={cardsLocked ? '/candadoCerrado.png' : '/candadoAbierto.png'}
+              alt="Tarjetas"
+              className="h-5 w-5"
+            />
           </button>
           {/* lg+: mode selector next to + Cuenta */}
           <div className="hidden md:flex rounded-lg bg-[#141414] p-1 border border-[#C8A84E]/20">
@@ -391,21 +454,40 @@ export function DashboardPage(): JSX.Element {
       {/* Admin Sidebar */}
       {showAdminSidebar && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowAdminSidebar(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setShowAdminSidebar(false)}
+          />
           <div className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[#0A0A0A] p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#C8A84E] tracking-wide" style={{ fontFamily: 'serif' }}>Control de Turno</h2>
-              <button onClick={() => setShowAdminSidebar(false)} className="h-8 w-8 rounded-lg bg-[#141414] text-[#E8E0D0] active:bg-[#1E1E1E]">✕</button>
+              <h2
+                className="text-lg font-bold text-[#C8A84E] tracking-wide"
+                style={{ fontFamily: 'serif' }}
+              >
+                Control de Turno
+              </h2>
+              <button
+                onClick={() => setShowAdminSidebar(false)}
+                className="h-8 w-8 rounded-lg bg-[#141414] text-[#E8E0D0] active:bg-[#1E1E1E]"
+              >
+                ✕
+              </button>
             </div>
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => { setShowAdminProducts(true); setShowAdminSidebar(false) }}
+                onClick={() => {
+                  setShowAdminProducts(true)
+                  setShowAdminSidebar(false)
+                }}
                 className="h-12 w-full rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20"
               >
                 ☰ Productos
               </button>
               <button
-                onClick={() => { navigate('/reports'); setShowAdminSidebar(false) }}
+                onClick={() => {
+                  navigate('/reports')
+                  setShowAdminSidebar(false)
+                }}
                 className="h-12 w-full rounded-lg bg-[#C8A84E]/10 border border-[#C8A84E]/30 px-3 text-sm font-bold text-[#C8A84E] active:bg-[#C8A84E]/20"
               >
                 📊 Reportes
@@ -425,7 +507,10 @@ export function DashboardPage(): JSX.Element {
                     <p className="text-sm text-[#E8E0D0]">Seguro que queres cerrar el turno?</p>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => { closeShift(); setConfirmCloseShift(false) }}
+                        onClick={() => {
+                          closeShift()
+                          setConfirmCloseShift(false)
+                        }}
                         className="h-12 flex-1 rounded-lg bg-[#5C1A1A] border border-[#E85050]/30 font-bold text-[#E85050] active:bg-[#5C1A1A]/80"
                       >
                         Si, cerrar
@@ -457,7 +542,9 @@ export function DashboardPage(): JSX.Element {
           <p className="text-center text-[#7A7060]">Cargando...</p>
         ) : viewMode === 'list' ? (
           filteredAllOpenAccounts.length === 0 ? (
-            <p className="text-center text-[#7A7060]">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+            <p className="text-center text-[#7A7060]">
+              {searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {filteredAllOpenAccounts.map((acc) => (
@@ -474,7 +561,9 @@ export function DashboardPage(): JSX.Element {
             </div>
           )
         ) : filteredOpenAccounts.length === 0 ? (
-          <p className="text-center text-[#7A7060]">{searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}</p>
+          <p className="text-center text-[#7A7060]">
+            {searchQuery ? 'No se encontraron cuentas.' : 'No hay cuentas abiertas.'}
+          </p>
         ) : (
           <>
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -485,7 +574,7 @@ export function DashboardPage(): JSX.Element {
                   </span>
                 )}
               </div>
-      <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {selectionMode && (
                   <button
                     onClick={() => {
@@ -512,19 +601,28 @@ export function DashboardPage(): JSX.Element {
                 {/* Shape tools — admin only */}
                 {mode === 'admin' && (
                   <>
-                    <div className={`flex rounded-lg bg-[#141414] border border-[#C8A84E]/20 p-1 ${shapesLocked ? 'opacity-50' : ''}`}>
+                    <div
+                      className={`flex rounded-lg bg-[#141414] border border-[#C8A84E]/20 p-1 ${shapesLocked ? 'opacity-50' : ''}`}
+                    >
                       <button
-                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')}
+                        onClick={() =>
+                          !shapesLocked &&
+                          setActiveTool(activeTool === 'rectangle' ? null : 'rectangle')
+                        }
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
-                          activeTool === 'rectangle' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
+                          activeTool === 'rectangle'
+                            ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                            : 'text-[#7A7060]'
                         }`}
                         title="Rectángulo"
                       >
                         ▭
                       </button>
                       <button
-                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')}
+                        onClick={() =>
+                          !shapesLocked && setActiveTool(activeTool === 'line' ? null : 'line')
+                        }
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
                           activeTool === 'line' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
@@ -534,7 +632,9 @@ export function DashboardPage(): JSX.Element {
                         ╱
                       </button>
                       <button
-                        onClick={() => !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')}
+                        onClick={() =>
+                          !shapesLocked && setActiveTool(activeTool === 'text' ? null : 'text')
+                        }
                         disabled={shapesLocked}
                         className={`h-8 rounded-md px-2 text-xs font-bold ${
                           activeTool === 'text' ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'text-[#7A7060]'
@@ -555,8 +655,8 @@ export function DashboardPage(): JSX.Element {
                       {selectedShapeId && (
                         <button
                           onClick={() => {
-                            deleteShape(selectedShapeId);
-                            setSelectedShapeId(null);
+                            deleteShape(selectedShapeId)
+                            setSelectedShapeId(null)
                           }}
                           className="h-8 rounded-md px-2 text-xs font-bold text-[#E85050] hover:bg-[#5C1A1A]"
                           title="Eliminar figura (o presiona Delete)"
@@ -567,15 +667,17 @@ export function DashboardPage(): JSX.Element {
                     </div>
                     <button
                       onClick={() => {
-                        setShapesLocked(!shapesLocked);
+                        setShapesLocked(!shapesLocked)
                         if (!shapesLocked) {
-                          setActiveTool(null);
-                          setSelectionMode(false);
-                          setSelectedShapeId(null);
+                          setActiveTool(null)
+                          setSelectionMode(false)
+                          setSelectedShapeId(null)
                         }
                       }}
                       className={`h-10 rounded-lg px-3 font-bold text-sm ${
-                        shapesLocked ? 'bg-[#C8A84E] text-[#0A0A0A]' : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
+                        shapesLocked
+                          ? 'bg-[#C8A84E] text-[#0A0A0A]'
+                          : 'bg-[#141414] text-[#E8E0D0] border border-[#C8A84E]/20 active:bg-[#1E1E1E]'
                       }`}
                       title={shapesLocked ? 'Desbloquear figuras' : 'Bloquear figuras'}
                     >
@@ -586,46 +688,57 @@ export function DashboardPage(): JSX.Element {
               </div>
             </div>
             <div className="relative flex flex-1 flex-col">
-            <CanvasContainer shapes={<ShapeLayer />} modal={selectedAccountId ? (
-              <AccountDetailModal accountId={selectedAccountId} onClose={() => setSelectedAccountId(null)} />
-            ) : undefined} onCreateAccount={createAccount} onToggleSelection={() => {
-              if (selectionMode) {
-                clearSelection()
-                setSelectionMode(false)
-              } else {
-                saveSelectionSnapshot()
-                setSelectionMode(true)
-              }
-            }} onCardSizeChange={(size) => {
-              setCardSize(size)
-              if (selectionMode && selectedIds.size > 0) {
-                for (const id of selectedIds) {
-                  saveAccountCardSize(id, size)
-                  resetCardDimensions(id)
-                }
-              }
-            }}>
-              {filteredOpenAccounts.map((acc) => {
-                const dims = getCardDimensions(acc.id)
-                return (
-                  <DragNode
-                    key={acc.id}
-                    accountId={acc.id}
-                    onClick={() => setSelectedAccountId(acc.id)}
-                  >
-                    <AccountCard
-                      name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
-                      total={acc.total ?? 0}
-                      pendingAmount={acc.pendingAmount ?? 0}
-                      status={acc.status.toLowerCase() as 'open' | 'closed'}
-                      size={getCardSize(acc.id)}
-                      width={dims.w}
-                      height={dims.h}
+              <CanvasContainer
+                shapes={<ShapeLayer />}
+                modal={
+                  selectedAccountId ? (
+                    <AccountDetailModal
+                      accountId={selectedAccountId}
+                      onClose={() => setSelectedAccountId(null)}
                     />
-                  </DragNode>
-                )
-              })}
-            </CanvasContainer>
+                  ) : undefined
+                }
+                onCreateAccount={createAccount}
+                onToggleSelection={() => {
+                  if (selectionMode) {
+                    clearSelection()
+                    setSelectionMode(false)
+                  } else {
+                    saveSelectionSnapshot()
+                    setSelectionMode(true)
+                  }
+                }}
+                onCardSizeChange={(size) => {
+                  setCardSize(size)
+                  if (selectionMode && selectedIds.size > 0) {
+                    for (const id of selectedIds) {
+                      saveAccountCardSize(id, size)
+                      resetCardDimensions(id)
+                    }
+                  }
+                }}
+              >
+                {filteredOpenAccounts.map((acc) => {
+                  const dims = getCardDimensions(acc.id)
+                  return (
+                    <DragNode
+                      key={acc.id}
+                      accountId={acc.id}
+                      onClick={() => setSelectedAccountId(acc.id)}
+                    >
+                      <AccountCard
+                        name={toTitleCase(acc.name || `Cuenta #${acc.number}`)}
+                        total={acc.total ?? 0}
+                        pendingAmount={acc.pendingAmount ?? 0}
+                        status={acc.status.toLowerCase() as 'open' | 'closed'}
+                        size={getCardSize(acc.id)}
+                        width={dims.w}
+                        height={dims.h}
+                      />
+                    </DragNode>
+                  )
+                })}
+              </CanvasContainer>
             </div>
           </>
         )}
@@ -666,9 +779,7 @@ export function DashboardPage(): JSX.Element {
         </div>
       )}
 
-      {showAdminProducts && (
-        <AdminProductsPage onClose={() => setShowAdminProducts(false)} />
-      )}
+      {showAdminProducts && <AdminProductsPage onClose={() => setShowAdminProducts(false)} />}
 
       {showAddOldAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -678,12 +789,14 @@ export function DashboardPage(): JSX.Element {
               {/* Hidden accounts from current shift */}
               {(() => {
                 const hiddenAccounts = Object.values(accounts).filter(
-                  (acc) => acc.status === 'OPEN' && acc.hidden
+                  (acc) => acc.status === 'OPEN' && acc.hidden,
                 )
                 if (hiddenAccounts.length === 0) return null
                 return (
                   <>
-                    <p className="mb-2 text-xs font-bold text-[#7A7060]">Cuentas ocultas de este turno</p>
+                    <p className="mb-2 text-xs font-bold text-[#7A7060]">
+                      Cuentas ocultas de este turno
+                    </p>
                     {hiddenAccounts.map((acc) => (
                       <button
                         key={acc.id}
@@ -710,26 +823,39 @@ export function DashboardPage(): JSX.Element {
               {/* Accounts from other shifts */}
               {(() => {
                 const otherShiftAccounts = allOpenAccounts.filter(
-                  (acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden
+                  (acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden,
                 )
                 if (otherShiftAccounts.length === 0) return null
                 return (
                   <>
-                    <p className="mb-2 mt-2 text-xs font-bold text-[#7A7060]">Cuentas de otros turnos</p>
+                    <p className="mb-2 mt-2 text-xs font-bold text-[#7A7060]">
+                      Cuentas de otros turnos
+                    </p>
                     {otherShiftAccounts.map((acc) => (
                       <button
                         key={acc.id}
                         onClick={() => {
                           const { addAccount } = useAccountStore.getState()
                           addAccount(acc)
-                          fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(() => {})
+                          fetch(`${API_URL}/accounts/${acc.id}/pin`, { method: 'PATCH' }).catch(
+                            () => {},
+                          )
                           setShowAddOldAccount(false)
                         }}
                         className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#1E1E1E] p-3 text-left text-[#E8E0D0] active:bg-[#1E1E1E]/80"
                       >
                         <div>
                           <span>{toTitleCase(acc.name || `Cuenta #${acc.number}`)}</span>
-                          <p className="text-xs text-[#7A7060]">Turno: {acc.shift?.createdAt ? new Date(acc.shift.createdAt).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short' }) : ''}</p>
+                          <p className="text-xs text-[#7A7060]">
+                            Turno:{' '}
+                            {acc.shift?.createdAt
+                              ? new Date(acc.shift.createdAt).toLocaleDateString('es-CO', {
+                                  timeZone: 'America/Bogota',
+                                  day: '2-digit',
+                                  month: 'short',
+                                })
+                              : ''}
+                          </p>
                         </div>
                         <span className="text-sm text-[#7A7060]">{formatCOP(acc.total)}</span>
                       </button>
@@ -737,10 +863,13 @@ export function DashboardPage(): JSX.Element {
                   </>
                 )
               })()}
-              {Object.values(accounts).filter((a) => a.status === 'OPEN' && a.hidden).length === 0 &&
-               allOpenAccounts.filter((acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden).length === 0 && (
-                <p className="text-center text-[#7A7060]">No hay cuentas para agregar.</p>
-              )}
+              {Object.values(accounts).filter((a) => a.status === 'OPEN' && a.hidden).length ===
+                0 &&
+                allOpenAccounts.filter(
+                  (acc) => !openAccounts.some((o) => o.id === acc.id) && !acc.hidden,
+                ).length === 0 && (
+                  <p className="text-center text-[#7A7060]">No hay cuentas para agregar.</p>
+                )}
             </div>
             <button
               onClick={() => setShowAddOldAccount(false)}
