@@ -10,10 +10,7 @@ import { Toast } from '../components/Toast.js'
 import { useToast } from '../hooks/useToast.js'
 import API_URL from '../utils/apiUrl.js'
 import { tw } from '../utils/colors.js'
-import {
-  voidAccount as apiVoidAccount,
-  reopenAccount as apiReopenAccount,
-} from '../services/accountApi.js'
+import { voidAccount as apiVoidAccount } from '../services/accountApi.js'
 import type { Payment, PaymentMethod, AccountStatus } from '@barbaros/shared'
 
 export function AccountDetailPage(): JSX.Element {
@@ -33,7 +30,7 @@ export function AccountDetailPage(): JSX.Element {
   const [showPinModal, setShowPinModal] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
-  const [pinAction, setPinAction] = useState<'void' | 'reopen' | null>(null)
+  const [pinAction, setPinAction] = useState<'void' | null>(null)
   const [processingAction, setProcessingAction] = useState(false)
   const { toast, showToast } = useToast()
 
@@ -217,8 +214,8 @@ export function AccountDetailPage(): JSX.Element {
     setPinAction(null)
   }
 
-  const openPinModal = (action: 'void' | 'reopen') => {
-    setPinAction(action)
+  const openPinModal = () => {
+    setPinAction('void')
     setPin('')
     setPinError(null)
     setShowPinModal(true)
@@ -227,35 +224,15 @@ export function AccountDetailPage(): JSX.Element {
   const submitPin = async () => {
     if (!pinAction) return
     setProcessingAction(true)
-    if (pinAction === 'void') {
-      const result = await apiVoidAccount(account.id, pin)
-      if (result.ok) {
-        updateAccount(result.account)
-        closePinModal()
-        showToast('Cuenta anulada')
-      } else {
-        setPinError(result.message || 'PIN incorrecto')
-      }
+    const result = await apiVoidAccount(account.id, pin)
+    if (result.ok) {
+      updateAccount(result.account)
+      closePinModal()
+      showToast('Cuenta anulada')
     } else {
-      const result = await apiReopenAccount(account.id, pin)
-      if (result.ok) {
-        updateAccount(result.account)
-        closePinModal()
-        navigate(`/accounts/${account.id}`)
-      } else {
-        setPinError(result.message || 'PIN incorrecto')
-      }
+      setPinError(result.message || 'PIN incorrecto')
     }
     setProcessingAction(false)
-  }
-
-  const handleEdit = () => {
-    if (account.status === 'VOIDED') return
-    if (account.status === 'OPEN') {
-      navigate(`/accounts/${account.id}`)
-    } else {
-      openPinModal('reopen')
-    }
   }
 
   const isVoided = account.status === 'VOIDED'
@@ -402,18 +379,11 @@ export function AccountDetailPage(): JSX.Element {
         {readonly && (
           <div className="flex flex-col gap-2">
             <button
-              onClick={() => openPinModal('void')}
+              onClick={() => openPinModal()}
               disabled={isVoided || processingAction}
               className={`h-12 w-full rounded-lg px-4 font-bold active:bg-[#5C1A1A]/80 ${isVoided ? 'cursor-not-allowed opacity-50' : ''} bg-[#5C1A1A] text-[#E85050]`}
             >
               Anular cuenta
-            </button>
-            <button
-              onClick={handleEdit}
-              disabled={isVoided}
-              className={`h-12 w-full rounded-lg bg-[#141414] px-4 font-bold text-[#E8E0D0] active:bg-[#1E1E1E] ${isVoided ? 'cursor-not-allowed opacity-50' : ''}`}
-            >
-              Editar cuenta
             </button>
           </div>
         )}
@@ -584,18 +554,11 @@ export function AccountDetailPage(): JSX.Element {
           {readonly && (
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => openPinModal('void')}
+                onClick={() => openPinModal()}
                 disabled={isVoided || processingAction}
                 className={`h-12 w-full rounded-lg px-4 font-bold active:bg-[#5C1A1A]/80 ${isVoided ? 'cursor-not-allowed opacity-50' : ''} bg-[#5C1A1A] text-[#E85050]`}
               >
                 Anular cuenta
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={isVoided}
-                className={`h-12 w-full rounded-lg bg-[#141414] px-4 font-bold text-[#E8E0D0] active:bg-[#1E1E1E] ${isVoided ? 'cursor-not-allowed opacity-50' : ''}`}
-              >
-                Editar cuenta
               </button>
             </div>
           )}
@@ -623,14 +586,10 @@ export function AccountDetailPage(): JSX.Element {
       {showPinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-[#141414] p-6 shadow-2xl">
-            <h2 className="mb-2 text-xl font-bold text-[#E8E0D0]">
-              {pinAction === 'void' ? 'Anular cuenta' : 'Editar cuenta'}
-            </h2>
-            {pinAction === 'void' && (
-              <p className="mb-4 text-sm text-[#E85050]">
-                Esta acción es irreversible. Ingresá el PIN de admin para confirmar.
-              </p>
-            )}
+            <h2 className="mb-2 text-xl font-bold text-[#E8E0D0]">Anular cuenta</h2>
+            <p className="mb-4 text-sm text-[#E85050]">
+              Esta acción es irreversible. Ingresá el PIN de admin para confirmar.
+            </p>
             <input
               type="password"
               inputMode="numeric"
