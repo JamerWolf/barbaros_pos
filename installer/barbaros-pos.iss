@@ -213,7 +213,6 @@ begin
     if ResultCode = 0 then
     begin
       Result := True;
-      MsgBox('Node.js instalado correctamente.', mbInformation, MB_OK);
     end
     else
     begin
@@ -373,7 +372,7 @@ begin
       InstallerPath,
       '--mode unattended --superpassword barbaros --servicename postgresql-barbaros --serverport 5432',
       '',
-      SW_SHOWNORMAL,
+      SW_HIDE,
       ewWaitUntilTerminated,
       ResultCode) then
   begin
@@ -383,7 +382,6 @@ begin
       0:
       begin
         Result := True;
-        MsgBox('PostgreSQL instalado correctamente.', mbInformation, MB_OK);
       end;
       
       1:
